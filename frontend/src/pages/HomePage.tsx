@@ -136,35 +136,6 @@ type OcrLlmEngine =
   | 'google_vision'
 type OcrMarkId = OcrLetter | OcrLlmEngine
 
-const OCR_MARK_COLORS: Record<OcrMarkId, string> = {
-  A: '#1f9d6a',
-  B: '#2f6fdb',
-  C: '#d97706',
-  D: '#7c3aed',
-  gemini: '#0f766e',
-  openai: '#7c3aed',
-  deepseek: '#0369a1',
-  qwen: '#b45309',
-  yandex: '#dc2626',
-  google_vision: '#4285F4',
-}
-
-const OCR_MARK_LABELS: Record<OcrMarkId, string> = {
-  A: 'A',
-  B: 'B',
-  C: 'C',
-  D: 'D',
-  gemini: 'G',
-  openai: 'O',
-  deepseek: 'K',
-  qwen: 'Q',
-  yandex: 'Y',
-  google_vision: 'V',
-}
-
-/** @deprecated — use OCR_MARK_COLORS */
-const OCR_COLORS = OCR_MARK_COLORS
-
 type OcrScoreChannel = OcrMarkId
 
 type OcrGroupBest = {
@@ -590,10 +561,6 @@ function collectOcrTextScoresByWine(
   return map
 }
 
-function formatOcrScore(value: number | undefined): string {
-  return formatScore00(value)
-}
-
 /** Все скоры единообразно 0.00 (0..1; значения >1.5 считаем шкалой ×100). */
 function formatScore00(value: number | string | null | undefined): string {
   if (value == null || value === '') return '—'
@@ -755,7 +722,7 @@ function collectQueryOcrText(result: FindWineResult | null): string {
   let bestFs = -1
   for (const [key, entry] of Object.entries(per)) {
     const raw = entry?.best_final?.final_score
-    if (raw == null || raw === '') continue
+    if (raw == null || (typeof raw === 'string' && raw === '')) continue
     const fs = Number(raw)
     if (!Number.isFinite(fs)) continue
     if (fs > bestFs) {
@@ -2078,7 +2045,7 @@ function DropzoneThumb({
   caption: string
   alt: string
 }) {
-  const figRef = useRef<HTMLFigureElement>(null)
+  const figRef = useRef<HTMLElement>(null)
   const [open, setOpen] = useState(false)
   const [pos, setPos] = useState<{ top: number; left: number } | null>(null)
   const leaveTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
@@ -3058,10 +3025,17 @@ function OcrVariantsBlock({
     : 'w_ocr / w_emb из Настроек'
 
   const resolveLlmOcrStep = (
-    engine: 'gemini' | 'openai' | 'deepseek' | 'qwen',
+    engine:
+      | 'gemini'
+      | 'openai'
+      | 'deepseek'
+      | 'qwen'
+      | 'yandex'
+      | 'google_vision',
   ): LlmOcrStep | null => {
+    const ocrRec = ocr as Record<string, unknown> | null | undefined
     const raw = (steps[`ocr_${engine}`] ||
-      ocr?.[engine] ||
+      ocrRec?.[engine] ||
       ocr?.variants?.[engine]) as LlmOcrStep | undefined
     const ld = steps[`${engine}_label_detect`] as
       | {
