@@ -103,9 +103,46 @@ server {
         proxy_pass $crenc_upstream;
     }
 
-    # Everything else: explicit error (do not show aidispatcher)
+    # Vino Svoe app API (container vino_backend)
+    location /api/ {
+        resolver 127.0.0.11 valid=30s ipv6=off;
+        set $vino_be http://vino_backend:8092;
+        proxy_http_version 1.1;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto https;
+        proxy_set_header Connection "";
+        proxy_read_timeout 300s;
+        client_max_body_size 25m;
+        proxy_pass $vino_be;
+    }
+
+    location /media/ {
+        resolver 127.0.0.11 valid=30s ipv6=off;
+        set $vino_be http://vino_backend:8092;
+        proxy_http_version 1.1;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto https;
+        proxy_set_header Connection "";
+        proxy_read_timeout 120s;
+        client_max_body_size 25m;
+        proxy_pass $vino_be;
+    }
+
+    # SPA (container vino_frontend)
     location / {
-        default_type application/json;
-        return 404 '{"error":"not_found","message":"vino-svoe.online serves API only"}';
+        resolver 127.0.0.11 valid=30s ipv6=off;
+        set $vino_fe http://vino_frontend:80;
+        proxy_http_version 1.1;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto https;
+        proxy_set_header Connection "";
+        proxy_read_timeout 300s;
+        proxy_pass $vino_fe;
     }
 }

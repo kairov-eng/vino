@@ -11,6 +11,29 @@
 name: vino
 
 services:
+  # Catalog DB on the same host (pgvector). Not the aidispatcher app DB
+  # (alpine image has no vector). Data: /var/lib/vino-svoe/postgres
+  vino_postgres:
+    container_name: vino_postgres
+    image: pgvector/pgvector:pg16
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${VINO_PG_USER:-vino}
+      POSTGRES_PASSWORD: ${VINO_PG_PASSWORD:?set VINO_PG_PASSWORD in distrib/.env}
+      POSTGRES_DB: ${VINO_PG_DB:-vino}
+    volumes:
+      - ${VINO_PGDATA_HOST:-/var/lib/vino-svoe/postgres}:/var/lib/postgresql/data
+    ports:
+      # host-only; containers use hostname vino_postgres
+      - "${VINO_PG_PORT:-127.0.0.1:5433}:5432"
+    networks:
+      - vino_net
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $$POSTGRES_USER -d $$POSTGRES_DB"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
   vino_backend:
     container_name: vino_backend
     build:
@@ -22,30 +45,39 @@ services:
       - .env
     environment:
       # Override paths inside container (host paths come from volumes)
+      DATABASE_URL: ${DATABASE_URL:-postgresql+psycopg2://vino:${VINO_PG_PASSWORD}@vino_postgres:5432/vino}
       MEDIA_ROOT: /data/media
       SEARCH_PHOTO_DIR: /data/search_photos
       YOLO_MODEL_PATH: /app/models/yolo/label_detect.pt
       YOLO_BOTTLE_LABEL_MODEL_PATH: /app/models/yolo_bottle_label/best.pt
       XGB_MODEL_DIR: /app/models/xgboost_text_matcher_abs_v14
       SIGLIP2_LOCAL_DIR: /app/models/Siglip2
+      SIGLIP2_LOCAL_ENABLED: ${SIGLIP2_LOCAL_ENABLED:-0}
+      YOLO_DEVICE: ${YOLO_DEVICE:-cpu}
+      YOLO_HALF: ${YOLO_HALF:-0}
       CORS_ORIGINS: ${CORS_ORIGINS:-https://vino-svoe.online,http://vino-svoe.online}
+      GOOGLE_APPLICATION_CREDENTIALS: ${GOOGLE_APPLICATION_CREDENTIALS:-}
     volumes:
       - ${VINO_MEDIA_HOST:-/var/lib/vino-svoe/media}:/data/media
       - ${VINO_SEARCH_PHOTOS_HOST:-/var/lib/vino-svoe/search_photos}:/data/search_photos
       - ${VINO_MODELS_HOST:-/var/lib/vino-svoe/models}:/app/models:ro
       - ${VINO_HF_CACHE_HOST:-/var/lib/vino-svoe/hf-cache}:/cache/huggingface
+      - ${VINO_SECRETS_HOST:-/var/lib/vino-svoe/secrets}:/var/lib/vino-svoe/secrets:ro
     ports:
       # optional direct access; prefer nginx → vino_frontend → backend
       - "${VINO_BACKEND_PORT:-127.0.0.1:8092}:8092"
     networks:
       - vino_net
       - aidnet
+    depends_on:
+      vino_postgres:
+        condition: service_healthy
     healthcheck:
       test: ["CMD", "curl", "-fsS", "http://127.0.0.1:8092/api/health"]
       interval: 30s
       timeout: 10s
       retries: 5
-      start_period: 120s
+      start_period: 180s
 
   vino_frontend:
     container_name: vino_frontend
@@ -58,7 +90,8 @@ services:
       vino_backend:
         condition: service_healthy
     ports:
-      - "${VINO_FRONTEND_PORT:-127.0.0.1:8091}:80"
+      # 8091 is taken by dinov3-embed on aidispatcher — use 8088 for local probe
+      - "${VINO_FRONTEND_PORT:-127.0.0.1:8088}:80"
     networks:
       - vino_net
       - aidnet
