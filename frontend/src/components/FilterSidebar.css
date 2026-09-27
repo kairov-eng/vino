@@ -1,0 +1,126 @@
+.filters {
+  background: #fff;
+  border-radius: 18px;
+  box-shadow: 0 10px 30px rgba(70, 40, 30, 0.06);
+  padding: 8px 0;
+  position: sticky;
+  top: 88px;
+  max-height: calc(100vh - 110px);
+  overflow: auto;
+}
+
+.filters__top-search {
+  padding: 14px 18px 10px;
+  border-bottom: 1px solid rgba(80, 48, 40, 0.08);
+}
+
+.filters__top-search label {
+  display: block;
+  margin-bottom: 8px;
+  font-weight: 600;
+  color: #2b1a16;
+  font-size: 0.95rem;
+}
+
+.filters__search--main {
+  margin-bottom: 0;
+  background: #fff;
+  border-color: rgba(139, 29, 44, 0.25);
+}
+
+.filters__search--main:focus {
+  outline: 2px solid rgba(139, 29, 44, 0.25);
+  border-color: #8b1d2c;
+}
+
+.filters__mobile-toggle {
+  display: none;
+  width: 100%;
+  padding: 14px 18px;
+  border: 0;
+  background: none;
+  font: inherit;
+  font-weight: 600;
+  color: #8b1d2c;
+  text-align: left;
+  cursor: pointer;
+}
+
+.filters--collapsed {
+  padding: 0;
+}
+
+@media (max-width: 900px) {
+  .filters__mobile-toggle {
+    display: block;
+  }
+
+  .filters--collapsed .filters__mobile-toggle {
+    border-radius: 18px;
+  }
+}
+
+.filters__group + .filters__group {
+  border-top: 1px solid rgba(80, 48, 40, 0.08);
+}
+
+.filters__title {
+  width: 100%;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 16px 18px;
+  background: none;
+  border: 0;
+  font: inherit;
+  font-weight: 600;
+  color: #2b1a16;
+  cursor: pointer;
+}
+
+.filters__body {
+  padding: 0 18px 16px;
+}
+
+.filters__search {
+  width: 100%;
+  margin-bottom: 10px;
+  border: 1px solid rgba(80, 48, 40, 0.14);
+  border-radius: 10px;
+  padding: 10px 12px;
+  background: #faf7f2;
+}
+
+.filters ul {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 8px;
+}
+
+.filters label {
+  display: grid;
+  grid-template-columns: 18px 1fr auto;
+  gap: 10px;
+  align-items: start;
+  font-size: 0.92rem;
+  color: #403029;
+  cursor: pointer;
+}
+
+.filters em {
+  font-style: normal;
+  color: #9a847b;
+  font-size: 0.8rem;
+}
+
+.filters__more {
+  margin-top: 10px;
+  background: none;
+  border: 0;
+  color: #8b1d2c;
+  cursor: pointer;
+  padding: 0;
+  font: inherit;
+}

@@ -1,0 +1,117 @@
+.site-access-gate {
+  position: fixed;
+  inset: 0;
+  z-index: 100001;
+  display: grid;
+  place-items: center;
+  padding: 24px;
+  background: rgba(252, 249, 243, 0.55);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+}
+
+.site-access-gate--loading {
+  background: #fcf9f3;
+  color: #7a655d;
+  font-size: 1rem;
+}
+
+.site-access-gate__card {
+  width: min(420px, 100%);
+  background: #fff;
+  border-radius: 28px;
+  padding: 40px 36px 32px;
+  box-shadow: 0 24px 60px rgba(40, 20, 15, 0.18);
+  text-align: center;
+}
+
+.site-access-gate__title {
+  margin: 0 0 14px;
+  font-family: 'Source Serif 4', Georgia, serif;
+  font-size: clamp(2rem, 5vw, 2.6rem);
+  font-weight: 700;
+  line-height: 1.1;
+  color: #1a1a1a;
+}
+
+.site-access-gate__text {
+  margin: 0 auto 22px;
+  max-width: 28em;
+  font-size: 1rem;
+  line-height: 1.5;
+  color: #2b1a16;
+}
+
+.site-access-gate__label {
+  display: grid;
+  gap: 6px;
+  text-align: left;
+  margin: 0 auto 16px;
+  max-width: 320px;
+}
+
+.site-access-gate__label-text {
+  font-size: 0.85rem;
+  color: #7a655d;
+  font-weight: 600;
+}
+
+.site-access-gate__input {
+  width: 100%;
+  box-sizing: border-box;
+  border: 1px solid #e4d5c8;
+  border-radius: 12px;
+  padding: 12px 14px;
+  font-size: 1rem;
+  color: #2b1a16;
+  background: #fffaf5;
+}
+
+.site-access-gate__input:focus {
+  outline: 2px solid rgba(139, 29, 44, 0.35);
+  border-color: #8b1d2c;
+}
+
+.site-access-gate__error {
+  margin: 0 auto 12px;
+  max-width: 320px;
+  color: #8b1d2c;
+  font-size: 0.92rem;
+  font-weight: 600;
+}
+
+.site-access-gate__btn {
+  display: block;
+  width: 100%;
+  max-width: 320px;
+  margin: 8px auto 0;
+  border: none;
+  border-radius: 999px;
+  padding: 14px 28px;
+  background: var(--brand, #8b1d2c);
+  color: #fff;
+  font-size: 1.05rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s ease, transform 0.12s ease;
+}
+
+.site-access-gate__btn:hover:not(:disabled) {
+  background: #6f1522;
+}
+
+.site-access-gate__btn:disabled {
+  opacity: 0.7;
+  cursor: wait;
+}
+
+.site-access-gate__btn:active:not(:disabled) {
+  transform: scale(0.99);
+}
+
+@media (max-width: 520px) {
+  .site-access-gate__card {
+    padding: 32px 22px 24px;
+    border-radius: 22px;
+  }
+}

@@ -1,0 +1,149 @@
+{
+  "created_at": "2026-09-22T14:01:09+03:00",
+  "feature_version": "1.0.0",
+  "best_iteration": 84,
+  "threshold_best_f1_validation": 0.29,
+  "train": {
+    "n": 4518.0,
+    "positives": 225.0,
+    "roc_auc": 0.9965680565261278,
+    "pr_auc": 0.9537572166664893,
+    "threshold": 0.29,
+    "precision": 0.8640350877192983,
+    "recall": 0.8755555555555555,
+    "f1": 0.869757174392936,
+    "fpr": 0.007221057535522944,
+    "top1_acc": 0.88,
+    "top3_acc": 0.9911111111111112,
+    "top5_acc": 1.0,
+    "mrr": 0.9345925925925928,
+    "scans_with_positive": 225.0,
+    "baseline_cosine_top1_acc": 0.8044444444444444,
+    "baseline_cosine_top3_acc": 0.88,
+    "baseline_cosine_mrr": 0.8566121857349926,
+    "hard_negatives": {
+      "tp": {
+        "n": 225.0,
+        "prob_mean": 0.6946928408410814,
+        "prob_median": 0.8182171583175659,
+        "frac_ge_threshold": 0.8755555555555555
+      },
+      "tn": {
+        "n": 4275.0,
+        "prob_mean": 0.014563044325519374,
+        "prob_median": 0.005382463801652193,
+        "frac_ge_threshold": 0.005380116959064328
+      },
+      "fp_hard": {
+        "n": 18.0,
+        "prob_mean": 0.22414357285015285,
+        "prob_median": 0.18093399330973625,
+        "frac_ge_threshold": 0.4444444444444444
+      }
+    }
+  },
+  "validation": {
+    "n": 1021.0,
+    "positives": 51.0,
+    "roc_auc": 0.9974530018192844,
+    "pr_auc": 0.975621131346477,
+    "threshold": 0.29,
+    "precision": 0.9591836734693877,
+    "recall": 0.9215686274509803,
+    "f1": 0.94,
+    "fpr": 0.002061855670103093,
+    "top1_acc": 0.9411764705882353,
+    "top3_acc": 0.9803921568627451,
+    "top5_acc": 0.9803921568627451,
+    "mrr": 0.9596949891067539,
+    "scans_with_positive": 51.0,
+    "baseline_cosine_top1_acc": 0.9607843137254902,
+    "baseline_cosine_top3_acc": 0.9803921568627451,
+    "baseline_cosine_mrr": 0.9730392156862745,
+    "hard_negatives": {
+      "tp": {
+        "n": 51.0,
+        "prob_mean": 0.7148785357747007,
+        "prob_median": 0.7982208132743835,
+        "frac_ge_threshold": 0.9215686274509803
+      },
+      "tn": {
+        "n": 969.0,
+        "prob_mean": 0.012172635960401305,
+        "prob_median": 0.005636932328343391,
+        "frac_ge_threshold": 0.0020639834881320948
+      },
+      "fp_hard": {
+        "n": 1.0,
+        "prob_mean": 0.043803393840789795,
+        "prob_median": 0.043803393840789795,
+        "frac_ge_threshold": 0.0
+      }
+    }
+  },
+  "test": {
+    "n": 983.0,
+    "positives": 49.0,
+    "roc_auc": 0.9515797753791024,
+    "pr_auc": 0.7475524993161926,
+    "threshold": 0.29,
+    "precision": 0.7804878048780488,
+    "recall": 0.6530612244897959,
+    "f1": 0.7111111111111111,
+    "fpr": 0.009635974304068522,
+    "top1_acc": 0.7346938775510204,
+    "top3_acc": 0.8571428571428571,
+    "top5_acc": 0.9387755102040817,
+    "mrr": 0.8133278465179646,
+    "scans_with_positive": 49.0,
+    "baseline_cosine_top1_acc": 0.6938775510204082,
+    "baseline_cosine_top3_acc": 0.7959183673469388,
+    "baseline_cosine_mrr": 0.7719063816002592,
+    "hard_negatives": {
+      "tn": {
+        "n": 931.0,
+        "prob_mean": 0.01905225489486637,
+        "prob_median": 0.005726558621972799,
+        "frac_ge_threshold": 0.007518796992481203
+      },
+      "tp": {
+        "n": 49.0,
+        "prob_mean": 0.5228354655567329,
+        "prob_median": 0.6750782132148743,
+        "frac_ge_threshold": 0.6530612244897959
+      },
+      "fp_hard": {
+        "n": 3.0,
+        "prob_mean": 0.5181706743314862,
+        "prob_median": 0.6656762361526489,
+        "frac_ge_threshold": 0.6666666666666666
+      }
+    }
+  },
+  "test_at_0_5": {
+    "n": 983.0,
+    "positives": 49.0,
+    "roc_auc": 0.9515797753791024,
+    "pr_auc": 0.7475524993161926,
+    "threshold": 0.5,
+    "precision": 0.8787878787878788,
+    "recall": 0.5918367346938775,
+    "f1": 0.7073170731707317,
+    "fpr": 0.004282655246252677
+  },
+  "latency": {
+    "predict_only_20_candidates": {
+      "mean_ms": 6.728751999908127,
+      "median_ms": 6.500700001197401,
+      "p95_ms": 8.03802500195161,
+      "repeats": 50.0
+    },
+    "features_plus_predict_20_candidates": {
+      "mean_ms": 41.74306500026432,
+      "median_ms": 40.32700000243494,
+      "p95_ms": 48.78325000172481,
+      "repeats": 20.0
+    },
+    "device": "cpu"
+  }
+}

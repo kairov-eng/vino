@@ -1,0 +1,23 @@
+{
+  "data_dir": "C:\\dev\\Vino2026\\models\\data",
+  "out_dir": "C:\\dev\\Vino2026\\models\\cross_encoder_text_matcher",
+  "model": "cross-encoder/mmarco-mMiniLMv2-L12-H384-v1",
+  "epochs": 3.0,
+  "batch_size": 16,
+  "lr": 2e-05,
+  "warmup_ratio": 0.1,
+  "weight_decay": 0.01,
+  "max_length": 160,
+  "neg_per_pos": 8,
+  "pos_weight": "none",
+  "seed": 42,
+  "device": null,
+  "eval_only": false,
+  "no_zero_shot": false,
+  "keep_checkpoints": false,
+  "xgb_predictions": "C:\\dev\\Vino2026\\models\\xgboost_text_matcher\\predictions_test.csv",
+  "xgb_top_k": 3,
+  "limit": null,
+  "sentence_transformers_version": "5.1.0",
+  "pos_weight_effective": null
+}

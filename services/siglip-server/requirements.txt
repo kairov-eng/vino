@@ -1,0 +1,19 @@
+fastapi>=0.115,<0.120
+uvicorn[standard]>=0.32,<0.35
+python-multipart>=0.0.12
+Pillow>=10,<12
+# VPS QEMU x86-64-v1: NumPy 2.x wheels требуют X86_V2
+numpy==1.26.4
+transformers==4.56.2
+accelerate>=0.33,<1.0
+huggingface_hub>=0.26,<1.0
+redis>=5.0,<6
+# RapidOCR (/v1/ocr); сам rapidocr_onnxruntime ставится в Dockerfile с --no-deps,
+# чтобы не тянуть opencv-python с libGL. Проверено на QEMU CPU без SSE4 / AVX.
+onnxruntime==1.20.1
+opencv-python-headless==4.10.0.84
+pyclipper>=1.3,<2
+shapely>=2.0,<3
+PyYAML>=6,<7
+six>=1.16
+tqdm>=4.66

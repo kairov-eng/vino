@@ -1,0 +1,70 @@
+# Fragment for vino-svoe.online — SPA + API via vino_frontend / vino_backend
+# Merge into services/server-nginx templates or drop into distrib nginx on host.
+#
+# Upstream containers (aidnet):
+#   vino_frontend:80
+#   vino_backend:8092
+
+# Example location block (HTTPS server for vino-svoe.online):
+
+#   # UI (React build)
+#   location / {
+#       resolver 127.0.0.11 valid=30s ipv6=off;
+#       set $vino_fe http://vino_frontend:80;
+#       proxy_http_version 1.1;
+#       proxy_set_header Host $host;
+#       proxy_set_header X-Real-IP $remote_addr;
+#       proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+#       proxy_set_header X-Forwarded-Proto https;
+#       proxy_pass $vino_fe;
+#   }
+#
+# Existing ML locations (/api_siglip2, /api_dinov3, /health Gemini) stay as-is.
+
+server {
+    listen 443 ssl;
+    http2 on;
+    server_name vino-svoe.online www.vino-svoe.online;
+
+    # ssl_* paths — managed by certbot / existing aidispatcher templates
+
+    client_max_body_size 25m;
+
+    location / {
+        resolver 127.0.0.11 valid=30s ipv6=off;
+        set $vino_fe http://vino_frontend:80;
+        proxy_http_version 1.1;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto https;
+        proxy_read_timeout 300s;
+        proxy_pass $vino_fe;
+    }
+
+    # Direct backend (optional; frontend already proxies /api and /media)
+    location /api/ {
+        resolver 127.0.0.11 valid=30s ipv6=off;
+        set $vino_be http://vino_backend:8092;
+        proxy_http_version 1.1;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto https;
+        proxy_read_timeout 300s;
+        client_max_body_size 25m;
+        proxy_pass $vino_be;
+    }
+
+    location /media/ {
+        resolver 127.0.0.11 valid=30s ipv6=off;
+        set $vino_be http://vino_backend:8092;
+        proxy_http_version 1.1;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto https;
+        proxy_read_timeout 120s;
+        proxy_pass $vino_be;
+    }
+}

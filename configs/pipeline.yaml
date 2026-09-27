@@ -1,0 +1,17 @@
+# Конфиг пайплайна распознавания. Переопределяется env: DEVICE, SIGLIP_MODEL.
+
+device: cpu  # cpu | cuda
+
+siglip:
+  model_id: google/siglip2-base-patch16-384
+  # GPU-альтернатива: google/siglip2-so400m-patch16-naflex (1152-d)
+  normalize: l2
+  batch_size: 8
+  warmup: true
+
+dino:
+  enabled: false
+  model_id: facebook/dinov2-base
+  method: pooler_output  # pooler_output | cls_plus_mean_patch
+  normalize: l2
+  batch_size: 8

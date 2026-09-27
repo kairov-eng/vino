@@ -1,0 +1,78 @@
+# Vino Svoe — production stack for vino-svoe.online
+# Containers: vino_backend, vino_frontend
+# PostgreSQL: use host/server instance (not in this compose). Enable extension vector.
+#
+# Build & run (from vino-svoe/):
+#   docker compose -f distrib/docker-compose.yml --env-file distrib/.env up -d --build
+#
+# Join existing nginx network (aidispatcher):
+#   external network name from `docker network ls` (often aidispatcher_aidnet)
+
+name: vino
+
+services:
+  vino_backend:
+    container_name: vino_backend
+    build:
+      context: ..
+      dockerfile: distrib/backend/Dockerfile
+    image: vino_backend:latest
+    restart: unless-stopped
+    env_file:
+      - .env
+    environment:
+      # Override paths inside container (host paths come from volumes)
+      MEDIA_ROOT: /data/media
+      SEARCH_PHOTO_DIR: /data/search_photos
+      YOLO_MODEL_PATH: /app/models/yolo/label_detect.pt
+      YOLO_BOTTLE_LABEL_MODEL_PATH: /app/models/yolo_bottle_label/best.pt
+      XGB_MODEL_DIR: /app/models/xgboost_text_matcher_abs_v14
+      SIGLIP2_LOCAL_DIR: /app/models/Siglip2
+      CORS_ORIGINS: ${CORS_ORIGINS:-https://vino-svoe.online,http://vino-svoe.online}
+    volumes:
+      - ${VINO_MEDIA_HOST:-/var/lib/vino-svoe/media}:/data/media
+      - ${VINO_SEARCH_PHOTOS_HOST:-/var/lib/vino-svoe/search_photos}:/data/search_photos
+      - ${VINO_MODELS_HOST:-/var/lib/vino-svoe/models}:/app/models:ro
+      - ${VINO_HF_CACHE_HOST:-/var/lib/vino-svoe/hf-cache}:/cache/huggingface
+    ports:
+      # optional direct access; prefer nginx → vino_frontend → backend
+      - "${VINO_BACKEND_PORT:-127.0.0.1:8092}:8092"
+    networks:
+      - vino_net
+      - aidnet
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://127.0.0.1:8092/api/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 120s
+
+  vino_frontend:
+    container_name: vino_frontend
+    build:
+      context: ..
+      dockerfile: distrib/frontend/Dockerfile
+    image: vino_frontend:latest
+    restart: unless-stopped
+    depends_on:
+      vino_backend:
+        condition: service_healthy
+    ports:
+      - "${VINO_FRONTEND_PORT:-127.0.0.1:8091}:80"
+    networks:
+      - vino_net
+      - aidnet
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://127.0.0.1/"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+
+networks:
+  vino_net:
+    name: vino_net
+    driver: bridge
+  aidnet:
+    # Shared with host nginx / ML proxies on aidispatcher
+    name: ${AIDNET_NAME:-aidispatcher_aidnet}
+    external: true

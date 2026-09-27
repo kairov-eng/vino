@@ -1,0 +1,1327 @@
+[
+  {
+    "scanid": 242,
+    "algorithm_version": "0.29.1",
+    "matched_wine_id": null,
+    "matched_wine": {
+      "id": null,
+      "name": null,
+      "winery": null,
+      "source": "ocr_rejected_all",
+      "reason": "Нет вина в top-N embedding с согласованным OCR (hard mismatch / слабый FinalScore)",
+      "final_score": null,
+      "text_score": null,
+      "cosine": null,
+      "label": null
+    },
+    "ocr_google_vision_text": "SENETKH\nDba Dijbka\nKPACHOCTON\nKRASNOSTOP\nКрасная Горка\nтерруар\nограниченный выпуск\n№ 009/800\n2022",
+    "ocr_entities": {
+      "producer": null,
+      "producer_score": 0.0,
+      "wine_residual": "senetkh dba dijbka kpachocton krasnostop красная горка терруар ограниченныи выпуск no 009 800",
+      "vintage": "2022",
+      "color_key": "red",
+      "type_key": null,
+      "grape_keys": []
+    },
+    "final_weights": {
+      "text": 0.5,
+      "cosine": 0.8
+    },
+    "text_weights": {
+      "type": 1.0,
+      "wine": 1.0,
+      "brand": 0.12,
+      "color": 1.0,
+      "grape": 1.0,
+      "other": 0.02,
+      "region": 0.07,
+      "vintage": 0.05,
+      "producer": 1.0
+    },
+    "ocr_rejected_all": true,
+    "best_final_id": null,
+    "candidates_detail": [
+      {
+        "id": 2798,
+        "name": "АРАТТИ Рислинг белое полусухое",
+        "winery": "АРАТТИ",
+        "color": "Светло-соломенный",
+        "category": "Белое",
+        "grape_variety": "Рислинг Рейнский",
+        "label": "СЕМЕЙНАЯ ВИНОДЕЛЬНЯ\nАРАТТИ\nРИСЛИНГ\n2024\nПОЛУСУХОЕ",
+        "cosine_siglip": 0.718085,
+        "text_score": 0.0,
+        "final_score": 0.0,
+        "f1": 0.0,
+        "f1_detail": {
+          "fn": 5,
+          "fp": 2,
+          "tp": 0,
+          "recall": 0.0,
+          "formula": "F1=2PR/(P+R); P=matched/OCR-keys; R=matched/catalog-keys; keys={winery,name,color,type,grape}; match if sim≥0.62; vintage excluded; hard_mismatch→0",
+          "precision": 0.0,
+          "matched_keys": []
+        },
+        "parts": {
+          "type": 0.5,
+          "wine": 0.3483,
+          "brand": 0.0,
+          "color": 0.0,
+          "grape": 0.5,
+          "other": 0.2923,
+          "region": 0.475,
+          "vintage": 0.42,
+          "producer": 0.475
+        },
+        "keys": {
+          "ocr_type": null,
+          "ocr_color": "red",
+          "ocr_grapes": [],
+          "catalog_type": "semi_dry",
+          "catalog_colors": [
+            "white"
+          ],
+          "catalog_grapes": [
+            "рислинг",
+            "рислинг реинскии"
+          ]
+        },
+        "hard_mismatch": true,
+        "mismatch_fields": [
+          "name",
+          "color"
+        ],
+        "label_lines": null
+      },
+      {
+        "id": 3048,
+        "name": "ДНК. Поколение",
+        "winery": "Усадьба Меркотан",
+        "color": "Лимонный",
+        "category": "Белое",
+        "grape_variety": "Ркацители",
+        "label": "УСАДЬБА МЕРКОТАН\n2024\nПОКОЛЕНИЕ",
+        "cosine_siglip": 0.724255,
+        "text_score": 0.0,
+        "final_score": 0.0,
+        "f1": 0.0,
+        "f1_detail": {
+          "fn": 4,
+          "fp": 2,
+          "tp": 0,
+          "recall": 0.0,
+          "formula": "F1=2PR/(P+R); P=matched/OCR-keys; R=matched/catalog-keys; keys={winery,name,color,type,grape}; match if sim≥0.62; vintage excluded; hard_mismatch→0",
+          "precision": 0.0,
+          "matched_keys": []
+        },
+        "parts": {
+          "type": 0.5,
+          "wine": 0.3677,
+          "brand": 0.0,
+          "color": 0.0,
+          "grape": 0.5,
+          "other": 0.3139,
+          "region": 0.475,
+          "vintage": 0.42,
+          "producer": 0.4156
+        },
+        "keys": {
+          "ocr_type": null,
+          "ocr_color": "red",
+          "ocr_grapes": [],
+          "catalog_type": null,
+          "catalog_colors": [
+            "white"
+          ],
+          "catalog_grapes": [
+            "ркацители"
+          ]
+        },
+        "hard_mismatch": true,
+        "mismatch_fields": [
+          "name",
+          "color"
+        ],
+        "label_lines": null
+      },
+      {
+        "id": 3145,
+        "name": "Каберне Совиньон",
+        "winery": "Галицкий и Галицкий",
+        "color": "Глубокий рубиновый",
+        "category": "Красное",
+        "grape_variety": "Каберне Совиньон",
+        "label": "ГАЛИЦКИЙ И ГАЛИЦКИЙ\nКАБЕРНЕ\nСОВИНЬОН\nШЕСТОЙ УРОЖАЙ\nКРАСНАЯ ГОРКА\nЗАПАДНЫЙ СКЛОН ЛЫСОЙ ГОРЫ\n2023",
+        "cosine_siglip": 0.718576,
+        "text_score": 0.0,
+        "final_score": 0.0,
+        "f1": 0.0,
+        "f1_detail": {
+          "fn": 3,
+          "fp": 1,
+          "tp": 1,
+          "recall": 0.25,
+          "formula": "F1=2PR/(P+R); P=matched/OCR-keys; R=matched/catalog-keys; keys={winery,name,color,type,grape}; match if sim≥0.62; vintage excluded; hard_mismatch→0",
+          "precision": 0.5,
+          "matched_keys": [
+            "color"
+          ]
+        },
+        "parts": {
+          "type": 0.5,
+          "wine": 0.4156,
+          "brand": 0.1905,
+          "color": 1.0,
+          "grape": 0.5,
+          "other": 0.3853,
+          "region": 0.475,
+          "vintage": 0.42,
+          "producer": 0.3078
+        },
+        "keys": {
+          "ocr_type": null,
+          "ocr_color": "red",
+          "ocr_grapes": [],
+          "catalog_type": null,
+          "catalog_colors": [
+            "red"
+          ],
+          "catalog_grapes": [
+            "каберне",
+            "каберне совиньон",
+            "совиньон"
+          ]
+        },
+        "hard_mismatch": true,
+        "mismatch_fields": [
+          "name"
+        ],
+        "label_lines": null
+      },
+      {
+        "id": 3188,
+        "name": "Каберне Фран",
+        "winery": "Собер Баш",
+        "color": "Рубиновый",
+        "category": "Красное",
+        "grape_variety": "Каберне Фран",
+        "label": "СОБЕР\nБАШ\nКРАСНОСТОП\nРОССИЙСКОЕ ВИНО С ЗАЩИЩЕННЫМ ГЕОГРАФИЧЕСКИМ УКАЗАНИЕМ\n«КУБАНЬ. ДОЛИНА РЕКИ АФИПС»\n2023",
+        "cosine_siglip": 0.748034,
+        "text_score": 0.0,
+        "final_score": 0.0,
+        "f1": 0.0,
+        "f1_detail": {
+          "fn": 3,
+          "fp": 1,
+          "tp": 1,
+          "recall": 0.25,
+          "formula": "F1=2PR/(P+R); P=matched/OCR-keys; R=matched/catalog-keys; keys={winery,name,color,type,grape}; match if sim≥0.62; vintage excluded; hard_mismatch→0",
+          "precision": 0.5,
+          "matched_keys": [
+            "color"
+          ]
+        },
+        "parts": {
+          "type": 0.5,
+          "wine": 0.475,
+          "brand": 0.0,
+          "color": 1.0,
+          "grape": 0.5,
+          "other": 0.3005,
+          "region": 0.475,
+          "vintage": 0.42,
+          "producer": 0.3167
+        },
+        "keys": {
+          "ocr_type": null,
+          "ocr_color": "red",
+          "ocr_grapes": [],
+          "catalog_type": null,
+          "catalog_colors": [
+            "red"
+          ],
+          "catalog_grapes": [
+            "каберне",
+            "каберне фран",
+            "красностоп"
+          ]
+        },
+        "hard_mismatch": true,
+        "mismatch_fields": [
+          "label_lines"
+        ],
+        "label_lines": {
+          "weak": true,
+          "cosine": 0.748034,
+          "reject": true,
+          "matched": 2,
+          "partial": true,
+          "ocr_lines": 9,
+          "catalog_lines": 6,
+          "matched_ratio": 0.2222,
+          "unmatched_ocr": [
+            "senetkh",
+            "dba dijbka",
+            "kpachocton",
+            "krasnostop",
+            "терруар",
+            "ограниченныи выпуск",
+            "no 009 800"
+          ],
+          "line_count_weak": true,
+          "unmatched_catalog": [
+            "собер",
+            "баш",
+            "россииское вино с защищенным географическим указанием",
+            "кубань долина реки афипс"
+          ],
+          "unmatched_dissimilar": true
+        }
+      },
+      {
+        "id": 3223,
+        "name": "Кангун",
+        "winery": "Bakla Vines",
+        "color": "Светло-соломенный с золотистым оттенком",
+        "category": "Белое",
+        "grape_variety": "Кангун",
+        "label": "BAKLA\n- vines -\nКАНГУН\nСУХОЕ БЕЛОЕ\n... 2022 ...\nКРЫМ-БАХЧИСАРАЙСКИЙ РАЙОН",
+        "cosine_siglip": 0.728267,
+        "text_score": 0.0,
+        "final_score": 0.0,
+        "f1": 0.0,
+        "f1_detail": {
+          "fn": 5,
+          "fp": 2,
+          "tp": 0,
+          "recall": 0.0,
+          "formula": "F1=2PR/(P+R); P=matched/OCR-keys; R=matched/catalog-keys; keys={winery,name,color,type,grape}; match if sim≥0.62; vintage excluded; hard_mismatch→0",
+          "precision": 0.0,
+          "matched_keys": []
+        },
+        "parts": {
+          "type": 0.5,
+          "wine": 0.475,
+          "brand": 0.0,
+          "color": 0.0,
+          "grape": 0.5,
+          "other": 0.3727,
+          "region": 0.475,
+          "vintage": 1.0,
+          "producer": 0.4318
+        },
+        "keys": {
+          "ocr_type": null,
+          "ocr_color": "red",
+          "ocr_grapes": [],
+          "catalog_type": "dry",
+          "catalog_colors": [
+            "white"
+          ],
+          "catalog_grapes": [
+            "кангун"
+          ]
+        },
+        "hard_mismatch": true,
+        "mismatch_fields": [
+          "color"
+        ],
+        "label_lines": null
+      },
+      {
+        "id": 3272,
+        "name": "Красностоп",
+        "winery": "Собер Баш",
+        "color": "Рубиновый",
+        "category": "Красное",
+        "grape_variety": "Красностоп Золотовский",
+        "label": "СОБЕР\nБАШ\n\nКРАСНОСТОП\n2022",
+        "cosine_siglip": 0.720345,
+        "text_score": 0.0,
+        "final_score": 0.0,
+        "f1": 0.0,
+        "f1_detail": {
+          "fn": 3,
+          "fp": 1,
+          "tp": 1,
+          "recall": 0.25,
+          "formula": "F1=2PR/(P+R); P=matched/OCR-keys; R=matched/catalog-keys; keys={winery,name,color,type,grape}; match if sim≥0.62; vintage excluded; hard_mismatch→0",
+          "precision": 0.5,
+          "matched_keys": [
+            "color"
+          ]
+        },
+        "parts": {
+          "type": 0.5,
+          "wine": 0.57,
+          "brand": 0.0,
+          "color": 1.0,
+          "grape": 0.5,
+          "other": 0.7695,
+          "region": 0.475,
+          "vintage": 1.0,
+          "producer": 0.3167
+        },
+        "keys": {
+          "ocr_type": null,
+          "ocr_color": "red",
+          "ocr_grapes": [],
+          "catalog_type": null,
+          "catalog_colors": [
+            "red"
+          ],
+          "catalog_grapes": [
+            "красностоп",
+            "красностоп золотовскии"
+          ]
+        },
+        "hard_mismatch": true,
+        "mismatch_fields": [
+          "label_lines"
+        ],
+        "label_lines": {
+          "weak": true,
+          "cosine": 0.720345,
+          "reject": true,
+          "matched": 2,
+          "partial": true,
+          "ocr_lines": 9,
+          "catalog_lines": 4,
+          "matched_ratio": 0.2222,
+          "unmatched_ocr": [
+            "senetkh",
+            "dba dijbka",
+            "kpachocton",
+            "krasnostop",
+            "терруар",
+            "ограниченныи выпуск",
+            "no 009 800"
+          ],
+          "line_count_weak": true,
+          "unmatched_catalog": [
+            "собер",
+            "баш"
+          ],
+          "unmatched_dissimilar": true
+        }
+      }
+    ],
+    "siglip_top5": [
+      {
+        "id": 3280,
+        "cos": 0.764276,
+        "name": "Красностоп Золотовский",
+        "winery": "Галицкий и Галицкий"
+      },
+      {
+        "id": 3663,
+        "cos": 0.748178,
+        "name": "Реликта Сира, Каберне Фран",
+        "winery": "Реликта"
+      },
+      {
+        "id": 3188,
+        "cos": 0.748034,
+        "name": "Каберне Фран",
+        "winery": "Собер Баш"
+      },
+      {
+        "id": 3278,
+        "cos": 0.740609,
+        "name": "Красностоп Золотовский",
+        "winery": "Винодельня Марченко"
+      },
+      {
+        "id": 3275,
+        "cos": 0.739426,
+        "name": "Красностоп де Тамань",
+        "winery": "Кубань-Вино"
+      }
+    ]
+  },
+  {
+    "scanid": 243,
+    "algorithm_version": "0.29.1",
+    "matched_wine_id": 2909,
+    "matched_wine": {
+      "id": 2909,
+      "name": "БЮРНЬЕ.КРАСНОСТОП сухое красное",
+      "winery": "Винодельня Бюрнье",
+      "source": "final_score",
+      "reason": null,
+      "final_score": 0.855975,
+      "text_score": 97.0,
+      "cosine": 0.78471,
+      "label": "Б Ю Р Н Ь Е\nB U R N I E R"
+    },
+    "ocr_google_vision_text": "БЮРНЬЕ\nBURNIER\nКРАСНОСТОв",
+    "ocr_entities": {
+      "producer": "Винодельня Бюрнье",
+      "producer_score": 100.0,
+      "wine_residual": "бюрнье burnier красностов",
+      "vintage": null,
+      "color_key": null,
+      "type_key": null,
+      "grape_keys": [
+        "красностоп"
+      ]
+    },
+    "final_weights": {
+      "text": 0.5,
+      "cosine": 0.8
+    },
+    "text_weights": {
+      "type": 1.0,
+      "wine": 1.0,
+      "brand": 0.12,
+      "color": 1.0,
+      "grape": 1.0,
+      "other": 0.02,
+      "region": 0.07,
+      "vintage": 0.05,
+      "producer": 1.0
+    },
+    "ocr_rejected_all": false,
+    "best_final_id": 2909,
+    "candidates_detail": [
+      {
+        "id": 2909,
+        "name": "БЮРНЬЕ.КРАСНОСТОП сухое красное",
+        "winery": "Винодельня Бюрнье",
+        "color": "Насыщенный рубиновый",
+        "category": "Красное",
+        "grape_variety": "Красностоп",
+        "label": "Б Ю Р Н Ь Е\nB U R N I E R",
+        "cosine_siglip": 0.78471,
+        "text_score": 97.0,
+        "final_score": 0.855975,
+        "f1": 0.75,
+        "f1_detail": {
+          "fn": 2,
+          "fp": 0,
+          "tp": 3,
+          "recall": 0.6,
+          "formula": "F1=2PR/(P+R); P=matched/OCR-keys; R=matched/catalog-keys; keys={winery,name,color,type,grape}; match if sim≥0.62; vintage excluded; hard_mismatch→0",
+          "precision": 1.0,
+          "matched_keys": [
+            "winery",
+            "name",
+            "grape"
+          ]
+        },
+        "parts": {
+          "type": 0.5,
+          "wine": 0.6951,
+          "brand": 0.3333,
+          "color": 0.5,
+          "grape": 1.0,
+          "other": 0.7695,
+          "region": 0.5182,
+          "vintage": 0.5,
+          "producer": 1.0
+        },
+        "keys": {
+          "ocr_type": null,
+          "ocr_color": null,
+          "ocr_grapes": [
+            "красностоп"
+          ],
+          "catalog_type": "dry",
+          "catalog_colors": [
+            "red"
+          ],
+          "catalog_grapes": [
+            "красностоп"
+          ]
+        },
+        "hard_mismatch": false,
+        "mismatch_fields": [],
+        "label_lines": {
+          "weak": false,
+          "cosine": 0.78471,
+          "reject": false,
+          "matched": 2,
+          "partial": false,
+          "ocr_lines": 3,
+          "catalog_lines": 2,
+          "matched_ratio": 0.6667,
+          "unmatched_ocr": [
+            "красностов"
+          ],
+          "line_count_weak": false,
+          "unmatched_catalog": [],
+          "unmatched_dissimilar": true
+        }
+      },
+      {
+        "id": 2910,
+        "name": "БЮРНЬЕ.КРАСНОСТОП сухое красное Classic",
+        "winery": "Винодельня Бюрнье",
+        "color": "Насыщенный рубиновый",
+        "category": "Красное",
+        "grape_variety": "Красностоп",
+        "label": "БЮРНЬЕ\nBURNIER\nКРАСНОСТОП / красное сухое\n20\n24\nПРОИЗВЕДЕНО В РОССИИ\nЗГУ «КУБАНЬ»\nСЕРТИФИЦИРОВАННЫЙ ОРГАНИЧЕСКИЙ ВИНОГРАДНИК",
+        "cosine_siglip": 0.761747,
+        "text_score": 97.0,
+        "final_score": 0.841844,
+        "f1": 0.75,
+        "f1_detail": {
+          "fn": 2,
+          "fp": 0,
+          "tp": 3,
+          "recall": 0.6,
+          "formula": "F1=2PR/(P+R); P=matched/OCR-keys; R=matched/catalog-keys; keys={winery,name,color,type,grape}; match if sim≥0.62; vintage excluded; hard_mismatch→0",
+          "precision": 1.0,
+          "matched_keys": [
+            "winery",
+            "name",
+            "grape"
+          ]
+        },
+        "parts": {
+          "type": 0.5,
+          "wine": 0.8531,
+          "brand": 0.3077,
+          "color": 0.5,
+          "grape": 1.0,
+          "other": 0.912,
+          "region": 0.5182,
+          "vintage": 0.5,
+          "producer": 1.0
+        },
+        "keys": {
+          "ocr_type": null,
+          "ocr_color": null,
+          "ocr_grapes": [
+            "красностоп"
+          ],
+          "catalog_type": "dry",
+          "catalog_colors": [
+            "red"
+          ],
+          "catalog_grapes": [
+            "красностоп"
+          ]
+        },
+        "hard_mismatch": false,
+        "mismatch_fields": [],
+        "label_lines": {
+          "weak": false,
+          "cosine": 0.761747,
+          "reject": false,
+          "matched": 3,
+          "partial": false,
+          "ocr_lines": 3,
+          "catalog_lines": 6,
+          "matched_ratio": 0.5,
+          "unmatched_ocr": [],
+          "line_count_weak": true,
+          "unmatched_catalog": [
+            "произведено в россии",
+            "згу кубань",
+            "сертифицированныи органическии виноградник"
+          ],
+          "unmatched_dissimilar": true
+        }
+      },
+      {
+        "id": 2794,
+        "name": "АРАТТИ Каберне Совиньон 2020 красное сухое",
+        "winery": "АРАТТИ",
+        "color": "Гранатовый",
+        "category": "Красное",
+        "grape_variety": "Каберне Совиньон",
+        "label": "семейная винодельня\nАратти\n2020\nКАБЕРНЕ СОВИНЬОН\nЗГУ КУБАНЬ, АНАПА",
+        "cosine_siglip": 0.724225,
+        "text_score": 0.0,
+        "final_score": 0.0,
+        "f1": 0.0,
+        "f1_detail": {
+          "fn": 5,
+          "fp": 3,
+          "tp": 0,
+          "recall": 0.0,
+          "formula": "F1=2PR/(P+R); P=matched/OCR-keys; R=matched/catalog-keys; keys={winery,name,color,type,grape}; match if sim≥0.62; vintage excluded; hard_mismatch→0",
+          "precision": 0.0,
+          "matched_keys": []
+        },
+        "parts": {
+          "type": 0.5,
+          "wine": 0.475,
+          "brand": 0.0,
+          "color": 0.5,
+          "grape": 0.0,
+          "other": 0.456,
+          "region": 0.5182,
+          "vintage": 0.5,
+          "producer": 0.3167
+        },
+        "keys": {
+          "ocr_type": null,
+          "ocr_color": null,
+          "ocr_grapes": [
+            "красностоп"
+          ],
+          "catalog_type": "dry",
+          "catalog_colors": [
+            "red"
+          ],
+          "catalog_grapes": [
+            "каберне",
+            "каберне совиньон",
+            "совиньон"
+          ]
+        },
+        "hard_mismatch": true,
+        "mismatch_fields": [
+          "winery",
+          "grape"
+        ],
+        "label_lines": null
+      },
+      {
+        "id": 2906,
+        "name": "БЮРНЬЕ.ВИОНЬЕ сухое белое",
+        "winery": "Винодельня Бюрнье",
+        "color": "Светло-соломенный",
+        "category": "Белое",
+        "grape_variety": "Вионье",
+        "label": "БЮРНЬЕ\nBURNIER\nВИОНЬЕ / белое сухое\n20\n23\nПРОИЗВЕДЕНО В РОССИИ\nЗГУ «КУБАНЬ»\nСЕРТИФИЦИРОВАННЫЙ ОРГАНИЧЕСКИЙ ВИНОГРАДНИК",
+        "cosine_siglip": 0.757435,
+        "text_score": 0.0,
+        "final_score": 0.0,
+        "f1": 0.0,
+        "f1_detail": {
+          "fn": 3,
+          "fp": 1,
+          "tp": 2,
+          "recall": 0.4,
+          "formula": "F1=2PR/(P+R); P=matched/OCR-keys; R=matched/catalog-keys; keys={winery,name,color,type,grape}; match if sim≥0.62; vintage excluded; hard_mismatch→0",
+          "precision": 0.6667,
+          "matched_keys": [
+            "winery",
+            "name"
+          ]
+        },
+        "parts": {
+          "type": 0.5,
+          "wine": 0.7695,
+          "brand": 0.3333,
+          "color": 0.5,
+          "grape": 0.0,
+          "other": 0.7695,
+          "region": 0.5182,
+          "vintage": 0.5,
+          "producer": 1.0
+        },
+        "keys": {
+          "ocr_type": null,
+          "ocr_color": null,
+          "ocr_grapes": [
+            "красностоп"
+          ],
+          "catalog_type": "dry",
+          "catalog_colors": [
+            "white"
+          ],
+          "catalog_grapes": [
+            "вионье"
+          ]
+        },
+        "hard_mismatch": true,
+        "mismatch_fields": [
+          "grape"
+        ],
+        "label_lines": null
+      },
+      {
+        "id": 2907,
+        "name": "БЮРНЬЕ.КАБЕРНЕ СОВИНЬОН сухое красное",
+        "winery": "Винодельня Бюрнье",
+        "color": "Глубокий темно-рубиновый",
+        "category": "Красное",
+        "grape_variety": "Каберне Совиньон",
+        "label": "БЮРНЬЕ\nBURNIER\nКАБЕРНЕ СОВИНЬОН / 2019\nкрасное сухое\nПРОИЗВЕДЕНО В РОССИИ\nЗГУ «КУБАНЬ»",
+        "cosine_siglip": 0.738039,
+        "text_score": 0.0,
+        "final_score": 0.0,
+        "f1": 0.0,
+        "f1_detail": {
+          "fn": 3,
+          "fp": 1,
+          "tp": 2,
+          "recall": 0.4,
+          "formula": "F1=2PR/(P+R); P=matched/OCR-keys; R=matched/catalog-keys; keys={winery,name,color,type,grape}; match if sim≥0.62; vintage excluded; hard_mismatch→0",
+          "precision": 0.6667,
+          "matched_keys": [
+            "winery",
+            "name"
+          ]
+        },
+        "parts": {
+          "type": 0.5,
+          "wine": 0.7695,
+          "brand": 0.4,
+          "color": 0.5,
+          "grape": 0.0,
+          "other": 0.7695,
+          "region": 0.5182,
+          "vintage": 0.5,
+          "producer": 1.0
+        },
+        "keys": {
+          "ocr_type": null,
+          "ocr_color": null,
+          "ocr_grapes": [
+            "красностоп"
+          ],
+          "catalog_type": "dry",
+          "catalog_colors": [
+            "red"
+          ],
+          "catalog_grapes": [
+            "каберне",
+            "каберне совиньон",
+            "совиньон"
+          ]
+        },
+        "hard_mismatch": true,
+        "mismatch_fields": [
+          "grape"
+        ],
+        "label_lines": null
+      },
+      {
+        "id": 2908,
+        "name": "БЮРНЬЕ.КАБЕРНЕ ФРАН сухое красное",
+        "winery": "Винодельня Бюрнье",
+        "color": "Насыщенный рубиновый",
+        "category": "Красное",
+        "grape_variety": "Каберне Фран",
+        "label": "БЮРНЬЕ\nBURNIER\nКАБЕРНЕ ФРАН /\n20\n20\nкрасное сухое\nВИНОГРАД\nСОБРАН\nВРУЧНУЮ\nПРОИЗВЕДЕНО В РОССИИ\nЗГУ «КУБАНЬ»",
+        "cosine_siglip": 0.740115,
+        "text_score": 0.0,
+        "final_score": 0.0,
+        "f1": 0.0,
+        "f1_detail": {
+          "fn": 3,
+          "fp": 1,
+          "tp": 2,
+          "recall": 0.4,
+          "formula": "F1=2PR/(P+R); P=matched/OCR-keys; R=matched/catalog-keys; keys={winery,name,color,type,grape}; match if sim≥0.62; vintage excluded; hard_mismatch→0",
+          "precision": 0.6667,
+          "matched_keys": [
+            "winery",
+            "name"
+          ]
+        },
+        "parts": {
+          "type": 0.5,
+          "wine": 0.7695,
+          "brand": 0.3077,
+          "color": 0.5,
+          "grape": 0.0,
+          "other": 0.7695,
+          "region": 0.5182,
+          "vintage": 0.5,
+          "producer": 1.0
+        },
+        "keys": {
+          "ocr_type": null,
+          "ocr_color": null,
+          "ocr_grapes": [
+            "красностоп"
+          ],
+          "catalog_type": "dry",
+          "catalog_colors": [
+            "red"
+          ],
+          "catalog_grapes": [
+            "каберне",
+            "каберне фран"
+          ]
+        },
+        "hard_mismatch": true,
+        "mismatch_fields": [
+          "grape"
+        ],
+        "label_lines": null
+      }
+    ],
+    "siglip_top5": [
+      {
+        "id": 2909,
+        "cos": 0.78471,
+        "name": "БЮРНЬЕ.КРАСНОСТОП сухое красное",
+        "winery": "Винодельня Бюрнье"
+      },
+      {
+        "id": 2910,
+        "cos": 0.761747,
+        "name": "БЮРНЬЕ.КРАСНОСТОП сухое красное Classic",
+        "winery": "Винодельня Бюрнье"
+      },
+      {
+        "id": 2906,
+        "cos": 0.757435,
+        "name": "БЮРНЬЕ.ВИОНЬЕ сухое белое",
+        "winery": "Винодельня Бюрнье"
+      },
+      {
+        "id": 2920,
+        "cos": 0.755793,
+        "name": "БЮРНЬЕ.СИРА красное сухое Classic",
+        "winery": "Винодельня Бюрнье"
+      },
+      {
+        "id": 2916,
+        "cos": 0.751003,
+        "name": "БЮРНЬЕ.ПИНО БЛАН сухое белое",
+        "winery": "Винодельня Бюрнье"
+      }
+    ]
+  },
+  {
+    "scanid": 244,
+    "algorithm_version": "0.29.1",
+    "matched_wine_id": 2909,
+    "matched_wine": {
+      "id": 2909,
+      "name": "БЮРНЬЕ.КРАСНОСТОП сухое красное",
+      "winery": "Винодельня Бюрнье",
+      "source": "final_score",
+      "reason": null,
+      "final_score": 0.855975,
+      "text_score": 97.0,
+      "cosine": 0.78471,
+      "label": "Б Ю Р Н Ь Е\nB U R N I E R"
+    },
+    "ocr_google_vision_text": "БЮРНЬЕ\nBURNIER\nКРАСНОСТОв",
+    "ocr_entities": {
+      "producer": "Винодельня Бюрнье",
+      "producer_score": 100.0,
+      "wine_residual": "бюрнье burnier красностов",
+      "vintage": null,
+      "color_key": null,
+      "type_key": null,
+      "grape_keys": [
+        "красностоп"
+      ]
+    },
+    "final_weights": {
+      "text": 0.5,
+      "cosine": 0.8
+    },
+    "text_weights": {
+      "type": 1.0,
+      "wine": 1.0,
+      "brand": 0.12,
+      "color": 1.0,
+      "grape": 1.0,
+      "other": 0.02,
+      "region": 0.07,
+      "vintage": 0.05,
+      "producer": 1.0
+    },
+    "ocr_rejected_all": false,
+    "best_final_id": 2909,
+    "candidates_detail": [
+      {
+        "id": 2909,
+        "name": "БЮРНЬЕ.КРАСНОСТОП сухое красное",
+        "winery": "Винодельня Бюрнье",
+        "color": "Насыщенный рубиновый",
+        "category": "Красное",
+        "grape_variety": "Красностоп",
+        "label": "Б Ю Р Н Ь Е\nB U R N I E R",
+        "cosine_siglip": 0.78471,
+        "text_score": 97.0,
+        "final_score": 0.855975,
+        "f1": 0.75,
+        "f1_detail": {
+          "fn": 2,
+          "fp": 0,
+          "tp": 3,
+          "recall": 0.6,
+          "formula": "F1=2PR/(P+R); P=matched/OCR-keys; R=matched/catalog-keys; keys={winery,name,color,type,grape}; match if sim≥0.62; vintage excluded; hard_mismatch→0",
+          "precision": 1.0,
+          "matched_keys": [
+            "winery",
+            "name",
+            "grape"
+          ]
+        },
+        "parts": {
+          "type": 0.5,
+          "wine": 0.6951,
+          "brand": 0.3333,
+          "color": 0.5,
+          "grape": 1.0,
+          "other": 0.7695,
+          "region": 0.5182,
+          "vintage": 0.5,
+          "producer": 1.0
+        },
+        "keys": {
+          "ocr_type": null,
+          "ocr_color": null,
+          "ocr_grapes": [
+            "красностоп"
+          ],
+          "catalog_type": "dry",
+          "catalog_colors": [
+            "red"
+          ],
+          "catalog_grapes": [
+            "красностоп"
+          ]
+        },
+        "hard_mismatch": false,
+        "mismatch_fields": [],
+        "label_lines": {
+          "weak": false,
+          "cosine": 0.78471,
+          "reject": false,
+          "matched": 2,
+          "partial": false,
+          "ocr_lines": 3,
+          "catalog_lines": 2,
+          "matched_ratio": 0.6667,
+          "unmatched_ocr": [
+            "красностов"
+          ],
+          "line_count_weak": false,
+          "unmatched_catalog": [],
+          "unmatched_dissimilar": true
+        }
+      },
+      {
+        "id": 2910,
+        "name": "БЮРНЬЕ.КРАСНОСТОП сухое красное Classic",
+        "winery": "Винодельня Бюрнье",
+        "color": "Насыщенный рубиновый",
+        "category": "Красное",
+        "grape_variety": "Красностоп",
+        "label": "БЮРНЬЕ\nBURNIER\nКРАСНОСТОП / красное сухое\n20\n24\nПРОИЗВЕДЕНО В РОССИИ\nЗГУ «КУБАНЬ»\nСЕРТИФИЦИРОВАННЫЙ ОРГАНИЧЕСКИЙ ВИНОГРАДНИК",
+        "cosine_siglip": 0.761747,
+        "text_score": 97.0,
+        "final_score": 0.841844,
+        "f1": 0.75,
+        "f1_detail": {
+          "fn": 2,
+          "fp": 0,
+          "tp": 3,
+          "recall": 0.6,
+          "formula": "F1=2PR/(P+R); P=matched/OCR-keys; R=matched/catalog-keys; keys={winery,name,color,type,grape}; match if sim≥0.62; vintage excluded; hard_mismatch→0",
+          "precision": 1.0,
+          "matched_keys": [
+            "winery",
+            "name",
+            "grape"
+          ]
+        },
+        "parts": {
+          "type": 0.5,
+          "wine": 0.8531,
+          "brand": 0.3077,
+          "color": 0.5,
+          "grape": 1.0,
+          "other": 0.912,
+          "region": 0.5182,
+          "vintage": 0.5,
+          "producer": 1.0
+        },
+        "keys": {
+          "ocr_type": null,
+          "ocr_color": null,
+          "ocr_grapes": [
+            "красностоп"
+          ],
+          "catalog_type": "dry",
+          "catalog_colors": [
+            "red"
+          ],
+          "catalog_grapes": [
+            "красностоп"
+          ]
+        },
+        "hard_mismatch": false,
+        "mismatch_fields": [],
+        "label_lines": {
+          "weak": false,
+          "cosine": 0.761747,
+          "reject": false,
+          "matched": 3,
+          "partial": false,
+          "ocr_lines": 3,
+          "catalog_lines": 6,
+          "matched_ratio": 0.5,
+          "unmatched_ocr": [],
+          "line_count_weak": true,
+          "unmatched_catalog": [
+            "произведено в россии",
+            "згу кубань",
+            "сертифицированныи органическии виноградник"
+          ],
+          "unmatched_dissimilar": true
+        }
+      },
+      {
+        "id": 2794,
+        "name": "АРАТТИ Каберне Совиньон 2020 красное сухое",
+        "winery": "АРАТТИ",
+        "color": "Гранатовый",
+        "category": "Красное",
+        "grape_variety": "Каберне Совиньон",
+        "label": "семейная винодельня\nАратти\n2020\nКАБЕРНЕ СОВИНЬОН\nЗГУ КУБАНЬ, АНАПА",
+        "cosine_siglip": 0.724225,
+        "text_score": 0.0,
+        "final_score": 0.0,
+        "f1": 0.0,
+        "f1_detail": {
+          "fn": 5,
+          "fp": 3,
+          "tp": 0,
+          "recall": 0.0,
+          "formula": "F1=2PR/(P+R); P=matched/OCR-keys; R=matched/catalog-keys; keys={winery,name,color,type,grape}; match if sim≥0.62; vintage excluded; hard_mismatch→0",
+          "precision": 0.0,
+          "matched_keys": []
+        },
+        "parts": {
+          "type": 0.5,
+          "wine": 0.475,
+          "brand": 0.0,
+          "color": 0.5,
+          "grape": 0.0,
+          "other": 0.456,
+          "region": 0.5182,
+          "vintage": 0.5,
+          "producer": 0.3167
+        },
+        "keys": {
+          "ocr_type": null,
+          "ocr_color": null,
+          "ocr_grapes": [
+            "красностоп"
+          ],
+          "catalog_type": "dry",
+          "catalog_colors": [
+            "red"
+          ],
+          "catalog_grapes": [
+            "каберне",
+            "каберне совиньон",
+            "совиньон"
+          ]
+        },
+        "hard_mismatch": true,
+        "mismatch_fields": [
+          "winery",
+          "grape"
+        ],
+        "label_lines": null
+      },
+      {
+        "id": 2906,
+        "name": "БЮРНЬЕ.ВИОНЬЕ сухое белое",
+        "winery": "Винодельня Бюрнье",
+        "color": "Светло-соломенный",
+        "category": "Белое",
+        "grape_variety": "Вионье",
+        "label": "БЮРНЬЕ\nBURNIER\nВИОНЬЕ / белое сухое\n20\n23\nПРОИЗВЕДЕНО В РОССИИ\nЗГУ «КУБАНЬ»\nСЕРТИФИЦИРОВАННЫЙ ОРГАНИЧЕСКИЙ ВИНОГРАДНИК",
+        "cosine_siglip": 0.757435,
+        "text_score": 0.0,
+        "final_score": 0.0,
+        "f1": 0.0,
+        "f1_detail": {
+          "fn": 3,
+          "fp": 1,
+          "tp": 2,
+          "recall": 0.4,
+          "formula": "F1=2PR/(P+R); P=matched/OCR-keys; R=matched/catalog-keys; keys={winery,name,color,type,grape}; match if sim≥0.62; vintage excluded; hard_mismatch→0",
+          "precision": 0.6667,
+          "matched_keys": [
+            "winery",
+            "name"
+          ]
+        },
+        "parts": {
+          "type": 0.5,
+          "wine": 0.7695,
+          "brand": 0.3333,
+          "color": 0.5,
+          "grape": 0.0,
+          "other": 0.7695,
+          "region": 0.5182,
+          "vintage": 0.5,
+          "producer": 1.0
+        },
+        "keys": {
+          "ocr_type": null,
+          "ocr_color": null,
+          "ocr_grapes": [
+            "красностоп"
+          ],
+          "catalog_type": "dry",
+          "catalog_colors": [
+            "white"
+          ],
+          "catalog_grapes": [
+            "вионье"
+          ]
+        },
+        "hard_mismatch": true,
+        "mismatch_fields": [
+          "grape"
+        ],
+        "label_lines": null
+      },
+      {
+        "id": 2907,
+        "name": "БЮРНЬЕ.КАБЕРНЕ СОВИНЬОН сухое красное",
+        "winery": "Винодельня Бюрнье",
+        "color": "Глубокий темно-рубиновый",
+        "category": "Красное",
+        "grape_variety": "Каберне Совиньон",
+        "label": "БЮРНЬЕ\nBURNIER\nКАБЕРНЕ СОВИНЬОН / 2019\nкрасное сухое\nПРОИЗВЕДЕНО В РОССИИ\nЗГУ «КУБАНЬ»",
+        "cosine_siglip": 0.738039,
+        "text_score": 0.0,
+        "final_score": 0.0,
+        "f1": 0.0,
+        "f1_detail": {
+          "fn": 3,
+          "fp": 1,
+          "tp": 2,
+          "recall": 0.4,
+          "formula": "F1=2PR/(P+R); P=matched/OCR-keys; R=matched/catalog-keys; keys={winery,name,color,type,grape}; match if sim≥0.62; vintage excluded; hard_mismatch→0",
+          "precision": 0.6667,
+          "matched_keys": [
+            "winery",
+            "name"
+          ]
+        },
+        "parts": {
+          "type": 0.5,
+          "wine": 0.7695,
+          "brand": 0.4,
+          "color": 0.5,
+          "grape": 0.0,
+          "other": 0.7695,
+          "region": 0.5182,
+          "vintage": 0.5,
+          "producer": 1.0
+        },
+        "keys": {
+          "ocr_type": null,
+          "ocr_color": null,
+          "ocr_grapes": [
+            "красностоп"
+          ],
+          "catalog_type": "dry",
+          "catalog_colors": [
+            "red"
+          ],
+          "catalog_grapes": [
+            "каберне",
+            "каберне совиньон",
+            "совиньон"
+          ]
+        },
+        "hard_mismatch": true,
+        "mismatch_fields": [
+          "grape"
+        ],
+        "label_lines": null
+      },
+      {
+        "id": 2908,
+        "name": "БЮРНЬЕ.КАБЕРНЕ ФРАН сухое красное",
+        "winery": "Винодельня Бюрнье",
+        "color": "Насыщенный рубиновый",
+        "category": "Красное",
+        "grape_variety": "Каберне Фран",
+        "label": "БЮРНЬЕ\nBURNIER\nКАБЕРНЕ ФРАН /\n20\n20\nкрасное сухое\nВИНОГРАД\nСОБРАН\nВРУЧНУЮ\nПРОИЗВЕДЕНО В РОССИИ\nЗГУ «КУБАНЬ»",
+        "cosine_siglip": 0.740115,
+        "text_score": 0.0,
+        "final_score": 0.0,
+        "f1": 0.0,
+        "f1_detail": {
+          "fn": 3,
+          "fp": 1,
+          "tp": 2,
+          "recall": 0.4,
+          "formula": "F1=2PR/(P+R); P=matched/OCR-keys; R=matched/catalog-keys; keys={winery,name,color,type,grape}; match if sim≥0.62; vintage excluded; hard_mismatch→0",
+          "precision": 0.6667,
+          "matched_keys": [
+            "winery",
+            "name"
+          ]
+        },
+        "parts": {
+          "type": 0.5,
+          "wine": 0.7695,
+          "brand": 0.3077,
+          "color": 0.5,
+          "grape": 0.0,
+          "other": 0.7695,
+          "region": 0.5182,
+          "vintage": 0.5,
+          "producer": 1.0
+        },
+        "keys": {
+          "ocr_type": null,
+          "ocr_color": null,
+          "ocr_grapes": [
+            "красностоп"
+          ],
+          "catalog_type": "dry",
+          "catalog_colors": [
+            "red"
+          ],
+          "catalog_grapes": [
+            "каберне",
+            "каберне фран"
+          ]
+        },
+        "hard_mismatch": true,
+        "mismatch_fields": [
+          "grape"
+        ],
+        "label_lines": null
+      }
+    ],
+    "siglip_top5": [
+      {
+        "id": 2909,
+        "cos": 0.78471,
+        "name": "БЮРНЬЕ.КРАСНОСТОП сухое красное",
+        "winery": "Винодельня Бюрнье"
+      },
+      {
+        "id": 2910,
+        "cos": 0.761747,
+        "name": "БЮРНЬЕ.КРАСНОСТОП сухое красное Classic",
+        "winery": "Винодельня Бюрнье"
+      },
+      {
+        "id": 2906,
+        "cos": 0.757435,
+        "name": "БЮРНЬЕ.ВИОНЬЕ сухое белое",
+        "winery": "Винодельня Бюрнье"
+      },
+      {
+        "id": 2920,
+        "cos": 0.755793,
+        "name": "БЮРНЬЕ.СИРА красное сухое Classic",
+        "winery": "Винодельня Бюрнье"
+      },
+      {
+        "id": 2916,
+        "cos": 0.751003,
+        "name": "БЮРНЬЕ.ПИНО БЛАН сухое белое",
+        "winery": "Винодельня Бюрнье"
+      }
+    ]
+  }
+]

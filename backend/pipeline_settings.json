@@ -1,0 +1,83 @@
+{
+  "ocr_preprocess": [],
+  "ocr_engines": [],
+  "text_weights": {
+    "wine": 1.0,
+    "producer": 1.0,
+    "color": 1.0,
+    "type": 1.0,
+    "grape": 1.0,
+    "vintage": 0.05,
+    "region": 0.07,
+    "other": 0.02,
+    "brand": 0.12
+  },
+  "final_weights": {
+    "text": 0.5,
+    "cosine": 0.55
+  },
+  "use_dinov3": false,
+  "geometry_siglip2": false,
+  "geometry_dinov3": true,
+  "use_gemini_ocr": false,
+  "use_openai_ocr": false,
+  "use_deepseek_ocr": false,
+  "use_qwen_ocr": false,
+  "use_yandex_ocr": false,
+  "use_google_vision_ocr": true,
+  "yolo_fallback_full_image": true,
+  "use_yolo": true,
+  "yolo_variant": "bottle_label",
+  "bottle_min_conf": 0.6,
+  "use_bottle_orient": false,
+  "bottle_orient_min_deg": 8.0,
+  "label_detect_openai": false,
+  "label_detect_gemini": true,
+  "embedding_device": "cpu",
+  "embed_cpu_use_cache": true,
+  "normalize_max_side": 800,
+  "hf_start_timeout_sec": 15.0,
+  "text_match_methods": [
+    "xgb"
+  ],
+  "final_score_method": "xgb",
+  "text_match_thresholds": {
+    "fin1": {
+      "match": 0.55,
+      "similar": 0.25
+    },
+    "fin2": {
+      "match": 0.55,
+      "similar": 0.25
+    },
+    "xgb": {
+      "match": 0.27,
+      "similar": 0.09
+    },
+    "crenc": {
+      "match": 0.55,
+      "similar": 0.25
+    },
+    "crenc_srv": {
+      "match": 0.55,
+      "similar": 0.25
+    },
+    "openai_txt": {
+      "match": 0.03,
+      "similar": 0.03
+    }
+  },
+  "empty_ocr_cosine_threshold": 0.82,
+  "xgb_dead_max": 0.18,
+  "compute_hsv": false,
+  "use_hsv_filter": false,
+  "hsv_bhattacharyya_max": 0.94,
+  "hsv_ignore_high_cosine": false,
+  "hsv_ignore_cosine_min": 0.87,
+  "use_hsv_hard_reject": false,
+  "hsv_hard_reject_max": 0.94,
+  "compute_color_delta": true,
+  "final_ocr": "auto",
+  "exclusive_use_translit": false,
+  "exclusive_match_spaced": false
+}

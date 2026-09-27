@@ -1,0 +1,17 @@
+{
+  "category": [
+    { "canon": "red", "forms": ["красное", "red", "rouge", "рубин", "rubin"] },
+    { "canon": "white", "forms": ["белое", "white", "blanc"] },
+    { "canon": "rose", "forms": ["розовое", "rose", "ROSÉ"] },
+    { "canon": "orange", "forms": ["оранжевое", "оранж", "orange"] }
+  ],
+  "type": [
+    { "canon": "brut", "forms": ["brut", "брют", "extrabrut"] },
+    { "canon": "extra_dry", "forms": ["extradry"] },
+    { "canon": "dry", "forms": ["сухое", "dry"] },
+    { "canon": "semi_dry", "forms": ["полусухое", "semidry"] },
+    { "canon": "semi_sweet", "forms": ["полусладкое", "semisweet"] },
+    { "canon": "sweet", "forms": ["сладкое", "sweet"] },
+    { "canon": "portwine", "forms": ["портвейн", "port wine", "port"] }
+  ]
+}

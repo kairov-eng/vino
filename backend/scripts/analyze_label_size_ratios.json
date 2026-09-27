@@ -1,0 +1,844 @@
+{
+  "n_searches": 520,
+  "n_samples": 519,
+  "n_matched": 506,
+  "n_manual": 13,
+  "summary": {
+    "lines": {
+      "n_finite": 514,
+      "one_empty": 5,
+      "min": 1.0,
+      "p25": 1.143,
+      "median": 1.333,
+      "p75": 1.667,
+      "p90": 2.333,
+      "p95": 3.087,
+      "max": 6.0,
+      "mean": 1.574,
+      "gt2": 61,
+      "gt2_pct": 11.9,
+      "gt3": 26,
+      "buckets": {
+        "<=2x": 100,
+        "<=1.25x": 228,
+        "<=1.5x": 125,
+        "<=5x": 23,
+        "<=3x": 35,
+        "one_empty": 5,
+        ">5x": 3
+      }
+    },
+    "chars": {
+      "n_finite": 514,
+      "one_empty": 5,
+      "min": 1.0,
+      "p25": 1.108,
+      "median": 1.329,
+      "p75": 2.015,
+      "p90": 3.343,
+      "p95": 4.188,
+      "max": 26.0,
+      "mean": 1.875,
+      "gt2": 129,
+      "gt2_pct": 25.1,
+      "gt3": 63,
+      "buckets": {
+        "<=1.5x": 86,
+        "<=1.25x": 223,
+        "<=2x": 76,
+        ">5x": 13,
+        "<=5x": 50,
+        "<=3x": 66,
+        "one_empty": 5
+      }
+    },
+    "words": {
+      "n_finite": 514,
+      "one_empty": 5,
+      "min": 1.0,
+      "p25": 1.111,
+      "median": 1.302,
+      "p75": 2.0,
+      "p90": 2.957,
+      "p95": 3.713,
+      "max": 10.0,
+      "mean": 1.741,
+      "gt2": 113,
+      "gt2_pct": 22.0,
+      "gt3": 39,
+      "buckets": {
+        "<=1.5x": 90,
+        "<=1.25x": 235,
+        "<=2x": 76,
+        ">5x": 13,
+        "<=3x": 74,
+        "<=5x": 26,
+        "one_empty": 5
+      }
+    }
+  },
+  "line_gt2": [
+    {
+      "id": 830,
+      "wine_id": 2789,
+      "src": "matched",
+      "q_lines": 1,
+      "c_lines": 5,
+      "r_lines": 5.0,
+      "r_chars": 13.25,
+      "r_words": 8.0
+    },
+    {
+      "id": 831,
+      "wine_id": 2789,
+      "src": "matched",
+      "q_lines": 1,
+      "c_lines": 5,
+      "r_lines": 5.0,
+      "r_chars": 13.25,
+      "r_words": 8.0
+    },
+    {
+      "id": 834,
+      "wine_id": 2391,
+      "src": "matched",
+      "q_lines": 3,
+      "c_lines": 9,
+      "r_lines": 3.0,
+      "r_chars": 3.935,
+      "r_words": 4.8
+    },
+    {
+      "id": 835,
+      "wine_id": 3131,
+      "src": "matched",
+      "q_lines": 3,
+      "c_lines": 8,
+      "r_lines": 2.667,
+      "r_chars": 3.233,
+      "r_words": 4.0
+    },
+    {
+      "id": 836,
+      "wine_id": 3131,
+      "src": "matched",
+      "q_lines": 3,
+      "c_lines": 8,
+      "r_lines": 2.667,
+      "r_chars": 3.233,
+      "r_words": 4.0
+    },
+    {
+      "id": 903,
+      "wine_id": 2955,
+      "src": "matched",
+      "q_lines": 1,
+      "c_lines": 5,
+      "r_lines": 5.0,
+      "r_chars": 8.25,
+      "r_words": 6.0
+    },
+    {
+      "id": 904,
+      "wine_id": 2955,
+      "src": "matched",
+      "q_lines": 1,
+      "c_lines": 5,
+      "r_lines": 5.0,
+      "r_chars": 8.25,
+      "r_words": 6.0
+    },
+    {
+      "id": 911,
+      "wine_id": 3747,
+      "src": "matched",
+      "q_lines": 3,
+      "c_lines": 7,
+      "r_lines": 2.333,
+      "r_chars": 2.422,
+      "r_words": 2.0
+    },
+    {
+      "id": 915,
+      "wine_id": 2695,
+      "src": "matched",
+      "q_lines": 3,
+      "c_lines": 7,
+      "r_lines": 2.333,
+      "r_chars": 2.615,
+      "r_words": 2.25
+    },
+    {
+      "id": 918,
+      "wine_id": 2694,
+      "src": "matched",
+      "q_lines": 2,
+      "c_lines": 7,
+      "r_lines": 3.5,
+      "r_chars": 5.231,
+      "r_words": 4.5
+    },
+    {
+      "id": 922,
+      "wine_id": 4133,
+      "src": "matched",
+      "q_lines": 1,
+      "c_lines": 4,
+      "r_lines": 4.0,
+      "r_chars": 4.0,
+      "r_words": 3.5
+    },
+    {
+      "id": 944,
+      "wine_id": 4133,
+      "src": "matched",
+      "q_lines": 1,
+      "c_lines": 4,
+      "r_lines": 4.0,
+      "r_chars": 4.0,
+      "r_words": 3.5
+    },
+    {
+      "id": 945,
+      "wine_id": 4133,
+      "src": "matched",
+      "q_lines": 1,
+      "c_lines": 4,
+      "r_lines": 4.0,
+      "r_chars": 4.0,
+      "r_words": 3.5
+    },
+    {
+      "id": 977,
+      "wine_id": 3392,
+      "src": "matched",
+      "q_lines": 7,
+      "c_lines": 3,
+      "r_lines": 2.333,
+      "r_chars": 2.07,
+      "r_words": 2.0
+    },
+    {
+      "id": 985,
+      "wine_id": 3031,
+      "src": "matched",
+      "q_lines": 14,
+      "c_lines": 6,
+      "r_lines": 2.333,
+      "r_chars": 2.667,
+      "r_words": 2.333
+    },
+    {
+      "id": 987,
+      "wine_id": 3041,
+      "src": "matched",
+      "q_lines": 1,
+      "c_lines": 6,
+      "r_lines": 6.0,
+      "r_chars": 4.077,
+      "r_words": 3.0
+    },
+    {
+      "id": 988,
+      "wine_id": 3031,
+      "src": "matched",
+      "q_lines": 14,
+      "c_lines": 6,
+      "r_lines": 2.333,
+      "r_chars": 2.667,
+      "r_words": 2.333
+    },
+    {
+      "id": 1000,
+      "wine_id": 3464,
+      "src": "matched",
+      "q_lines": 4,
+      "c_lines": 13,
+      "r_lines": 3.25,
+      "r_chars": 4.292,
+      "r_words": 3.0
+    },
+    {
+      "id": 1033,
+      "wine_id": 4154,
+      "src": "matched",
+      "q_lines": 2,
+      "c_lines": 7,
+      "r_lines": 3.5,
+      "r_chars": 2.72,
+      "r_words": 2.25
+    },
+    {
+      "id": 1047,
+      "wine_id": 3069,
+      "src": "matched",
+      "q_lines": 3,
+      "c_lines": 7,
+      "r_lines": 2.333,
+      "r_chars": 1.881,
+      "r_words": 1.667
+    },
+    {
+      "id": 1051,
+      "wine_id": 3464,
+      "src": "matched",
+      "q_lines": 6,
+      "c_lines": 13,
+      "r_lines": 2.167,
+      "r_chars": 4.013,
+      "r_words": 2.75
+    },
+    {
+      "id": 1066,
+      "wine_id": 2758,
+      "src": "matched",
+      "q_lines": 3,
+      "c_lines": 9,
+      "r_lines": 3.0,
+      "r_chars": 1.219,
+      "r_words": 1.167
+    },
+    {
+      "id": 1082,
+      "wine_id": 3609,
+      "src": "matched",
+      "q_lines": 2,
+      "c_lines": 5,
+      "r_lines": 2.5,
+      "r_chars": 3.652,
+      "r_words": 2.75
+    },
+    {
+      "id": 1130,
+      "wine_id": 2389,
+      "src": "matched",
+      "q_lines": 3,
+      "c_lines": 7,
+      "r_lines": 2.333,
+      "r_chars": 2.244,
+      "r_words": 3.6
+    },
+    {
+      "id": 1143,
+      "wine_id": 3896,
+      "src": "matched",
+      "q_lines": 7,
+      "c_lines": 3,
+      "r_lines": 2.333,
+      "r_chars": 2.676,
+      "r_words": 2.2
+    },
+    {
+      "id": 1144,
+      "wine_id": 4074,
+      "src": "matched",
+      "q_lines": 10,
+      "c_lines": 3,
+      "r_lines": 3.333,
+      "r_chars": 5.828,
+      "r_words": 6.5
+    },
+    {
+      "id": 1145,
+      "wine_id": 2701,
+      "src": "matched",
+      "q_lines": 10,
+      "c_lines": 2,
+      "r_lines": 5.0,
+      "r_chars": 4.0,
+      "r_words": 4.8
+    },
+    {
+      "id": 1146,
+      "wine_id": 3686,
+      "src": "matched",
+      "q_lines": 11,
+      "c_lines": 3,
+      "r_lines": 3.667,
+      "r_chars": 3.222,
+      "r_words": 3.0
+    },
+    {
+      "id": 1181,
+      "wine_id": 4140,
+      "src": "matched",
+      "q_lines": 4,
+      "c_lines": 13,
+      "r_lines": 3.25,
+      "r_chars": 3.234,
+      "r_words": 3.222
+    },
+    {
+      "id": 1206,
+      "wine_id": 4119,
+      "src": "matched",
+      "q_lines": 2,
+      "c_lines": 10,
+      "r_lines": 5.0,
+      "r_chars": 4.325,
+      "r_words": 4.6
+    },
+    {
+      "id": 1229,
+      "wine_id": 3612,
+      "src": "matched",
+      "q_lines": 1,
+      "c_lines": 5,
+      "r_lines": 5.0,
+      "r_chars": 3.0,
+      "r_words": 2.75
+    },
+    {
+      "id": 1302,
+      "wine_id": 2534,
+      "src": "matched",
+      "q_lines": 5,
+      "c_lines": 2,
+      "r_lines": 2.5,
+      "r_chars": 1.0,
+      "r_words": 1.0
+    },
+    {
+      "id": 1373,
+      "wine_id": 4145,
+      "src": "matched",
+      "q_lines": 3,
+      "c_lines": 7,
+      "r_lines": 2.333,
+      "r_chars": 1.396,
+      "r_words": 1.333
+    },
+    {
+      "id": 1378,
+      "wine_id": 2935,
+      "src": "matched",
+      "q_lines": 2,
+      "c_lines": 6,
+      "r_lines": 3.0,
+      "r_chars": 1.578,
+      "r_words": 1.571
+    },
+    {
+      "id": 1379,
+      "wine_id": 2932,
+      "src": "matched",
+      "q_lines": 1,
+      "c_lines": 6,
+      "r_lines": 6.0,
+      "r_chars": 7.818,
+      "r_words": 10.0
+    },
+    {
+      "id": 1384,
+      "wine_id": 3860,
+      "src": "matched",
+      "q_lines": 1,
+      "c_lines": 4,
+      "r_lines": 4.0,
+      "r_chars": 5.0,
+      "r_words": 6.0
+    },
+    {
+      "id": 1386,
+      "wine_id": 4145,
+      "src": "matched",
+      "q_lines": 2,
+      "c_lines": 7,
+      "r_lines": 3.5,
+      "r_chars": 1.48,
+      "r_words": 1.5
+    },
+    {
+      "id": 1404,
+      "wine_id": 3041,
+      "src": "matched",
+      "q_lines": 1,
+      "c_lines": 6,
+      "r_lines": 6.0,
+      "r_chars": 4.818,
+      "r_words": 3.0
+    },
+    {
+      "id": 1413,
+      "wine_id": 3901,
+      "src": "matched",
+      "q_lines": 9,
+      "c_lines": 2,
+      "r_lines": 4.5,
+      "r_chars": 7.529,
+      "r_words": 6.0
+    },
+    {
+      "id": 1438,
+      "wine_id": 4139,
+      "src": "matched",
+      "q_lines": 6,
+      "c_lines": 14,
+      "r_lines": 2.333,
+      "r_chars": 1.43,
+      "r_words": 1.444
+    },
+    {
+      "id": 1441,
+      "wine_id": 4140,
+      "src": "matched",
+      "q_lines": 6,
+      "c_lines": 13,
+      "r_lines": 2.167,
+      "r_chars": 1.247,
+      "r_words": 1.45
+    },
+    {
+      "id": 1497,
+      "wine_id": 3628,
+      "src": "matched",
+      "q_lines": 4,
+      "c_lines": 15,
+      "r_lines": 3.75,
+      "r_chars": 3.134,
+      "r_words": 3.455
+    },
+    {
+      "id": 1572,
+      "wine_id": 2247,
+      "src": "matched",
+      "q_lines": 2,
+      "c_lines": 9,
+      "r_lines": 4.5,
+      "r_chars": 4.308,
+      "r_words": 2.833
+    },
+    {
+      "id": 1639,
+      "wine_id": 3464,
+      "src": "matched",
+      "q_lines": 6,
+      "c_lines": 13,
+      "r_lines": 2.167,
+      "r_chars": 4.013,
+      "r_words": 2.75
+    },
+    {
+      "id": 1655,
+      "wine_id": 2758,
+      "src": "matched",
+      "q_lines": 3,
+      "c_lines": 9,
+      "r_lines": 3.0,
+      "r_chars": 1.219,
+      "r_words": 1.167
+    },
+    {
+      "id": 1716,
+      "wine_id": 2898,
+      "src": "matched",
+      "q_lines": 3,
+      "c_lines": 9,
+      "r_lines": 3.0,
+      "r_chars": 1.324,
+      "r_words": 1.545
+    },
+    {
+      "id": 1723,
+      "wine_id": 3252,
+      "src": "matched",
+      "q_lines": 6,
+      "c_lines": 15,
+      "r_lines": 2.5,
+      "r_chars": 5.429,
+      "r_words": 3.818
+    },
+    {
+      "id": 1724,
+      "wine_id": 2895,
+      "src": "matched",
+      "q_lines": 2,
+      "c_lines": 5,
+      "r_lines": 2.5,
+      "r_chars": 1.085,
+      "r_words": 1.091
+    },
+    {
+      "id": 1732,
+      "wine_id": 3949,
+      "src": "matched",
+      "q_lines": 1,
+      "c_lines": 3,
+      "r_lines": 3.0,
+      "r_chars": 26.0,
+      "r_words": 7.0
+    },
+    {
+      "id": 1747,
+      "wine_id": 3686,
+      "src": "matched",
+      "q_lines": 12,
+      "c_lines": 3,
+      "r_lines": 4.0,
+      "r_chars": 4.111,
+      "r_words": 4.0
+    },
+    {
+      "id": 1755,
+      "wine_id": 3949,
+      "src": "matched",
+      "q_lines": 8,
+      "c_lines": 3,
+      "r_lines": 2.667,
+      "r_chars": 1.673,
+      "r_words": 2.0
+    },
+    {
+      "id": 1773,
+      "wine_id": 3896,
+      "src": "matched",
+      "q_lines": 7,
+      "c_lines": 3,
+      "r_lines": 2.333,
+      "r_chars": 2.912,
+      "r_words": 3.0
+    },
+    {
+      "id": 1775,
+      "wine_id": 4114,
+      "src": "matched",
+      "q_lines": 10,
+      "c_lines": 4,
+      "r_lines": 2.5,
+      "r_chars": 4.586,
+      "r_words": 5.25
+    },
+    {
+      "id": 1793,
+      "wine_id": 4029,
+      "src": "matched",
+      "q_lines": 5,
+      "c_lines": 2,
+      "r_lines": 2.5,
+      "r_chars": 1.449,
+      "r_words": 1.375
+    },
+    {
+      "id": 1813,
+      "wine_id": 3506,
+      "src": "matched",
+      "q_lines": 3,
+      "c_lines": 12,
+      "r_lines": 4.0,
+      "r_chars": 6.944,
+      "r_words": 7.0
+    },
+    {
+      "id": 1816,
+      "wine_id": 3201,
+      "src": "matched",
+      "q_lines": 3,
+      "c_lines": 7,
+      "r_lines": 2.333,
+      "r_chars": 4.92,
+      "r_words": 5.333
+    },
+    {
+      "id": 1843,
+      "wine_id": 4064,
+      "src": "matched",
+      "q_lines": 4,
+      "c_lines": 10,
+      "r_lines": 2.5,
+      "r_chars": 3.97,
+      "r_words": 5.25
+    },
+    {
+      "id": 1859,
+      "wine_id": 3367,
+      "src": "matched",
+      "q_lines": 6,
+      "c_lines": 13,
+      "r_lines": 2.167,
+      "r_chars": 4.386,
+      "r_words": 3.167
+    },
+    {
+      "id": 1885,
+      "wine_id": 4082,
+      "src": "matched",
+      "q_lines": 2,
+      "c_lines": 5,
+      "r_lines": 2.5,
+      "r_chars": 2.158,
+      "r_words": 2.0
+    },
+    {
+      "id": 1888,
+      "wine_id": 3700,
+      "src": "matched",
+      "q_lines": 3,
+      "c_lines": 8,
+      "r_lines": 2.667,
+      "r_chars": 3.25,
+      "r_words": 4.6
+    },
+    {
+      "id": 1909,
+      "wine_id": 2623,
+      "src": "matched",
+      "q_lines": 4,
+      "c_lines": 9,
+      "r_lines": 2.25,
+      "r_chars": 3.75,
+      "r_words": 3.8
+    }
+  ],
+  "top_lines": [
+    {
+      "id": 987,
+      "wine_id": 3041,
+      "src": "matched",
+      "q_lines": 1,
+      "c_lines": 6,
+      "r_lines": 6.0,
+      "r_chars": 4.077,
+      "r_words": 3.0
+    },
+    {
+      "id": 1379,
+      "wine_id": 2932,
+      "src": "matched",
+      "q_lines": 1,
+      "c_lines": 6,
+      "r_lines": 6.0,
+      "r_chars": 7.818,
+      "r_words": 10.0
+    },
+    {
+      "id": 1404,
+      "wine_id": 3041,
+      "src": "matched",
+      "q_lines": 1,
+      "c_lines": 6,
+      "r_lines": 6.0,
+      "r_chars": 4.818,
+      "r_words": 3.0
+    },
+    {
+      "id": 830,
+      "wine_id": 2789,
+      "src": "matched",
+      "q_lines": 1,
+      "c_lines": 5,
+      "r_lines": 5.0,
+      "r_chars": 13.25,
+      "r_words": 8.0
+    },
+    {
+      "id": 831,
+      "wine_id": 2789,
+      "src": "matched",
+      "q_lines": 1,
+      "c_lines": 5,
+      "r_lines": 5.0,
+      "r_chars": 13.25,
+      "r_words": 8.0
+    },
+    {
+      "id": 903,
+      "wine_id": 2955,
+      "src": "matched",
+      "q_lines": 1,
+      "c_lines": 5,
+      "r_lines": 5.0,
+      "r_chars": 8.25,
+      "r_words": 6.0
+    },
+    {
+      "id": 904,
+      "wine_id": 2955,
+      "src": "matched",
+      "q_lines": 1,
+      "c_lines": 5,
+      "r_lines": 5.0,
+      "r_chars": 8.25,
+      "r_words": 6.0
+    },
+    {
+      "id": 1145,
+      "wine_id": 2701,
+      "src": "matched",
+      "q_lines": 10,
+      "c_lines": 2,
+      "r_lines": 5.0,
+      "r_chars": 4.0,
+      "r_words": 4.8
+    },
+    {
+      "id": 1206,
+      "wine_id": 4119,
+      "src": "matched",
+      "q_lines": 2,
+      "c_lines": 10,
+      "r_lines": 5.0,
+      "r_chars": 4.325,
+      "r_words": 4.6
+    },
+    {
+      "id": 1229,
+      "wine_id": 3612,
+      "src": "matched",
+      "q_lines": 1,
+      "c_lines": 5,
+      "r_lines": 5.0,
+      "r_chars": 3.0,
+      "r_words": 2.75
+    },
+    {
+      "id": 1413,
+      "wine_id": 3901,
+      "src": "matched",
+      "q_lines": 9,
+      "c_lines": 2,
+      "r_lines": 4.5,
+      "r_chars": 7.529,
+      "r_words": 6.0
+    },
+    {
+      "id": 1572,
+      "wine_id": 2247,
+      "src": "matched",
+      "q_lines": 2,
+      "c_lines": 9,
+      "r_lines": 4.5,
+      "r_chars": 4.308,
+      "r_words": 2.833
+    },
+    {
+      "id": 922,
+      "wine_id": 4133,
+      "src": "matched",
+      "q_lines": 1,
+      "c_lines": 4,
+      "r_lines": 4.0,
+      "r_chars": 4.0,
+      "r_words": 3.5
+    },
+    {
+      "id": 944,
+      "wine_id": 4133,
+      "src": "matched",
+      "q_lines": 1,
+      "c_lines": 4,
+      "r_lines": 4.0,
+      "r_chars": 4.0,
+      "r_words": 3.5
+    },
+    {
+      "id": 945,
+      "wine_id": 4133,
+      "src": "matched",
+      "q_lines": 1,
+      "c_lines": 4,
+      "r_lines": 4.0,
+      "r_chars": 4.0,
+      "r_words": 3.5
+    }
+  ]
+}

@@ -1,0 +1,19 @@
+{
+  "data_dir": "C:\\dev\\Vino2026\\models\\data_xgboost_synthetic_40_60",
+  "out_dir": "C:\\dev\\Vino2026\\models\\xgboost_text_matcher_synthetic_40_60",
+  "n_estimators": 1000,
+  "max_depth": 5,
+  "learning_rate": 0.03,
+  "min_child_weight": 3.0,
+  "subsample": 0.8,
+  "colsample_bytree": 0.8,
+  "reg_lambda": 1.0,
+  "early_stopping_rounds": 100,
+  "scale_pos_weight": "1",
+  "seed": 42,
+  "drop_features": "",
+  "scale_pos_weight_effective": 1.0,
+  "feature_version": "1.0.0",
+  "xgboost_version": "3.4.1",
+  "n_features": 94
+}

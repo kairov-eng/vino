@@ -1,0 +1,79 @@
+# данные и веса — вне git
+data/*
+!data/manual_image_map.csv
+!data/val/
+data/val/*
+!data/val/queries.tsv
+!data/val/answers.tsv
+reports/*.jsonl
+predictions.jsonl
+
+# python
+__pycache__/
+*.pyc
+.venv/
+.pytest_cache/
+.ruff_cache/
+
+# node
+node_modules/
+.nuxt/
+.output/
+frontend/dist/
+
+# окружение и секреты
+.env
+**/.env
+!**/.env.example
+!**/.env*.example
+backend/_env_reload_trigger.py
+# Vertex / GCP service account keys (real files stay outside repo)
+backend/service_account_*.json
+**/service_account_*.json
+!backend/service_account.example.json
+*credentials*.json
+!*credentials*.example.json
+**/google-application-credentials*.json
+*-4b95fe6cdeb2.json
+.idea/
+.vscode/
+*.log
+
+# query photo pipeline artifacts
+backend/logs/
+
+# ML weights (deploy via rsync / HF; not in git)
+*.pt
+*.pth
+*.onnx
+*.engine
+*.safetensors
+backend/models/Siglip2/*
+!backend/models/Siglip2/README.md
+# Cross-Encoder weights/tokenizers (large) — keep README + small metrics only
+backend/models/cross_encoder/model.safetensors
+backend/models/cross_encoder/tokenizer.json
+backend/models/cross_encoder/sentencepiece.bpe.model
+backend/models/cross_encoder/*.bin
+services/cross-encoder-server/model/*
+!services/cross-encoder-server/model/README.md
+services/cross-encoder-server/.env
+services/siglip-server/.env
+services/dinov3-server/.env
+
+# generated training datasets (use zip under training/xgboost/)
+training/siglip2/dataset/
+training/siglip2/*.zip
+training/xgboost/work/
+
+# large plain SQL dump (use .pgc / .sql.gz)
+distrib/sql/vino_catalog.dump.sql
+
+# OS
+Thumbs.db
+Desktop.ini
+.DS_Store
+
+backend/_tmp_*.json
+backend/_tmp_*.py
+

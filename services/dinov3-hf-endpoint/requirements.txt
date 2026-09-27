@@ -1,0 +1,6 @@
+transformers>=4.56.0,<5
+accelerate>=0.33
+Pillow>=10
+torch
+torchvision
+huggingface_hub>=0.26

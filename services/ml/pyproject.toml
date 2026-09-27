@@ -1,0 +1,24 @@
+[project]
+name = "svoe-vino-ml"
+version = "0.1.0"
+description = "ML-сервис распознавания вина по фото (SigLIP 2 / DINOv2)"
+requires-python = ">=3.11"
+dependencies = [
+  "torch>=2.2",
+  "transformers>=4.49",
+  "Pillow>=10",
+  "numpy>=1.26",
+  "PyYAML>=6",
+  "accelerate>=0.33",
+]
+
+[project.scripts]
+svoe-embed = "svoe_vino.cli_embed:main"
+
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["svoe_vino*"]

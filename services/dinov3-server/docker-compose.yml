@@ -1,0 +1,38 @@
+# DINOv3 embed — отдельный стек, сеть aidispatcher_aidnet для nginx.
+services:
+  dinov3:
+    build: .
+    image: dinov3-embed:cpu
+    container_name: dinov3-embed
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:8091:8091"
+    environment:
+      DEVICE: cpu
+      DINO_MODEL: ${DINO_MODEL:-facebook/dinov3-vitb16-pretrain-lvd1689m}
+      DINO_API_KEY: ${DINO_API_KEY:-}
+      EMBED_API_KEY: ${EMBED_API_KEY:-}
+      REDIS_URL: ${REDIS_URL:-}
+      REDIS_CACHE_TTL: ${REDIS_CACHE_TTL:-0}
+      HF_TOKEN: ${HF_TOKEN:-}
+      HUGGING_FACE_HUB_TOKEN: ${HF_TOKEN:-}
+      TORCH_NUM_THREADS: "2"
+      OMP_NUM_THREADS: "2"
+      DNNL_MAX_CPU_ISA: SSE41
+      ATEN_CPU_CAPABILITY: default
+      HF_HOME: /cache/huggingface
+    volumes:
+      - dinov3_hf_cache:/cache/huggingface
+    mem_limit: 2400m
+    cpus: 2.0
+    networks:
+      - default
+      - aidnet
+
+networks:
+  aidnet:
+    external: true
+    name: aidispatcher_aidnet
+
+volumes:
+  dinov3_hf_cache:

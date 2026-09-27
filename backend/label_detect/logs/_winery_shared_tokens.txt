@@ -1,0 +1,851 @@
+SHARED_COUNT 118
+PRE_UNIQUE_FORMS 292
+---ALL_SHARED---
+TOKEN|бескороваиныи|N=2
+  FORM|СЕРГЕЙ БЕСКОРОВАЙНЫЙ
+  FORM|Бельбек Сергей Бескоровайный
+TOKEN|litavshchuk|N=2
+  FORM|Литавщук. Litavshchuk vineyards winery
+  FORM|LITAVSHCHUK VINEYARDS WINERY
+TOKEN|абрау-дюрсо|N=3
+  FORM|Абрау-Дюрсо
+  FORM|РУССКИЙ ВИННЫЙ ДОМ АБРАУ-ДЮРСО
+  FORM|ВИННЫЙ ДОМ АБРАУ-ДЮРСО
+TOKEN|бегильдеева|N=3
+  FORM|Винодельня Бегильдеева
+  FORM|Кубанская винодельня Бегильдеева
+  FORM|ФЕРМЕРСКАЯ ВИНОДЕЛЬНЯ БЕГИЛЬДЕЕВА
+TOKEN|ведерниковъ|N=2
+  FORM|Ведерниковъ
+  FORM|ВИНОДЕЛЬНЯ ВЕДЕРНИКОВЪ
+TOKEN|millstream|N=3
+  FORM|MILLSTREAM
+  FORM|MILLSTREAM ORIGINAL
+  FORM|MILLSTREAM WINES
+TOKEN|vivandiere|N=2
+  FORM|Domaine de la Vivandiere
+  FORM|Vivandière
+TOKEN|винодельня|N=38
+  FORM|Винодельня Батрак
+  FORM|Винодельня Бегильдеева
+  FORM|Винодельня Бердяева
+  FORM|Винодельня Братьев Мельниковых
+  FORM|Винодельня Бюрнье
+  FORM|Винодельня Жаков
+  FORM|Винодельня Константина Дзитоева
+  FORM|Винодельня Марко
+  FORM|Винодельня Марченко
+  FORM|Винодельня Молчанова
+  FORM|Винодельня Орлова
+  FORM|Винодельня Покровская
+  FORM|Винодельня Узунов
+  FORM|ЛОРИО - семейная винодельня Логуновых
+  FORM|Семейная винодельня Михаила Колесникова
+  FORM|ВИНОДЕЛЬНЯ МЫСХАКО
+  FORM|Батрак ВИНОДЕЛЬНЯ
+  FORM|СЕМЕЙНАЯ ВИНОДЕЛЬНЯ АРАТТИ
+  FORM|LETO ВИНОДЕЛЬНЯ
+  FORM|МЫСХАКО ВИНОДЕЛЬНЯ
+  FORM|ВИНОДЕЛЬНЯ ВЕДЕРНИКОВЪ
+  FORM|ВИНОДЕЛЬНЯ LETO
+  FORM|винодельня Эльбузд
+  FORM|СЕМЕЙНАЯ ВИНОДЕЛЬНЯ
+  FORM|Кубанская винодельня Бегильдеева
+  FORM|Виталий Батрак ВИНОДЕЛЬНЯ
+  FORM|ТАБИЯ СЕМЕЙНАЯ ВИНОДЕЛЬНЯ
+  FORM|МАРЧЕНКО ВИНОДЕЛЬНЯ
+  FORM|ВИНОДЕЛЬНЯ ВИТАЛИЯ БАТРАКА
+  FORM|КРИНИЦА винодельня
+  FORM|GAVRAS СЕМЕЙНАЯ ВИНОДЕЛЬНЯ
+  FORM|ВИНОДЕЛЬНЯ №78
+  FORM|Гусевъ семейная винодельня
+  FORM|ФЕРМЕРСКАЯ ВИНОДЕЛЬНЯ БЕГИЛЬДЕЕВА
+  FORM|ВИНОДЕЛЬНЯ ЮБИЛЕЙНАЯ
+  FORM|ТАБИЯ винодельня
+  FORM|Винодельня Молчановых
+  FORM|СЕМЕЙНАЯ ВИНОДЕЛЬНЯ МИХАИЛ КОЛЕСНИКОВ
+TOKEN|коммуналка|N=2
+  FORM|Коммуналка
+  FORM|by Nataly S. Коммуналка
+TOKEN|кооператив|N=2
+  FORM|Винный кооператив Интуиция
+  FORM|ИНТУИЦИЯ винный кооператив
+TOKEN|шампанских|N=6
+  FORM|Новый Свет. Дом шампанских вин
+  FORM|Дом шампанских вин «Новый Свет»
+  FORM|ДОМ ШАМПАНСКИХ ВИИ
+  FORM|ДОМ ШАМПАНСКИХ ВИН
+  FORM|ДОМ ШАМПАНСКИХ ВИН Новый Светъ
+  FORM|ДОМ ШАМПАНСКИХ ВИН Новый Свѣтъ
+TOKEN|istratova|N=2
+  FORM|Oxana Istratova Wine
+  FORM|oxana istratova wines
+TOKEN|nagdaliev|N=2
+  FORM|FARKHAD NAGDALIEV WINEMAFIA
+  FORM|Faridud Nagdaliev Winemafia
+TOKEN|tempelhof|N=2
+  FORM|Tempelhof Winery
+  FORM|Tempelhof
+TOKEN|vineyards|N=5
+  FORM|AYA Organic Wine Vineyards
+  FORM|Литавщук. Litavshchuk vineyards winery
+  FORM|LITAVSHCHUK VINEYARDS WINERY
+  FORM|KOFFMANN BROTHERS FAMILY VINEYARDS
+  FORM|Domaine Lipko Family Vineyards Winery
+TOKEN|winemafia|N=5
+  FORM|WINEMAFIA
+  FORM|WINEMAFIA Vinnaya Derevnya
+  FORM|DUBININ WINERY WINEMAFIA
+  FORM|FARKHAD NAGDALIEV WINEMAFIA
+  FORM|Faridud Nagdaliev Winemafia
+TOKEN|захарьина|N=2
+  FORM|от ВАЛЕРИЯ ЗАХАРЬИНА
+  FORM|Валерия Захарьина
+TOKEN|коктебель|N=2
+  FORM|ЗМВ Коктебель
+  FORM|Завод марочных вин Коктебель
+TOKEN|массандра|N=2
+  FORM|Массандра
+  FORM|«ПРОИЗВОДСТВЕННО-АГРАРНОЕ ОБЪЕДИНЕНИЕ «МАССАНДРА»
+TOKEN|союз-вино|N=2
+  FORM|Союз-Вино
+  FORM|ООО «Союз-Вино»
+TOKEN|akchurin|N=2
+  FORM|Rem Akchurin
+  FORM|AKCHURIN REM
+TOKEN|bogovich|N=3
+  FORM|Bogovich Wine Vineyard
+  FORM|BOGOVICH
+  FORM|IRINA BOGOVICH
+TOKEN|brothers|N=3
+  FORM|KOFFMANN BROTHERS
+  FORM|KOFFMANN BROTHERS FAMILY VINEYARDS
+  FORM|HOFFMANN BROTHERS
+TOKEN|inkerman|N=2
+  FORM|INKERMAN
+  FORM|INKERMAN WINES
+TOKEN|koffmann|N=2
+  FORM|KOFFMANN BROTHERS
+  FORM|KOFFMANN BROTHERS FAMILY VINEYARDS
+TOKEN|lefkadia|N=2
+  FORM|LEFKADIA VALLEY
+  FORM|LEFKADIA
+TOKEN|perovsky|N=2
+  FORM|by Perovsky manor
+  FORM|Perovsky manor
+TOKEN|raevskoe|N=2
+  FORM|RAEVSKOE WINERY
+  FORM|RAEVSKOE
+TOKEN|zelenaya|N=2
+  FORM|ZELËNAYA DOLINA ЗЕЛЁНАЯ ДОЛИНА
+  FORM|ZELËNAYA DOLINA
+TOKEN|галицкии|N=2
+  FORM|Галицкий и
+  FORM|ГАЛИЦКИЙ
+TOKEN|захарьин|N=2
+  FORM|Валерий Захарьин
+  FORM|VALERY ZAHARIN (Валерий Захарьин)
+TOKEN|интуиция|N=2
+  FORM|Винный кооператив Интуиция
+  FORM|ИНТУИЦИЯ винный кооператив
+TOKEN|марочных|N=2
+  FORM|Завод марочных вин Коктебель
+  FORM|ЗАВОД МАРОЧНЫХ КОКТЕБЕ
+TOKEN|марченко|N=3
+  FORM|Винодельня Марченко
+  FORM|МАРЧЕНКО ВИНОДЕЛЬНЯ
+  FORM|МАРЧЕНКО
+TOKEN|николаев|N=2
+  FORM|А. Гордиенко М. Николаев
+  FORM|Николаев и сыновья
+TOKEN|поместье|N=2
+  FORM|Поместье Голубицкое
+  FORM|ПОМЕСТЬЕ ТРЕНЗИНА
+TOKEN|семеиная|N=8
+  FORM|ЛОРИО - семейная винодельня Логуновых
+  FORM|Семейная винодельня Михаила Колесникова
+  FORM|СЕМЕЙНАЯ ВИНОДЕЛЬНЯ АРАТТИ
+  FORM|СЕМЕЙНАЯ ВИНОДЕЛЬНЯ
+  FORM|ТАБИЯ СЕМЕЙНАЯ ВИНОДЕЛЬНЯ
+  FORM|GAVRAS СЕМЕЙНАЯ ВИНОДЕЛЬНЯ
+  FORM|Гусевъ семейная винодельня
+  FORM|СЕМЕЙНАЯ ВИНОДЕЛЬНЯ МИХАИЛ КОЛЕСНИКОВ
+TOKEN|энологии|N=2
+  FORM|CHATEAU TAMAGNE ЦЕНТР ЭНОЛОГИИ ШАТО ТАМАНЬ
+  FORM|ЦЕНТР ЭНОЛОГИИ ШАТО ТАМАНЬ
+TOKEN|chateau|N=11
+  FORM|Chateau Andre
+  FORM|Chateau Cachalot
+  FORM|Chateau de Talu
+  FORM|Château Le Grand Vostock
+  FORM|Chateau Semiray
+  FORM|CHÂTEAU PINOT
+  FORM|CHATEAU TAMAGNE
+  FORM|CHATEAU TAMAGNE ЦЕНТР ЭНОЛОГИИ ШАТО ТАМАНЬ
+  FORM|Chateau BELBEC
+  FORM|Château de MONTGOLFIERE
+  FORM|Château TAMAGNE (ШАТО ТАМАНЬ)
+TOKEN|cimbali|N=3
+  FORM|Loco Cimbali
+  FORM|LOCO CIMBALI BY REPIN
+  FORM|LOCO CIMBALI WINERY
+TOKEN|denisov|N=2
+  FORM|Denisov Winery
+  FORM|DENISOV
+TOKEN|domaine|N=3
+  FORM|Domaine de la Vivandiere
+  FORM|Domaine Lipko
+  FORM|Domaine Lipko Family Vineyards Winery
+TOKEN|dubinin|N=2
+  FORM|Dubinin Winery
+  FORM|DUBININ WINERY WINEMAFIA
+TOKEN|tamagne|N=3
+  FORM|CHATEAU TAMAGNE
+  FORM|CHATEAU TAMAGNE ЦЕНТР ЭНОЛОГИИ ШАТО ТАМАНЬ
+  FORM|Château TAMAGNE (ШАТО ТАМАНЬ)
+TOKEN|zaharin|N=2
+  FORM|VALERY ZAHARIN
+  FORM|VALERY ZAHARIN (Валерий Захарьин)
+TOKEN|бельбек|N=2
+  FORM|Бельбек
+  FORM|Бельбек Сергей Бескоровайный
+TOKEN|валерии|N=2
+  FORM|Валерий Захарьин
+  FORM|VALERY ZAHARIN (Валерий Захарьин)
+TOKEN|валерия|N=2
+  FORM|от ВАЛЕРИЯ ЗАХАРЬИНА
+  FORM|Валерия Захарьина
+TOKEN|виталии|N=2
+  FORM|Виталий Батрак ВИНОДЕЛЬНЯ
+  FORM|Виталий Батрак
+TOKEN|криница|N=2
+  FORM|Криница
+  FORM|КРИНИЦА винодельня
+TOKEN|мысхако|N=3
+  FORM|Мысхако
+  FORM|ВИНОДЕЛЬНЯ МЫСХАКО
+  FORM|МЫСХАКО ВИНОДЕЛЬНЯ
+TOKEN|усадьба|N=7
+  FORM|Усадьба Александровская
+  FORM|Усадьба Дивноморское
+  FORM|Усадьба Маркотх
+  FORM|Усадьба Мезыбь
+  FORM|Усадьба Меркотан
+  FORM|Усадьба Перовских
+  FORM|Усадьба Родное Гнездо
+TOKEN|эльбузд|N=2
+  FORM|Донское винодельческое хозяйство "Эльбузд"
+  FORM|винодельня Эльбузд
+TOKEN|belmas|N=2
+  FORM|Belmas Winery
+  FORM|Belmas
+TOKEN|cloudy|N=2
+  FORM|Cloudy Winery
+  FORM|CLOUDY WINERY COMMUNITY
+TOKEN|dolina|N=2
+  FORM|ZELËNAYA DOLINA ЗЕЛЁНАЯ ДОЛИНА
+  FORM|ZELËNAYA DOLINA
+TOKEN|family|N=2
+  FORM|KOFFMANN BROTHERS FAMILY VINEYARDS
+  FORM|Domaine Lipko Family Vineyards Winery
+TOKEN|gavras|N=3
+  FORM|GAVRAS
+  FORM|GAVRAS СЕМЕЙНАЯ ВИНОДЕЛЬНЯ
+  FORM|GAVRAS ESTATE
+TOKEN|shvets|N=4
+  FORM|UP PA PAVEL SHVETS
+  FORM|PAVEL SHVETS UPPA WINERY
+  FORM|PAVEL SHVETS
+  FORM|PAVEL SHVETS UP PA UPPAWINERY.RU
+TOKEN|valery|N=2
+  FORM|VALERY ZAHARIN
+  FORM|VALERY ZAHARIN (Валерий Захарьин)
+TOKEN|valley|N=4
+  FORM|Alma Valley
+  FORM|LEFKADIA VALLEY
+  FORM|KACHA VALLEY
+  FORM|ADAGUM VALLEY
+TOKEN|winery|N=25
+  FORM|AGORA WINERY
+  FORM|Belmas Winery
+  FORM|Cloudy Winery
+  FORM|Denisov Winery
+  FORM|Dubinin Winery
+  FORM|Ferrum Winery
+  FORM|Gunko Winery
+  FORM|JD winery
+  FORM|Nesterov Winery
+  FORM|Olymp Winery
+  FORM|STN Winery
+  FORM|Tempelhof Winery
+  FORM|Uppa Winery
+  FORM|Yaiyla Winery
+  FORM|Литавщук. Litavshchuk vineyards winery
+  FORM|LITAVSHCHUK VINEYARDS WINERY
+  FORM|LOCO CIMBALI WINERY
+  FORM|RAEVSKOE WINERY
+  FORM|Domaine Lipko Family Vineyards Winery
+  FORM|DUBININ WINERY WINEMAFIA
+  FORM|PAVEL SHVETS UPPA WINERY
+  FORM|BATRAK WINERY
+  FORM|CLOUDY WINERY COMMUNITY
+  FORM|SN WINERY
+  FORM|CLOUD WINERY
+TOKEN|yaiyla|N=2
+  FORM|Yaiyla Winery
+  FORM|Yaiyla
+TOKEN|аратти|N=2
+  FORM|АРАТТИ
+  FORM|СЕМЕЙНАЯ ВИНОДЕЛЬНЯ АРАТТИ
+TOKEN|батрак|N=4
+  FORM|Винодельня Батрак
+  FORM|Батрак ВИНОДЕЛЬНЯ
+  FORM|Виталий Батрак ВИНОДЕЛЬНЯ
+  FORM|Виталий Батрак
+TOKEN|бюрнье|N=3
+  FORM|Винодельня Бюрнье
+  FORM|БЮРНЬЕ
+  FORM|БЮРНЬЕ (BURNIER)
+TOKEN|винныи|N=7
+  FORM|Винный кооператив Интуиция
+  FORM|Винный форт Адагум
+  FORM|ВИННЫЙ ДОМ АБРАУ
+  FORM|РУССКИЙ ВИННЫЙ ДОМ АБРАУ-ДЮРСО
+  FORM|ВИННЫЙ ДОМ АБРАУ-ДЮРСО
+  FORM|ВИННЫЙ ФОРТ АДАГУМЪ
+  FORM|ИНТУИЦИЯ винный кооператив
+TOKEN|гусевъ|N=2
+  FORM|Гусевъ
+  FORM|Гусевъ семейная винодельня
+TOKEN|долина|N=3
+  FORM|Долина Лефкадия
+  FORM|Солнечная долина
+  FORM|ZELËNAYA DOLINA ЗЕЛЁНАЯ ДОЛИНА
+TOKEN|ебтате|N=4
+  FORM|Golubitskoe Estate
+  FORM|Mantra Estate
+  FORM|VINO&NEBO estate
+  FORM|GAVRAS ESTATE
+TOKEN|сергеи|N=2
+  FORM|СЕРГЕЙ БЕСКОРОВАЙНЫЙ
+  FORM|Бельбек Сергей Бескоровайный
+TOKEN|сикоры|N=2
+  FORM|Имение Сикоры
+  FORM|Сикоры
+TOKEN|тамань|N=4
+  FORM|CHATEAU TAMAGNE ЦЕНТР ЭНОЛОГИИ ШАТО ТАМАНЬ
+  FORM|ЦЕНТР ЭНОЛОГИИ ШАТО ТАМАНЬ
+  FORM|Шато Тамань
+  FORM|Château TAMAGNE (ШАТО ТАМАНЬ)
+TOKEN|abrau|N=4
+  FORM|ABRAU DURSO
+  FORM|ABRAU
+  FORM|ABRAU ESTATES
+  FORM|AZ ABRAU
+TOKEN|agora|N=2
+  FORM|AGORA WINERY
+  FORM|AGORA
+TOKEN|lipko|N=2
+  FORM|Domaine Lipko
+  FORM|Domaine Lipko Family Vineyards Winery
+TOKEN|manor|N=2
+  FORM|by Perovsky manor
+  FORM|Perovsky manor
+TOKEN|oxana|N=3
+  FORM|Oxana Istratova Wine
+  FORM|oxana istracova WINE
+  FORM|oxana istratova wines
+TOKEN|pavel|N=4
+  FORM|UP PA PAVEL SHVETS
+  FORM|PAVEL SHVETS UPPA WINERY
+  FORM|PAVEL SHVETS
+  FORM|PAVEL SHVETS UP PA UPPAWINERY.RU
+TOKEN|pinot|N=2
+  FORM|CHÂTEAU PINOT
+  FORM|ШАТО PINOT
+TOKEN|radio|N=2
+  FORM|Radio Wine
+  FORM|RADIO WINE RECORDS
+TOKEN|repin|N=2
+  FORM|Oleg Repin
+  FORM|LOCO CIMBALI BY REPIN
+TOKEN|villa|N=2
+  FORM|Villa di Alma
+  FORM|Villa Urkusta
+TOKEN|wines|N=3
+  FORM|oxana istratova wines
+  FORM|INKERMAN WINES
+  FORM|MILLSTREAM WINES
+TOKEN|абрау|N=2
+  FORM|АБРАУ ДЮРСО
+  FORM|ВИННЫЙ ДОМ АБРАУ
+TOKEN|берег|N=2
+  FORM|Скалистый берег
+  FORM|ВЫСОКИЙ БЕРЕГ
+TOKEN|вилла|N=2
+  FORM|Вилла София
+  FORM|Вилла Уркуста
+TOKEN|жаков|N=3
+  FORM|Винодельня Жаков
+  FORM|Жаков
+  FORM|Жаков (КФХ
+TOKEN|завод|N=2
+  FORM|Завод марочных вин Коктебель
+  FORM|ЗАВОД МАРОЧНЫХ КОКТЕБЕ
+TOKEN|лорио|N=2
+  FORM|ЛОРИО - семейная винодельня Логуновых
+  FORM|ЛОРИО
+TOKEN|марко|N=2
+  FORM|Винодельня Марко
+  FORM|МАРКО
+TOKEN|новыи|N=7
+  FORM|Новый Свет. Дом шампанских вин
+  FORM|Дом шампанских вин «Новый Свет»
+  FORM|ДОМ ШАМПАНСКИХ ВИН Новый Светъ
+  FORM|ДОМ ШАМПАНСКИХ ВИН Новый Свѣтъ
+  FORM|Новый Свѣтъ
+  FORM|Новый Светъ
+  FORM|Новый Свет
+TOKEN|светъ|N=2
+  FORM|ДОМ ШАМПАНСКИХ ВИН Новый Светъ
+  FORM|Новый Светъ
+TOKEN|свѣтъ|N=2
+  FORM|ДОМ ШАМПАНСКИХ ВИН Новый Свѣтъ
+  FORM|Новый Свѣтъ
+TOKEN|табия|N=3
+  FORM|Табия
+  FORM|ТАБИЯ СЕМЕЙНАЯ ВИНОДЕЛЬНЯ
+  FORM|ТАБИЯ винодельня
+TOKEN|центр|N=2
+  FORM|CHATEAU TAMAGNE ЦЕНТР ЭНОЛОГИИ ШАТО ТАМАНЬ
+  FORM|ЦЕНТР ЭНОЛОГИИ ШАТО ТАМАНЬ
+TOKEN|alma|N=4
+  FORM|Alma Valley
+  FORM|Villa di Alma
+  FORM|BY ALMA
+  FORM|ALMA
+TOKEN|leto|N=3
+  FORM|LETO
+  FORM|LETO ВИНОДЕЛЬНЯ
+  FORM|ВИНОДЕЛЬНЯ LETO
+TOKEN|loco|N=3
+  FORM|Loco Cimbali
+  FORM|LOCO CIMBALI BY REPIN
+  FORM|LOCO CIMBALI WINERY
+TOKEN|uppa|N=2
+  FORM|Uppa Winery
+  FORM|PAVEL SHVETS UPPA WINERY
+TOKEN|vino|N=3
+  FORM|Vino Nebo
+  FORM|SOYUZ VINO
+  FORM|SAYUZ VINO
+TOKEN|wine|N=7
+  FORM|AYA Organic Wine Vineyards
+  FORM|Bogovich Wine Vineyard
+  FORM|Oxana Istratova Wine
+  FORM|Radio Wine
+  FORM|oxana istracova WINE
+  FORM|RADIO WINE RECORDS
+  FORM|ZB Wine
+TOKEN|вина|N=2
+  FORM|Вина Арпачина
+  FORM|Цимлянские вина
+TOKEN|свет|N=3
+  FORM|Новый Свет. Дом шампанских вин
+  FORM|Дом шампанских вин «Новый Свет»
+  FORM|Новый Свет
+TOKEN|форт|N=2
+  FORM|Винный форт Адагум
+  FORM|ВИННЫЙ ФОРТ АДАГУМЪ
+TOKEN|шато|N=9
+  FORM|Шато Ай-Даниль
+  FORM|Шато АЛВИСА
+  FORM|Шато Пино
+  FORM|CHATEAU TAMAGNE ЦЕНТР ЭНОЛОГИИ ШАТО ТАМАНЬ
+  FORM|ЦЕНТР ЭНОЛОГИИ ШАТО ТАМАНЬ
+  FORM|ШАТО PINOT
+  FORM|Шато Тамань
+  FORM|Château TAMAGNE (ШАТО ТАМАНЬ)
+  FORM|ШАТО де ТАЛЮ
+TOKEN|rem|N=2
+  FORM|Rem Akchurin
+  FORM|AKCHURIN REM
+TOKEN|вин|N=7
+  FORM|Новый Свет. Дом шампанских вин
+  FORM|Дом шампанских вин «Новый Свет»
+  FORM|Завод марочных вин Коктебель
+  FORM|ДОМ ШАМПАНСКИХ ВИН
+  FORM|ДОМ ШАМПАНСКИХ ВИН Новый Светъ
+  FORM|ДОМ ШАМПАНСКИХ ВИН Новый Свѣтъ
+  FORM|Арт Вин
+TOKEN|два|N=2
+  FORM|Два Петра
+  FORM|Два Сердца
+TOKEN|дом|N=9
+  FORM|Новый Свет. Дом шампанских вин
+  FORM|Дом шампанских вин «Новый Свет»
+  FORM|ДОМ ШАМПАНСКИХ ВИИ
+  FORM|ДОМ ШАМПАНСКИХ ВИН
+  FORM|ДОМ ШАМПАНСКИХ ВИН Новый Светъ
+  FORM|ДОМ ШАМПАНСКИХ ВИН Новый Свѣтъ
+  FORM|ВИННЫЙ ДОМ АБРАУ
+  FORM|РУССКИЙ ВИННЫЙ ДОМ АБРАУ-ДЮРСО
+  FORM|ВИННЫЙ ДОМ АБРАУ-ДЮРСО
+TOKEN|змв|N=2
+  FORM|ЗМВ Коктебель
+  FORM|Инкерманский ЗМВ
+TOKEN|de|N=3
+  FORM|Chateau de Talu
+  FORM|Domaine de la Vivandiere
+  FORM|Château de MONTGOLFIERE
+TOKEN|di|N=2
+  FORM|Villa di Alma
+  FORM|DI CASPICO
+TOKEN|le|N=2
+  FORM|Château Le Grand Vostock
+  FORM|Le K2
+TOKEN|up|N=2
+  FORM|UP PA PAVEL SHVETS
+  FORM|PAVEL SHVETS UP PA UPPAWINERY.RU
+TOKEN|ву|N=4
+  FORM|LOCO CIMBALI BY REPIN
+  FORM|BY ALMA
+  FORM|by Nataly S. Коммуналка
+  FORM|by Perovsky manor
+TOKEN|ра|N=2
+  FORM|UP PA PAVEL SHVETS
+  FORM|PAVEL SHVETS UP PA UPPAWINERY.RU
+TOKEN|и|N=2
+  FORM|Галицкий и
+  FORM|Николаев и сыновья
+---BRANDISH_BEFORE_AFTER---
+бескороваиныи: [СЕРГЕЙ БЕСКОРОВАЙНЫЙ] → [(EMPTY→DROP)]
+бескороваиныи: [Бельбек Сергей Бескоровайный] → [(EMPTY→DROP)]
+litavshchuk: [Литавщук. Litavshchuk vineyards winery] → [Литавщук.]
+litavshchuk: [LITAVSHCHUK VINEYARDS WINERY] → [(EMPTY→DROP)]
+абрау-дюрсо: [Абрау-Дюрсо] → [(EMPTY→DROP)]
+абрау-дюрсо: [РУССКИЙ ВИННЫЙ ДОМ АБРАУ-ДЮРСО] → [РУССКИЙ]
+абрау-дюрсо: [ВИННЫЙ ДОМ АБРАУ-ДЮРСО] → [(EMPTY→DROP)]
+бегильдеева: [Винодельня Бегильдеева] → [(EMPTY→DROP)]
+бегильдеева: [Кубанская винодельня Бегильдеева] → [Кубанская]
+бегильдеева: [ФЕРМЕРСКАЯ ВИНОДЕЛЬНЯ БЕГИЛЬДЕЕВА] → [ФЕРМЕРСКАЯ]
+ведерниковъ: [Ведерниковъ] → [(EMPTY→DROP)]
+ведерниковъ: [ВИНОДЕЛЬНЯ ВЕДЕРНИКОВЪ] → [(EMPTY→DROP)]
+millstream: [MILLSTREAM] → [(EMPTY→DROP)]
+millstream: [MILLSTREAM ORIGINAL] → [ORIGINAL]
+millstream: [MILLSTREAM WINES] → [(EMPTY→DROP)]
+vivandiere: [Domaine de la Vivandiere] → [la]
+vivandiere: [Vivandière] → [(EMPTY→DROP)]
+винодельня: [Винодельня Батрак] → [(EMPTY→DROP)]
+винодельня: [Винодельня Бегильдеева] → [(EMPTY→DROP)]
+винодельня: [Винодельня Бердяева] → [Бердяева]
+винодельня: [Винодельня Братьев Мельниковых] → [Братьев Мельниковых]
+винодельня: [Винодельня Бюрнье] → [(EMPTY→DROP)]
+винодельня: [Винодельня Жаков] → [(EMPTY→DROP)]
+коммуналка: [Коммуналка] → [(EMPTY→DROP)]
+коммуналка: [by Nataly S. Коммуналка] → [Nataly S.]
+кооператив: [Винный кооператив Интуиция] → [(EMPTY→DROP)]
+кооператив: [ИНТУИЦИЯ винный кооператив] → [(EMPTY→DROP)]
+шампанских: [Новый Свет. Дом шампанских вин] → [(EMPTY→DROP)]
+шампанских: [Дом шампанских вин «Новый Свет»] → [(EMPTY→DROP)]
+шампанских: [ДОМ ШАМПАНСКИХ ВИИ] → [ВИИ]
+шампанских: [ДОМ ШАМПАНСКИХ ВИН] → [(EMPTY→DROP)]
+шампанских: [ДОМ ШАМПАНСКИХ ВИН Новый Светъ] → [(EMPTY→DROP)]
+шампанских: [ДОМ ШАМПАНСКИХ ВИН Новый Свѣтъ] → [(EMPTY→DROP)]
+istratova: [Oxana Istratova Wine] → [(EMPTY→DROP)]
+istratova: [oxana istratova wines] → [(EMPTY→DROP)]
+nagdaliev: [FARKHAD NAGDALIEV WINEMAFIA] → [FARKHAD]
+nagdaliev: [Faridud Nagdaliev Winemafia] → [Faridud]
+tempelhof: [Tempelhof Winery] → [(EMPTY→DROP)]
+tempelhof: [Tempelhof] → [(EMPTY→DROP)]
+vineyards: [AYA Organic Wine Vineyards] → [AYA Organic]
+vineyards: [Литавщук. Litavshchuk vineyards winery] → [Литавщук.]
+vineyards: [LITAVSHCHUK VINEYARDS WINERY] → [(EMPTY→DROP)]
+vineyards: [KOFFMANN BROTHERS FAMILY VINEYARDS] → [(EMPTY→DROP)]
+vineyards: [Domaine Lipko Family Vineyards Winery] → [(EMPTY→DROP)]
+winemafia: [WINEMAFIA] → [(EMPTY→DROP)]
+winemafia: [WINEMAFIA Vinnaya Derevnya] → [Vinnaya Derevnya]
+winemafia: [DUBININ WINERY WINEMAFIA] → [(EMPTY→DROP)]
+winemafia: [FARKHAD NAGDALIEV WINEMAFIA] → [FARKHAD]
+winemafia: [Faridud Nagdaliev Winemafia] → [Faridud]
+захарьина: [от ВАЛЕРИЯ ЗАХАРЬИНА] → [от]
+захарьина: [Валерия Захарьина] → [(EMPTY→DROP)]
+коктебель: [ЗМВ Коктебель] → [(EMPTY→DROP)]
+коктебель: [Завод марочных вин Коктебель] → [(EMPTY→DROP)]
+массандра: [Массандра] → [(EMPTY→DROP)]
+массандра: [«ПРОИЗВОДСТВЕННО-АГРАРНОЕ ОБЪЕДИНЕНИЕ «МАССАНДРА»] → [«ПРОИЗВОДСТВЕННО-АГРАРНОЕ ОБЪЕДИНЕНИЕ]
+союз-вино: [Союз-Вино] → [(EMPTY→DROP)]
+союз-вино: [ООО «Союз-Вино»] → [ООО]
+akchurin: [Rem Akchurin] → [(EMPTY→DROP)]
+akchurin: [AKCHURIN REM] → [(EMPTY→DROP)]
+bogovich: [Bogovich Wine Vineyard] → [Vineyard]
+bogovich: [BOGOVICH] → [(EMPTY→DROP)]
+bogovich: [IRINA BOGOVICH] → [IRINA]
+brothers: [KOFFMANN BROTHERS] → [(EMPTY→DROP)]
+brothers: [KOFFMANN BROTHERS FAMILY VINEYARDS] → [(EMPTY→DROP)]
+brothers: [HOFFMANN BROTHERS] → [HOFFMANN]
+inkerman: [INKERMAN] → [(EMPTY→DROP)]
+inkerman: [INKERMAN WINES] → [(EMPTY→DROP)]
+koffmann: [KOFFMANN BROTHERS] → [(EMPTY→DROP)]
+koffmann: [KOFFMANN BROTHERS FAMILY VINEYARDS] → [(EMPTY→DROP)]
+lefkadia: [LEFKADIA VALLEY] → [(EMPTY→DROP)]
+lefkadia: [LEFKADIA] → [(EMPTY→DROP)]
+perovsky: [by Perovsky manor] → [(EMPTY→DROP)]
+perovsky: [Perovsky manor] → [(EMPTY→DROP)]
+raevskoe: [RAEVSKOE WINERY] → [(EMPTY→DROP)]
+raevskoe: [RAEVSKOE] → [(EMPTY→DROP)]
+zelenaya: [ZELËNAYA DOLINA ЗЕЛЁНАЯ ДОЛИНА] → [ЗЕЛЁНАЯ]
+zelenaya: [ZELËNAYA DOLINA] → [(EMPTY→DROP)]
+галицкии: [Галицкий и] → [(EMPTY→DROP)]
+галицкии: [ГАЛИЦКИЙ] → [(EMPTY→DROP)]
+захарьин: [Валерий Захарьин] → [(EMPTY→DROP)]
+захарьин: [VALERY ZAHARIN (Валерий Захарьин)] → [(EMPTY→DROP)]
+интуиция: [Винный кооператив Интуиция] → [(EMPTY→DROP)]
+интуиция: [ИНТУИЦИЯ винный кооператив] → [(EMPTY→DROP)]
+марочных: [Завод марочных вин Коктебель] → [(EMPTY→DROP)]
+марочных: [ЗАВОД МАРОЧНЫХ КОКТЕБЕ] → [КОКТЕБЕ]
+марченко: [Винодельня Марченко] → [(EMPTY→DROP)]
+марченко: [МАРЧЕНКО ВИНОДЕЛЬНЯ] → [(EMPTY→DROP)]
+марченко: [МАРЧЕНКО] → [(EMPTY→DROP)]
+николаев: [А. Гордиенко М. Николаев] → [А. Гордиенко М.]
+николаев: [Николаев и сыновья] → [сыновья]
+поместье: [Поместье Голубицкое] → [Голубицкое]
+поместье: [ПОМЕСТЬЕ ТРЕНЗИНА] → [ТРЕНЗИНА]
+семеиная: [ЛОРИО - семейная винодельня Логуновых] → [- Логуновых]
+семеиная: [Семейная винодельня Михаила Колесникова] → [Михаила Колесникова]
+семеиная: [СЕМЕЙНАЯ ВИНОДЕЛЬНЯ АРАТТИ] → [(EMPTY→DROP)]
+семеиная: [СЕМЕЙНАЯ ВИНОДЕЛЬНЯ] → [(EMPTY→DROP)]
+семеиная: [ТАБИЯ СЕМЕЙНАЯ ВИНОДЕЛЬНЯ] → [(EMPTY→DROP)]
+семеиная: [GAVRAS СЕМЕЙНАЯ ВИНОДЕЛЬНЯ] → [(EMPTY→DROP)]
+энологии: [CHATEAU TAMAGNE ЦЕНТР ЭНОЛОГИИ ШАТО ТАМАНЬ] → [(EMPTY→DROP)]
+энологии: [ЦЕНТР ЭНОЛОГИИ ШАТО ТАМАНЬ] → [(EMPTY→DROP)]
+chateau: [Chateau Andre] → [Andre]
+chateau: [Chateau Cachalot] → [Cachalot]
+chateau: [Chateau de Talu] → [Talu]
+chateau: [Château Le Grand Vostock] → [Grand Vostock]
+chateau: [Chateau Semiray] → [Semiray]
+chateau: [CHÂTEAU PINOT] → [(EMPTY→DROP)]
+cimbali: [Loco Cimbali] → [(EMPTY→DROP)]
+cimbali: [LOCO CIMBALI BY REPIN] → [(EMPTY→DROP)]
+cimbali: [LOCO CIMBALI WINERY] → [(EMPTY→DROP)]
+denisov: [Denisov Winery] → [(EMPTY→DROP)]
+denisov: [DENISOV] → [(EMPTY→DROP)]
+domaine: [Domaine de la Vivandiere] → [la]
+domaine: [Domaine Lipko] → [(EMPTY→DROP)]
+domaine: [Domaine Lipko Family Vineyards Winery] → [(EMPTY→DROP)]
+dubinin: [Dubinin Winery] → [(EMPTY→DROP)]
+dubinin: [DUBININ WINERY WINEMAFIA] → [(EMPTY→DROP)]
+tamagne: [CHATEAU TAMAGNE] → [(EMPTY→DROP)]
+tamagne: [CHATEAU TAMAGNE ЦЕНТР ЭНОЛОГИИ ШАТО ТАМАНЬ] → [(EMPTY→DROP)]
+tamagne: [Château TAMAGNE (ШАТО ТАМАНЬ)] → [(EMPTY→DROP)]
+zaharin: [VALERY ZAHARIN] → [(EMPTY→DROP)]
+zaharin: [VALERY ZAHARIN (Валерий Захарьин)] → [(EMPTY→DROP)]
+бельбек: [Бельбек] → [(EMPTY→DROP)]
+бельбек: [Бельбек Сергей Бескоровайный] → [(EMPTY→DROP)]
+валерии: [Валерий Захарьин] → [(EMPTY→DROP)]
+валерии: [VALERY ZAHARIN (Валерий Захарьин)] → [(EMPTY→DROP)]
+валерия: [от ВАЛЕРИЯ ЗАХАРЬИНА] → [от]
+валерия: [Валерия Захарьина] → [(EMPTY→DROP)]
+виталии: [Виталий Батрак ВИНОДЕЛЬНЯ] → [(EMPTY→DROP)]
+виталии: [Виталий Батрак] → [(EMPTY→DROP)]
+криница: [Криница] → [(EMPTY→DROP)]
+криница: [КРИНИЦА винодельня] → [(EMPTY→DROP)]
+мысхако: [Мысхако] → [(EMPTY→DROP)]
+мысхако: [ВИНОДЕЛЬНЯ МЫСХАКО] → [(EMPTY→DROP)]
+мысхако: [МЫСХАКО ВИНОДЕЛЬНЯ] → [(EMPTY→DROP)]
+усадьба: [Усадьба Александровская] → [Александровская]
+усадьба: [Усадьба Дивноморское] → [Дивноморское]
+усадьба: [Усадьба Маркотх] → [Маркотх]
+усадьба: [Усадьба Мезыбь] → [Мезыбь]
+усадьба: [Усадьба Меркотан] → [Меркотан]
+усадьба: [Усадьба Перовских] → [Перовских]
+эльбузд: [Донское винодельческое хозяйство "Эльбузд"] → [Донское винодельческое хозяйство]
+эльбузд: [винодельня Эльбузд] → [(EMPTY→DROP)]
+belmas: [Belmas Winery] → [(EMPTY→DROP)]
+belmas: [Belmas] → [(EMPTY→DROP)]
+cloudy: [Cloudy Winery] → [(EMPTY→DROP)]
+cloudy: [CLOUDY WINERY COMMUNITY] → [COMMUNITY]
+dolina: [ZELËNAYA DOLINA ЗЕЛЁНАЯ ДОЛИНА] → [ЗЕЛЁНАЯ]
+dolina: [ZELËNAYA DOLINA] → [(EMPTY→DROP)]
+family: [KOFFMANN BROTHERS FAMILY VINEYARDS] → [(EMPTY→DROP)]
+family: [Domaine Lipko Family Vineyards Winery] → [(EMPTY→DROP)]
+gavras: [GAVRAS] → [(EMPTY→DROP)]
+gavras: [GAVRAS СЕМЕЙНАЯ ВИНОДЕЛЬНЯ] → [(EMPTY→DROP)]
+gavras: [GAVRAS ESTATE] → [(EMPTY→DROP)]
+shvets: [UP PA PAVEL SHVETS] → [(EMPTY→DROP)]
+shvets: [PAVEL SHVETS UPPA WINERY] → [(EMPTY→DROP)]
+shvets: [PAVEL SHVETS] → [(EMPTY→DROP)]
+shvets: [PAVEL SHVETS UP PA UPPAWINERY.RU] → [UPPAWINERY.RU]
+valery: [VALERY ZAHARIN] → [(EMPTY→DROP)]
+valery: [VALERY ZAHARIN (Валерий Захарьин)] → [(EMPTY→DROP)]
+valley: [Alma Valley] → [(EMPTY→DROP)]
+valley: [LEFKADIA VALLEY] → [(EMPTY→DROP)]
+valley: [KACHA VALLEY] → [KACHA]
+valley: [ADAGUM VALLEY] → [ADAGUM]
+winery: [AGORA WINERY] → [(EMPTY→DROP)]
+winery: [Belmas Winery] → [(EMPTY→DROP)]
+winery: [Cloudy Winery] → [(EMPTY→DROP)]
+winery: [Denisov Winery] → [(EMPTY→DROP)]
+winery: [Dubinin Winery] → [(EMPTY→DROP)]
+winery: [Ferrum Winery] → [Ferrum]
+yaiyla: [Yaiyla Winery] → [(EMPTY→DROP)]
+yaiyla: [Yaiyla] → [(EMPTY→DROP)]
+аратти: [АРАТТИ] → [(EMPTY→DROP)]
+аратти: [СЕМЕЙНАЯ ВИНОДЕЛЬНЯ АРАТТИ] → [(EMPTY→DROP)]
+батрак: [Винодельня Батрак] → [(EMPTY→DROP)]
+батрак: [Батрак ВИНОДЕЛЬНЯ] → [(EMPTY→DROP)]
+батрак: [Виталий Батрак ВИНОДЕЛЬНЯ] → [(EMPTY→DROP)]
+батрак: [Виталий Батрак] → [(EMPTY→DROP)]
+бюрнье: [Винодельня Бюрнье] → [(EMPTY→DROP)]
+бюрнье: [БЮРНЬЕ] → [(EMPTY→DROP)]
+бюрнье: [БЮРНЬЕ (BURNIER)] → [(BURNIER)]
+винныи: [Винный кооператив Интуиция] → [(EMPTY→DROP)]
+винныи: [Винный форт Адагум] → [Адагум]
+винныи: [ВИННЫЙ ДОМ АБРАУ] → [(EMPTY→DROP)]
+винныи: [РУССКИЙ ВИННЫЙ ДОМ АБРАУ-ДЮРСО] → [РУССКИЙ]
+винныи: [ВИННЫЙ ДОМ АБРАУ-ДЮРСО] → [(EMPTY→DROP)]
+винныи: [ВИННЫЙ ФОРТ АДАГУМЪ] → [АДАГУМЪ]
+гусевъ: [Гусевъ] → [(EMPTY→DROP)]
+гусевъ: [Гусевъ семейная винодельня] → [(EMPTY→DROP)]
+долина: [Долина Лефкадия] → [Лефкадия]
+долина: [Солнечная долина] → [Солнечная]
+долина: [ZELËNAYA DOLINA ЗЕЛЁНАЯ ДОЛИНА] → [ЗЕЛЁНАЯ]
+ебтате: [Golubitskoe Estate] → [Golubitskoe]
+ебтате: [Mantra Estate] → [Mantra]
+ебтате: [VINO&NEBO estate] → [VINO&NEBO]
+ебтате: [GAVRAS ESTATE] → [(EMPTY→DROP)]
+сергеи: [СЕРГЕЙ БЕСКОРОВАЙНЫЙ] → [(EMPTY→DROP)]
+сергеи: [Бельбек Сергей Бескоровайный] → [(EMPTY→DROP)]
+сикоры: [Имение Сикоры] → [Имение]
+сикоры: [Сикоры] → [(EMPTY→DROP)]
+тамань: [CHATEAU TAMAGNE ЦЕНТР ЭНОЛОГИИ ШАТО ТАМАНЬ] → [(EMPTY→DROP)]
+тамань: [ЦЕНТР ЭНОЛОГИИ ШАТО ТАМАНЬ] → [(EMPTY→DROP)]
+тамань: [Шато Тамань] → [(EMPTY→DROP)]
+тамань: [Château TAMAGNE (ШАТО ТАМАНЬ)] → [(EMPTY→DROP)]
+abrau: [ABRAU DURSO] → [DURSO]
+abrau: [ABRAU] → [(EMPTY→DROP)]
+abrau: [ABRAU ESTATES] → [ESTATES]
+abrau: [AZ ABRAU] → [AZ]
+agora: [AGORA WINERY] → [(EMPTY→DROP)]
+agora: [AGORA] → [(EMPTY→DROP)]
+lipko: [Domaine Lipko] → [(EMPTY→DROP)]
+lipko: [Domaine Lipko Family Vineyards Winery] → [(EMPTY→DROP)]
+manor: [by Perovsky manor] → [(EMPTY→DROP)]
+manor: [Perovsky manor] → [(EMPTY→DROP)]
+oxana: [Oxana Istratova Wine] → [(EMPTY→DROP)]
+oxana: [oxana istracova WINE] → [istracova]
+oxana: [oxana istratova wines] → [(EMPTY→DROP)]
+pavel: [UP PA PAVEL SHVETS] → [(EMPTY→DROP)]
+pavel: [PAVEL SHVETS UPPA WINERY] → [(EMPTY→DROP)]
+pavel: [PAVEL SHVETS] → [(EMPTY→DROP)]
+pavel: [PAVEL SHVETS UP PA UPPAWINERY.RU] → [UPPAWINERY.RU]
+pinot: [CHÂTEAU PINOT] → [(EMPTY→DROP)]
+pinot: [ШАТО PINOT] → [(EMPTY→DROP)]
+radio: [Radio Wine] → [(EMPTY→DROP)]
+radio: [RADIO WINE RECORDS] → [RECORDS]
+repin: [Oleg Repin] → [Oleg]
+repin: [LOCO CIMBALI BY REPIN] → [(EMPTY→DROP)]
+villa: [Villa di Alma] → [(EMPTY→DROP)]
+villa: [Villa Urkusta] → [Urkusta]
+wines: [oxana istratova wines] → [(EMPTY→DROP)]
+wines: [INKERMAN WINES] → [(EMPTY→DROP)]
+wines: [MILLSTREAM WINES] → [(EMPTY→DROP)]
+абрау: [АБРАУ ДЮРСО] → [ДЮРСО]
+абрау: [ВИННЫЙ ДОМ АБРАУ] → [(EMPTY→DROP)]
+берег: [Скалистый берег] → [Скалистый]
+берег: [ВЫСОКИЙ БЕРЕГ] → [ВЫСОКИЙ]
+вилла: [Вилла София] → [София]
+вилла: [Вилла Уркуста] → [Уркуста]
+жаков: [Винодельня Жаков] → [(EMPTY→DROP)]
+жаков: [Жаков] → [(EMPTY→DROP)]
+жаков: [Жаков (КФХ] → [(КФХ]
+завод: [Завод марочных вин Коктебель] → [(EMPTY→DROP)]
+завод: [ЗАВОД МАРОЧНЫХ КОКТЕБЕ] → [КОКТЕБЕ]
+лорио: [ЛОРИО - семейная винодельня Логуновых] → [- Логуновых]
+лорио: [ЛОРИО] → [(EMPTY→DROP)]
+марко: [Винодельня Марко] → [(EMPTY→DROP)]
+марко: [МАРКО] → [(EMPTY→DROP)]
+новыи: [Новый Свет. Дом шампанских вин] → [(EMPTY→DROP)]
+новыи: [Дом шампанских вин «Новый Свет»] → [(EMPTY→DROP)]
+новыи: [ДОМ ШАМПАНСКИХ ВИН Новый Светъ] → [(EMPTY→DROP)]
+новыи: [ДОМ ШАМПАНСКИХ ВИН Новый Свѣтъ] → [(EMPTY→DROP)]
+новыи: [Новый Свѣтъ] → [(EMPTY→DROP)]
+новыи: [Новый Светъ] → [(EMPTY→DROP)]
+светъ: [ДОМ ШАМПАНСКИХ ВИН Новый Светъ] → [(EMPTY→DROP)]
+светъ: [Новый Светъ] → [(EMPTY→DROP)]
+свѣтъ: [ДОМ ШАМПАНСКИХ ВИН Новый Свѣтъ] → [(EMPTY→DROP)]
+свѣтъ: [Новый Свѣтъ] → [(EMPTY→DROP)]
+табия: [Табия] → [(EMPTY→DROP)]
+табия: [ТАБИЯ СЕМЕЙНАЯ ВИНОДЕЛЬНЯ] → [(EMPTY→DROP)]
+табия: [ТАБИЯ винодельня] → [(EMPTY→DROP)]
+центр: [CHATEAU TAMAGNE ЦЕНТР ЭНОЛОГИИ ШАТО ТАМАНЬ] → [(EMPTY→DROP)]
+центр: [ЦЕНТР ЭНОЛОГИИ ШАТО ТАМАНЬ] → [(EMPTY→DROP)]
+alma: [Alma Valley] → [(EMPTY→DROP)]
+alma: [Villa di Alma] → [(EMPTY→DROP)]
+alma: [BY ALMA] → [(EMPTY→DROP)]
+alma: [ALMA] → [(EMPTY→DROP)]
+leto: [LETO] → [(EMPTY→DROP)]
+leto: [LETO ВИНОДЕЛЬНЯ] → [(EMPTY→DROP)]
+leto: [ВИНОДЕЛЬНЯ LETO] → [(EMPTY→DROP)]
+loco: [Loco Cimbali] → [(EMPTY→DROP)]
+loco: [LOCO CIMBALI BY REPIN] → [(EMPTY→DROP)]
+loco: [LOCO CIMBALI WINERY] → [(EMPTY→DROP)]
+uppa: [Uppa Winery] → [(EMPTY→DROP)]
+uppa: [PAVEL SHVETS UPPA WINERY] → [(EMPTY→DROP)]
+vino: [Vino Nebo] → [Nebo]
+vino: [SOYUZ VINO] → [SOYUZ]
+vino: [SAYUZ VINO] → [SAYUZ]
+wine: [AYA Organic Wine Vineyards] → [AYA Organic]
+wine: [Bogovich Wine Vineyard] → [Vineyard]
+wine: [Oxana Istratova Wine] → [(EMPTY→DROP)]
+wine: [Radio Wine] → [(EMPTY→DROP)]
+wine: [oxana istracova WINE] → [istracova]
+wine: [RADIO WINE RECORDS] → [RECORDS]
+вина: [Вина Арпачина] → [Арпачина]
+вина: [Цимлянские вина] → [Цимлянские]
+свет: [Новый Свет. Дом шампанских вин] → [(EMPTY→DROP)]
+свет: [Дом шампанских вин «Новый Свет»] → [(EMPTY→DROP)]
+свет: [Новый Свет] → [(EMPTY→DROP)]
+форт: [Винный форт Адагум] → [Адагум]
+форт: [ВИННЫЙ ФОРТ АДАГУМЪ] → [АДАГУМЪ]
+шато: [Шато Ай-Даниль] → [Ай-Даниль]
+шато: [Шато АЛВИСА] → [АЛВИСА]
+шато: [Шато Пино] → [Пино]
+шато: [CHATEAU TAMAGNE ЦЕНТР ЭНОЛОГИИ ШАТО ТАМАНЬ] → [(EMPTY→DROP)]
+шато: [ЦЕНТР ЭНОЛОГИИ ШАТО ТАМАНЬ] → [(EMPTY→DROP)]
+шато: [ШАТО PINOT] → [(EMPTY→DROP)]
+rem: [Rem Akchurin] → [(EMPTY→DROP)]
+rem: [AKCHURIN REM] → [(EMPTY→DROP)]
+вин: [Новый Свет. Дом шампанских вин] → [(EMPTY→DROP)]
+вин: [Дом шампанских вин «Новый Свет»] → [(EMPTY→DROP)]
+вин: [Завод марочных вин Коктебель] → [(EMPTY→DROP)]
+вин: [ДОМ ШАМПАНСКИХ ВИН] → [(EMPTY→DROP)]
+вин: [ДОМ ШАМПАНСКИХ ВИН Новый Светъ] → [(EMPTY→DROP)]
+вин: [ДОМ ШАМПАНСКИХ ВИН Новый Свѣтъ] → [(EMPTY→DROP)]
+два: [Два Петра] → [Петра]
+два: [Два Сердца] → [Сердца]
+дом: [Новый Свет. Дом шампанских вин] → [(EMPTY→DROP)]
+дом: [Дом шампанских вин «Новый Свет»] → [(EMPTY→DROP)]
+дом: [ДОМ ШАМПАНСКИХ ВИИ] → [ВИИ]
+дом: [ДОМ ШАМПАНСКИХ ВИН] → [(EMPTY→DROP)]
+дом: [ДОМ ШАМПАНСКИХ ВИН Новый Светъ] → [(EMPTY→DROP)]
+дом: [ДОМ ШАМПАНСКИХ ВИН Новый Свѣтъ] → [(EMPTY→DROP)]
+змв: [ЗМВ Коктебель] → [(EMPTY→DROP)]
+змв: [Инкерманский ЗМВ] → [Инкерманский]
+de: [Chateau de Talu] → [Talu]
+de: [Domaine de la Vivandiere] → [la]
+de: [Château de MONTGOLFIERE] → [MONTGOLFIERE]
+di: [Villa di Alma] → [(EMPTY→DROP)]
+di: [DI CASPICO] → [CASPICO]
+le: [Château Le Grand Vostock] → [Grand Vostock]
+le: [Le K2] → [K2]
+up: [UP PA PAVEL SHVETS] → [(EMPTY→DROP)]
+up: [PAVEL SHVETS UP PA UPPAWINERY.RU] → [UPPAWINERY.RU]
+ву: [LOCO CIMBALI BY REPIN] → [(EMPTY→DROP)]
+ву: [BY ALMA] → [(EMPTY→DROP)]
+ву: [by Nataly S. Коммуналка] → [Nataly S.]
+ву: [by Perovsky manor] → [(EMPTY→DROP)]
+ра: [UP PA PAVEL SHVETS] → [(EMPTY→DROP)]
+ра: [PAVEL SHVETS UP PA UPPAWINERY.RU] → [UPPAWINERY.RU]
+и: [Галицкий и] → [(EMPTY→DROP)]
+и: [Николаев и сыновья] → [сыновья]

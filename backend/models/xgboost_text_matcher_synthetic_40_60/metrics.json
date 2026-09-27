@@ -1,0 +1,161 @@
+{
+  "created_at": "2026-09-24T10:40:34+03:00",
+  "feature_version": "1.0.0",
+  "best_iteration": 176,
+  "threshold_best_f1_validation": 0.5299999999999999,
+  "train": {
+    "n": 21026.0,
+    "positives": 1048.0,
+    "roc_auc": 0.9991673092309938,
+    "pr_auc": 0.9889550863674522,
+    "threshold": 0.5299999999999999,
+    "precision": 0.9427480916030534,
+    "recall": 0.9427480916030534,
+    "f1": 0.9427480916030534,
+    "fpr": 0.0030033036339973973,
+    "top1_acc": 0.9475190839694656,
+    "top3_acc": 0.9971374045801527,
+    "top5_acc": 1.0,
+    "mrr": 0.972582697201018,
+    "scans_with_positive": 1048.0,
+    "baseline_cosine_top1_acc": 0.9093511450381679,
+    "baseline_cosine_top3_acc": 0.950381679389313,
+    "baseline_cosine_mrr": 0.9359370960553667,
+    "hard_negatives": {
+      "real_tp": {
+        "n": 417.0,
+        "prob_mean": 0.8695217627441238,
+        "prob_median": 0.9304566383361816,
+        "frac_ge_threshold": 0.9376498800959233
+      },
+      "real_tn_embedding": {
+        "n": 7923.0,
+        "prob_mean": 0.005931388988166885,
+        "prob_median": 0.0006668541464023292,
+        "frac_ge_threshold": 0.001893222264293828
+      },
+      "real_fp_hard": {
+        "n": 66.0,
+        "prob_mean": 0.3158036228207603,
+        "prob_median": 0.10165421664714813,
+        "frac_ge_threshold": 0.3333333333333333
+      },
+      "synthetic_tp_hard": {
+        "n": 631.0,
+        "prob_mean": 0.874196586249287,
+        "prob_median": 0.928838312625885,
+        "frac_ge_threshold": 0.9461172741679873
+      },
+      "synthetic_tn_embedding": {
+        "n": 11989.0,
+        "prob_mean": 0.0055161200522435856,
+        "prob_median": 0.0006391280912794173,
+        "frac_ge_threshold": 0.0019184252231211943
+      }
+    }
+  },
+  "validation": {
+    "n": 1775.0,
+    "positives": 88.0,
+    "roc_auc": 0.9940319017082503,
+    "pr_auc": 0.8818688364952791,
+    "threshold": 0.5299999999999999,
+    "precision": 0.8586956521739131,
+    "recall": 0.8977272727272727,
+    "f1": 0.8777777777777778,
+    "fpr": 0.007705986959098993,
+    "top1_acc": 0.8977272727272727,
+    "top3_acc": 1.0,
+    "top5_acc": 1.0,
+    "mrr": 0.9450757575757577,
+    "scans_with_positive": 88.0,
+    "baseline_cosine_top1_acc": 0.8977272727272727,
+    "baseline_cosine_top3_acc": 0.9431818181818182,
+    "baseline_cosine_mrr": 0.9275568181818182,
+    "hard_negatives": {
+      "real_tp": {
+        "n": 88.0,
+        "prob_mean": 0.7965948319231922,
+        "prob_median": 0.9008643329143524,
+        "frac_ge_threshold": 0.8977272727272727
+      },
+      "real_tn_embedding": {
+        "n": 1672.0,
+        "prob_mean": 0.008544458421948422,
+        "prob_median": 0.0007017400930635631,
+        "frac_ge_threshold": 0.004784688995215311
+      },
+      "real_fp_hard": {
+        "n": 15.0,
+        "prob_mean": 0.378059722095107,
+        "prob_median": 0.06504292786121368,
+        "frac_ge_threshold": 0.3333333333333333
+      }
+    }
+  },
+  "test": {
+    "n": 1715.0,
+    "positives": 85.0,
+    "roc_auc": 0.9936557199566943,
+    "pr_auc": 0.9339437671819785,
+    "threshold": 0.5299999999999999,
+    "precision": 0.8350515463917526,
+    "recall": 0.9529411764705882,
+    "f1": 0.8901098901098901,
+    "fpr": 0.0098159509202454,
+    "top1_acc": 0.9529411764705882,
+    "top3_acc": 0.9647058823529412,
+    "top5_acc": 0.9882352941176471,
+    "mrr": 0.9652941176470587,
+    "scans_with_positive": 85.0,
+    "baseline_cosine_top1_acc": 0.9529411764705882,
+    "baseline_cosine_top3_acc": 0.9647058823529412,
+    "baseline_cosine_mrr": 0.9640645731977001,
+    "hard_negatives": {
+      "real_tp": {
+        "n": 85.0,
+        "prob_mean": 0.871108920702382,
+        "prob_median": 0.9405897259712219,
+        "frac_ge_threshold": 0.9529411764705882
+      },
+      "real_tn_embedding": {
+        "n": 1615.0,
+        "prob_mean": 0.004765444367943078,
+        "prob_median": 0.000581447035074234,
+        "frac_ge_threshold": 0.002476780185758514
+      },
+      "real_fp_hard": {
+        "n": 15.0,
+        "prob_mean": 0.6928592630972464,
+        "prob_median": 0.8903930187225342,
+        "frac_ge_threshold": 0.8
+      }
+    }
+  },
+  "test_at_0_5": {
+    "n": 1715.0,
+    "positives": 85.0,
+    "roc_auc": 0.9936557199566943,
+    "pr_auc": 0.9339437671819785,
+    "threshold": 0.5,
+    "precision": 0.8350515463917526,
+    "recall": 0.9529411764705882,
+    "f1": 0.8901098901098901,
+    "fpr": 0.0098159509202454
+  },
+  "latency": {
+    "predict_only_20_candidates": {
+      "mean_ms": 11.087343999533914,
+      "median_ms": 11.15284999832511,
+      "p95_ms": 12.403909998829477,
+      "repeats": 50.0
+    },
+    "features_plus_predict_20_candidates": {
+      "mean_ms": 39.374025000142865,
+      "median_ms": 36.484700001892634,
+      "p95_ms": 45.5552250015899,
+      "repeats": 20.0
+    },
+    "device": "cpu"
+  }
+}

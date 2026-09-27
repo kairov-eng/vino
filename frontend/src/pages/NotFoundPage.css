@@ -1,0 +1,71 @@
+@import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700&display=swap');
+
+.error-page {
+  box-sizing: border-box;
+  min-height: 100vh;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  text-align: center;
+  background: #fff;
+  color: #000;
+  font-family: system-ui, -apple-system, sans-serif;
+}
+
+.error-page__content {
+  max-width: 600px;
+  padding: 48px 24px;
+}
+
+.error-page__code {
+  margin: 0 0 24px;
+  font-family: 'Playfair Display', Georgia, 'Times New Roman', serif;
+  font-size: 96px;
+  font-weight: 700;
+  line-height: 1;
+  color: #000;
+}
+
+.error-page__message {
+  margin: 0 0 32px;
+  color: #666;
+  font-size: 24px;
+  font-weight: 400;
+  line-height: 1.35;
+  word-break: break-word;
+}
+
+.error-page__btn {
+  box-sizing: border-box;
+  display: inline-flex;
+  justify-content: center;
+  align-items: center;
+  margin: 0 auto;
+  height: 56px;
+  padding: 0 16px;
+  border: 2px solid #8f3d42;
+  border-radius: 16px;
+  background-color: #8f3d42;
+  color: #fff;
+  font-family: system-ui, -apple-system, sans-serif;
+  font-size: 16px;
+  font-weight: 600;
+  line-height: 20px;
+  text-decoration: none;
+  cursor: pointer;
+  transition:
+    background-color 0.3s ease-in,
+    border-color 0.3s ease-in,
+    transform 0.2s linear;
+}
+
+.error-page__btn:hover {
+  background-color: #ab494f;
+  border-color: #ab494f;
+}
+
+.error-page__btn:active {
+  background-color: #723135;
+  border-color: #723135;
+  transform: scale(0.98);
+}

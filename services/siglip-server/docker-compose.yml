@@ -1,0 +1,43 @@
+# Отдельный стек — не трогает aidispatcher compose.
+# Порт localhost + сеть aidispatcher_aidnet для nginx (/api_siglip2).
+
+services:
+  siglip2:
+    build: .
+    image: siglip2-embed:cpu
+    container_name: siglip2-embed
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:8090:8090"
+    environment:
+      DEVICE: cpu
+      SIGLIP_MODEL: ${SIGLIP_MODEL:-google/siglip2-base-patch16-384}
+      SIGLIP_API_KEY: ${SIGLIP_API_KEY:-}
+      EMBED_API_KEY: ${EMBED_API_KEY:-}
+      REDIS_URL: ${REDIS_URL:-}
+      REDIS_CACHE_TTL: ${REDIS_CACHE_TTL:-0}
+      TORCH_NUM_THREADS: "2"
+      OMP_NUM_THREADS: "2"
+      OCR_WORKERS: ${OCR_WORKERS:-4}
+      OCR_THREADS: ${OCR_THREADS:-1}
+      # glibc иначе держит освобождённую память OCR в арене каждого потока (RSS не падает).
+      MALLOC_ARENA_MAX: "2"
+      MALLOC_TRIM_THRESHOLD_: "131072"
+      DNNL_MAX_CPU_ISA: SSE41
+      ATEN_CPU_CAPABILITY: default
+      HF_HOME: /cache/huggingface
+    volumes:
+      - siglip_hf_cache:/cache/huggingface
+    mem_limit: 2600m
+    cpus: 4.0
+    networks:
+      - default
+      - aidnet
+
+networks:
+  aidnet:
+    external: true
+    name: aidispatcher_aidnet
+
+volumes:
+  siglip_hf_cache:
