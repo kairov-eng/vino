@@ -147,7 +147,11 @@ docker compose -f distrib/docker-compose.yml --env-file distrib/.env up -d --bui
 ## 9. Обучение моделей (не в Docker-образе)
 
 - **SigLIP2 (Colab):** [`../training/siglip2/README.md`](../training/siglip2/README.md)  
-  данные: `2.crop_wines.py` → `prepare_siglip2_finetune_dataset.py` → `colab_train_siglip2.py`
-- **XGBoost:** архив [`../training/xgboost/xgboost_train_bundle.zip`](../training/xgboost/xgboost_train_bundle.zip) + README;  
-  прод-веса: `backend/models/xgboost_text_matcher_abs_v14/`
+  1) кропы: monorepo `research/label_detect/2.crop_wines.py` → `media/uploads/crop/*_crop.png`  
+  2) датасет: `training/siglip2/prepare_siglip2_finetune_dataset.py` → zip на Drive  
+  3) Colab: `training/siglip2/colab_train_siglip2.py` (GPU) → веса в Drive / HF Endpoint  
+  Веса SigLIP2 **не** в git.
+- **XGBoost:** архив [`../training/xgboost/xgboost_train_bundle.zip`](../training/xgboost/xgboost_train_bundle.zip)  
+  (скрипты `ocr_matcher/` + parquet `data_xgboost_id800_abs_v14/`) + README;  
+  прод-модель **в git:** `backend/models/xgboost_text_matcher_abs_v14/` (`XGB_MODEL_DIR`)
 - **Cross-Encoder / SigLIP веса** в git не кладём (`*.safetensors`) — только rsync на сервер
