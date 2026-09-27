@@ -16,8 +16,12 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
       libgomp1 \
     && rm -rf /var/lib/apt/lists/*
 
-COPY backend/requirements.txt /app/requirements.txt
+# CPU torch first (avoids multi‑GB CUDA wheels; disk on aidispatcher is tight).
+# Prod requirements omit easyocr/surya/transformers (optional at runtime).
+COPY backend/requirements.prod.txt /app/requirements.txt
 RUN pip install --no-cache-dir --upgrade pip \
+ && pip install --no-cache-dir torch torchvision \
+      --index-url https://download.pytorch.org/whl/cpu \
  && pip install --no-cache-dir -r /app/requirements.txt
 
 COPY backend/app /app/app
