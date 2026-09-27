@@ -1,0 +1,17 @@
+# OCR Text Matcher (XGBoost + Cross-Encoder). Ставится поверх окружения backend
+# (SQLAlchemy, psycopg2-binary, python-dotenv, rapidfuzz уже есть в vino-svoe/backend/requirements.txt).
+pandas>=2.2
+pyarrow>=15
+numpy>=1.26
+scikit-learn>=1.4
+rapidfuzz>=3.0
+xgboost>=2.1
+torch>=2.2
+transformers>=4.45
+sentence-transformers>=4.0
+datasets>=2.20
+accelerate>=1.0
+sentencepiece>=0.2
+SQLAlchemy>=2.0
+psycopg2-binary>=2.9
+python-dotenv>=1.0

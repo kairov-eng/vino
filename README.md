@@ -28,14 +28,16 @@ npm run dev
 | Пайплайн findwine | [`docs/findwine-pipeline.md`](docs/findwine-pipeline.md) |
 | Конкурс / приёмка | [`docs/contest/`](docs/contest/) |
 | **Деплой на vino-svoe.online** | [`distrib/README.md`](distrib/README.md) |
-| Обучение SigLIP2 (Colab) / XGBoost | [`training/`](training/) |
+| **Подготовка данных** (crop / YOLO / XGBoost) | [`Подготовка данных/`](Подготовка%20данных/) |
+| Обучение SigLIP2 (Colab) / train-bundle XGBoost | [`training/`](training/) |
 
 ## Прод (кратко)
 
 - Контейнеры: `vino_postgres` (pgvector), `vino_backend`, `vino_frontend`
 - Media (`/media`, в т.ч. `crop/`) и веса YOLO/XGB: `/var/lib/vino-svoe/...` (volume)
 - Дамп каталога без истории сканов: `distrib/sql/vino_catalog.dump.*`
-- Обучение: `training/siglip2/` (Colab), `training/xgboost/xgboost_train_bundle.zip`
+- Подготовка данных: `Подготовка данных/` (crop каталога, YOLO-сет, обучение XGBoost)
+- Обучение SigLIP2: `training/siglip2/` (Colab); готовый train-bundle XGBoost: `training/xgboost/xgboost_train_bundle.zip`
 - В git **нет** SigLIP2/Cross-Encoder весов (`*.safetensors`); XGBoost `model.json` — да
 
 Полная инструкция: **[distrib/README.md](distrib/README.md)**.

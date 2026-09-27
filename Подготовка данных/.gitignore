@@ -1,0 +1,10 @@
+# локальные секреты и артефакты подготовки данных
+.env
+**/logs/
+**/results/
+xgboost/data/
+xgboost/data_*/
+xgboost/xgboost_text_matcher/
+__pycache__/
+*.pyc
+.DS_Store
