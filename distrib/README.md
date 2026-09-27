@@ -144,10 +144,10 @@ docker compose -f distrib/docker-compose.yml --env-file distrib/.env up -d --bui
 
 Медиа и модели на диске **не** пересобираются.
 
-## Откат / логи
+## 9. Обучение моделей (не в Docker-образе)
 
-```bash
-docker logs -f vino_backend
-docker logs -f vino_frontend
-docker compose -f distrib/docker-compose.yml down
-```
+- **SigLIP2 (Colab):** [`../training/siglip2/README.md`](../training/siglip2/README.md)  
+  данные: `2.crop_wines.py` → `prepare_siglip2_finetune_dataset.py` → `colab_train_siglip2.py`
+- **XGBoost:** архив [`../training/xgboost/xgboost_train_bundle.zip`](../training/xgboost/xgboost_train_bundle.zip) + README;  
+  прод-веса: `backend/models/xgboost_text_matcher_abs_v14/`
+- **Cross-Encoder / SigLIP веса** в git не кладём (`*.safetensors`) — только rsync на сервер
