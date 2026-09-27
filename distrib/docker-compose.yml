@@ -15,7 +15,7 @@ services:
   # (alpine image has no vector). Data: /var/lib/vino-svoe/postgres
   vino_postgres:
     container_name: vino_postgres
-    image: pgvector/pgvector:pg16
+    image: pgvector/pgvector:pg17
     restart: unless-stopped
     environment:
       POSTGRES_USER: ${VINO_PG_USER:-vino}
