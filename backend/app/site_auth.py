@@ -52,4 +52,8 @@ def is_site_auth_exempt(path: str, method: str) -> bool:
     p = path.rstrip("/") or "/"
     if p in {"/api/health", "/api/site-auth"}:
         return True
+    # Catalog photos are not secret; skip gate so CDN/nginx can cache freely.
+    # (Prod serves /media from vino_frontend nginx, which does not check cookies.)
+    if p.startswith("/media/") or p == "/media":
+        return True
     return False

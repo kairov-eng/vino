@@ -128,7 +128,8 @@ def site_auth_login(body: SiteAuthRequest) -> SiteAuthResponse:
 
 @app.get(f"{MEDIA_URL_PATH}/{{file_path:path}}")
 def serve_media(file_path: str):
-    # Prevent path traversal
+    # Prevent path traversal.
+    # Prod prefers nginx static (/media via vino_frontend); this is local/dev fallback.
     target = (MEDIA_ROOT / file_path).resolve()
     if not str(target).startswith(str(MEDIA_ROOT.resolve())):
         raise HTTPException(status_code=400, detail="Invalid path")
@@ -144,4 +145,10 @@ def serve_media(file_path: str):
             ".jpeg": "image/jpeg",
             ".gif": "image/gif",
         }.get(suffix, "application/octet-stream")
-    return FileResponse(target, media_type=media_type)
+    return FileResponse(
+        target,
+        media_type=media_type,
+        headers={
+            "Cache-Control": "public, max-age=2592000, immutable",
+        },
+    )

@@ -89,6 +89,9 @@ services:
     depends_on:
       vino_backend:
         condition: service_healthy
+    volumes:
+      # Same catalog photos as backend — nginx serves /media/ directly (fast)
+      - ${VINO_MEDIA_HOST:-/var/lib/vino-svoe/media}:/data/media:ro
     ports:
       # 8091 is taken by dinov3-embed on aidispatcher — use 8088 for local probe
       - "${VINO_FRONTEND_PORT:-127.0.0.1:8088}:80"

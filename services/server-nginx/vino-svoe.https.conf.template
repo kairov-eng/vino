@@ -118,18 +118,18 @@ server {
         proxy_pass $vino_be;
     }
 
+    # Catalog photos: nginx → vino_frontend (static alias), not FastAPI
     location /media/ {
         resolver 127.0.0.11 valid=30s ipv6=off;
-        set $vino_be http://vino_backend:8092;
+        set $vino_fe http://vino_frontend:80;
         proxy_http_version 1.1;
         proxy_set_header Host $host;
         proxy_set_header X-Real-IP $remote_addr;
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
         proxy_set_header X-Forwarded-Proto https;
         proxy_set_header Connection "";
-        proxy_read_timeout 120s;
-        client_max_body_size 25m;
-        proxy_pass $vino_be;
+        proxy_read_timeout 60s;
+        proxy_pass $vino_fe;
     }
 
     # SPA (container vino_frontend)
