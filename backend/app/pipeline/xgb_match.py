@@ -662,12 +662,20 @@ def attach_xgb_to_candidate_items(
     candidates: dict[str, Any] | None,
     xgb_step: dict[str, Any] | None,
 ) -> None:
-    """Мутирует candidates.*.items: xgb_score / xgb_fin."""
+    """Мутирует candidates.*.items: xgb_score / xgb_fin.
+
+    Каталожные hits — из ``xgb_step.by_id``.
+    Reuse-hits (from_previous_search) — из ``xgb_step.by_reuse_sid``
+    (ключ = search_photos_id), иначе fallback на by_id.
+    """
     if not isinstance(candidates, dict) or not isinstance(xgb_step, dict):
         return
     by_id = xgb_step.get("by_id") or {}
+    by_reuse = xgb_step.get("by_reuse_sid") or {}
     if not isinstance(by_id, dict):
-        return
+        by_id = {}
+    if not isinstance(by_reuse, dict):
+        by_reuse = {}
     for branch in ("siglip2", "dinov3"):
         block = candidates.get(branch) or {}
         items = block.get("items") if isinstance(block, dict) else None
@@ -676,7 +684,15 @@ def attach_xgb_to_candidate_items(
         for it in items:
             if not isinstance(it, dict) or it.get("id") is None:
                 continue
-            row = by_id.get(str(int(it["id"])))
+            row = None
+            try:
+                rs = int(it.get("search_photos_id") or 0)
+            except (TypeError, ValueError):
+                rs = 0
+            if rs > 0 and it.get("from_previous_search"):
+                row = by_reuse.get(str(rs))
+            if not isinstance(row, dict):
+                row = by_id.get(str(int(it["id"])))
             if not isinstance(row, dict):
                 continue
             it["xgb_score"] = row.get("xgb_score")
@@ -686,3 +702,83 @@ def attach_xgb_to_candidate_items(
             it["xgb_fin_reason"] = row.get("xgb_fin_reason")
             it["exclusive_rejected"] = row.get("exclusive_rejected")
             it["label_text_hard_reject"] = row.get("label_text_hard_reject")
+            if row.get("compare_source"):
+                it["xgb_compare_source"] = row.get("compare_source")
+
+
+def score_reuse_previous_search_xgb(
+    *,
+    ocr_text: str,
+    candidates: dict[str, Any] | None,
+    wines_by_id: dict[int, dict[str, Any]],
+    cosine_by_id: dict[int, float],
+    match_threshold: float,
+    similar_threshold: float,
+    final_weights: dict[str, float] | None = None,
+) -> dict[str, dict[str, Any]]:
+    """XGB: query OCR ↔ previous_search_ocr for reuse hits.
+
+    Returns map ``search_photos_id → ranked score row`` (compare_source set).
+    Hard-reject / exclusive не применяем — тексты с одной «семьи» фото.
+    """
+    if not isinstance(candidates, dict):
+        return {}
+    text = str(ocr_text or "").strip()
+    if not text:
+        return {}
+    wines: list[dict[str, Any]] = []
+    sid_order: list[int] = []
+    seen_sid: set[int] = set()
+    for branch in ("siglip2", "dinov3"):
+        block = candidates.get(branch) or {}
+        items = block.get("items") if isinstance(block, dict) else None
+        if not isinstance(items, list):
+            continue
+        for it in items:
+            if not isinstance(it, dict) or not it.get("from_previous_search"):
+                continue
+            try:
+                sid = int(it.get("search_photos_id") or 0)
+                wid = int(it["id"])
+            except (TypeError, ValueError, KeyError):
+                continue
+            if sid <= 0 or sid in seen_sid:
+                continue
+            prev_ocr = str(
+                it.get("previous_search_ocr") or it.get("label") or ""
+            ).strip()
+            if not prev_ocr:
+                continue
+            base = dict(wines_by_id.get(wid) or {"id": wid})
+            base["id"] = wid
+            base["label"] = prev_ocr
+            # Structured catalog OCR не относится к тексту прошлого поиска.
+            base["label_ocr"] = None
+            wines.append(enrich_wine_dict_for_xgb(base))
+            sid_order.append(sid)
+            seen_sid.add(sid)
+    if not wines:
+        return {}
+    try:
+        scored = score_candidates_skipping_hard_reject(
+            text, wines, cosine_by_id, hard_reject_ids=set()
+        )
+        ranked = apply_xgb_fin(
+            scored,
+            match_threshold=match_threshold,
+            similar_threshold=similar_threshold,
+            exclusive_reject_ids=set(),
+            label_text_reject_reasons={},
+            final_weights=final_weights,
+            cosine_by_id=cosine_by_id,
+        )
+    except Exception:  # noqa: BLE001
+        _log.exception("reuse previous_search xgb failed")
+        return {}
+    out: dict[str, dict[str, Any]] = {}
+    for sid, row in zip(sid_order, ranked):
+        packed = dict(row)
+        packed["compare_source"] = "previous_search_ocr"
+        packed["search_photos_id"] = int(sid)
+        out[str(int(sid))] = packed
+    return out

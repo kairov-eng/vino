@@ -172,6 +172,10 @@ export type FindWineCandidate = {
   winery: string | null
   slug: string | null
   label: string | null
+  category?: string | null
+  grape_variety?: string | null
+  description?: string | null
+  wine_type?: string | null
   photo_url: string | null
   label_url: string | null
   geometry_ok?: boolean | null
@@ -197,6 +201,16 @@ export type FindWineCandidate = {
   hsv?: number | null
   /** CIEDE2000 доминантных цветов query↔candidate (меньше = ближе) */
   color_delta?: number | null
+  /** Кандидат добавлен из похожего прошлого поиска */
+  from_previous_search?: boolean | null
+  /** 0 = из каталога; >0 = search_photos.id прошлого поиска */
+  search_photos_id?: number | null
+  /** OCR этикетки из прошлого поиска (для UI и XGB) */
+  previous_search_ocr?: string | null
+  /** Текст этикетки каталога, если label заменён на previous_search_ocr */
+  catalog_label?: string | null
+  /** previous_search_ocr — XGB сравнивал с OCR прошлого поиска */
+  xgb_compare_source?: string | null
   /** Final score per OCR (selected text method) */
   final_by_ocr?: Record<string, number> | null
   final_ocr_primary?: string | null
@@ -261,6 +275,7 @@ export type WineAnalogs = {
   skipped?: boolean
   reason?: string
   source?: string
+  seed_wine_id?: number
   ms?: number
   criteria: {
     winery: string[]
@@ -597,6 +612,8 @@ export type PipelineSettings = {
   use_hsv_hard_reject: boolean
   hsv_hard_reject_max: number
   compute_color_delta: boolean
+  reuse_previous_searches: boolean
+  show_search_details: boolean
   final_ocr: string
   final_ocr_options: { id: string; label: string }[]
   exclusive_use_translit: boolean
@@ -648,6 +665,8 @@ export async function updatePipelineSettings(patch: {
   use_hsv_hard_reject?: boolean
   hsv_hard_reject_max?: number
   compute_color_delta?: boolean
+  reuse_previous_searches?: boolean
+  show_search_details?: boolean
   final_ocr?: string
   exclusive_use_translit?: boolean
   exclusive_match_spaced?: boolean

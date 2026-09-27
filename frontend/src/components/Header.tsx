@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState, type MouseEvent } from 'react'
 import { Link, NavLink, useLocation, useNavigate, useSearchParams } from 'react-router-dom'
-import { fetchFindWineResult, fetchScanHistory } from '../api/client'
+import { fetchFindWineResult, fetchPipelineSettings, fetchScanHistory } from '../api/client'
+import { useSiteAuth } from '../auth/SiteAuthContext'
 import './Header.css'
 
 const links = [
@@ -24,6 +25,7 @@ export function Header() {
   const location = useLocation()
   const navigate = useNavigate()
   const [searchParams] = useSearchParams()
+  const { isAdmin } = useSiteAuth()
   const isScanner = location.pathname === '/'
   const rawScanId = isScanner ? searchParams.get('scanid') : null
   const scanId = rawScanId != null ? Number(rawScanId) : NaN
@@ -31,10 +33,32 @@ export function Header() {
   const [latestId, setLatestId] = useState<number | null>(null)
   const [nextBusy, setNextBusy] = useState(false)
   const [menuOpen, setMenuOpen] = useState(false)
+  const [showSearchDetailsSetting, setShowSearchDetailsSetting] = useState(true)
+  const showDetails = isAdmin && showSearchDetailsSetting
 
   useEffect(() => {
     setMenuOpen(false)
   }, [location.pathname, location.search])
+
+  useEffect(() => {
+    if (!isAdmin) {
+      setShowSearchDetailsSetting(false)
+      return
+    }
+    let cancelled = false
+    fetchPipelineSettings()
+      .then((s) => {
+        if (!cancelled) {
+          setShowSearchDetailsSetting(s.show_search_details !== false)
+        }
+      })
+      .catch(() => {
+        /* keep default true for admin */
+      })
+    return () => {
+      cancelled = true
+    }
+  }, [isAdmin])
 
   useEffect(() => {
     if (!menuOpen) return
@@ -51,7 +75,7 @@ export function Header() {
   }, [menuOpen])
 
   useEffect(() => {
-    if (!isScanner) {
+    if (!isScanner || !showDetails) {
       setLatestId(null)
       return
     }
@@ -68,7 +92,7 @@ export function Header() {
     return () => {
       cancelled = true
     }
-  }, [isScanner, hasCurrent, location.key])
+  }, [isScanner, showDetails, hasCurrent, location.key])
 
   const prevId = hasCurrent ? scanId - 1 : latestId
   const nextId = hasCurrent ? scanId + 1 : null
@@ -105,7 +129,7 @@ export function Header() {
           </span>
         </NavLink>
 
-        {isScanner && (
+        {isScanner && showDetails && (
           <nav className="site-scan-nav" aria-label="Навигация по сравнениям">
             {canPrev ? (
               <Link

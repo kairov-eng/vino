@@ -9,6 +9,8 @@ import './ScanSettings.css'
 type Props = {
   open: boolean
   onClose: () => void
+  /** Fired after a successful settings persist (so scanner UI can react). */
+  onSettingsSaved?: (settings: PipelineSettings) => void
 }
 
 type TabId = 'pipeline' | 'weights' | 'gates'
@@ -58,7 +60,7 @@ function mergeWeightOptions(
   })
 }
 
-export function ScanSettingsPopup({ open, onClose }: Props) {
+export function ScanSettingsPopup({ open, onClose, onSettingsSaved }: Props) {
   const [tab, setTab] = useState<TabId>('pipeline')
   const [settings, setSettings] = useState<PipelineSettings | null>(null)
   const [weights, setWeights] = useState<Record<string, number>>(() =>
@@ -152,6 +154,8 @@ export function ScanSettingsPopup({ open, onClose }: Props) {
     use_hsv_hard_reject?: boolean
     hsv_hard_reject_max?: number
     compute_color_delta?: boolean
+    reuse_previous_searches?: boolean
+    show_search_details?: boolean
     final_ocr?: string
     exclusive_use_translit?: boolean
     exclusive_match_spaced?: boolean
@@ -229,12 +233,13 @@ export function ScanSettingsPopup({ open, onClose }: Props) {
         ),
         ...(next.final_weights || {}),
       })
+      onSettingsSaved?.(next)
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Ошибка сохранения')
     } finally {
       setSaving(false)
     }
-  }, [settings])
+  }, [settings, onSettingsSaved])
 
   const togglePreprocess = (id: string, checked: boolean) => {
     if (!settings) return
@@ -312,6 +317,21 @@ export function ScanSettingsPopup({ open, onClose }: Props) {
           </button>
         </header>
 
+        {settings && (
+          <div className="scan-settings__top-flag">
+            <label>
+              <input
+                type="checkbox"
+                checked={settings.show_search_details !== false}
+                onChange={(e) =>
+                  void persist({ show_search_details: e.target.checked })
+                }
+              />
+              <span>Показывать детали поиска</span>
+            </label>
+          </div>
+        )}
+
         <div className="scan-settings__tabs" role="tablist">
           <button
             type="button"
@@ -362,6 +382,27 @@ export function ScanSettingsPopup({ open, onClose }: Props) {
                     <span>
                       Искать по DINOv3
                       <small>SigLIP2 всегда включён</small>
+                    </span>
+                  </label>
+                </li>
+                <li>
+                  <label>
+                    <input
+                      type="checkbox"
+                      checked={settings.reuse_previous_searches === true}
+                      onChange={(e) =>
+                        void persist({
+                          reuse_previous_searches: e.target.checked,
+                        })
+                      }
+                    />
+                    <span>
+                      Переиспользовать предыдущие поиски
+                      <small>
+                        Ближайший прошлый SigLIP2-поиск (cos ≥ 0.5) → его
+                        победитель в top‑19+1 и Google Vision OCR из того
+                        поиска
+                      </small>
                     </span>
                   </label>
                 </li>

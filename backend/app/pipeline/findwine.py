@@ -21,7 +21,12 @@ from app.db.config import EMBED_DIM, SEARCH_PHOTO_DIR, WORK_JPEG_MAX_BYTES
 from app.db import config as app_config
 from app.db.models import SearchPhoto, Wine, WineSitemap
 from app.media import label_url, photo_url
-from app.pipeline.analogs import find_analogs
+from app.pipeline.analogs import (
+    TYPE_LABELS,
+    find_analogs,
+    find_analogs_from_wine,
+)
+from app.pipeline.analogs import _type_canon as _analog_type_canon
 from app.pipeline.candidates import search_top_wines_by_cosine
 from app.pipeline.embed_client import (
     embed_dinov3,
@@ -69,6 +74,7 @@ from app.pipeline.xgb_match import (
     list_ocr_texts_by_engine,
     resolve_final_ocr,
     score_candidates_skipping_hard_reject,
+    score_reuse_previous_search_xgb,
 )
 from app.pipeline.crenc_match import (
     apply_crenc_fin,
@@ -236,6 +242,15 @@ def _enrich_candidates(
             out.append({**h, "name": None, "winery": None})
             continue
         sitemap_file = sitemap_map.get(wine.slug) if wine.slug else None
+        lo = wine.label_ocr if isinstance(wine.label_ocr, dict) else {}
+        type_canon = (
+            _analog_type_canon(str(lo.get("type") or ""))
+            or _analog_type_canon(str(wine.name or ""))
+            or _analog_type_canon(str(wine.label or ""))
+        )
+        wine_type = (
+            TYPE_LABELS.get(type_canon, type_canon) if type_canon else None
+        )
         item: dict[str, Any] = {
             **h,
             "name": wine.name,
@@ -245,6 +260,8 @@ def _enrich_candidates(
             "color": wine.color,
             "category": wine.category,
             "grape_variety": wine.grape_variety,
+            "description": wine.description,
+            "wine_type": wine_type,
             "region": wine.region,
             "photo_url": photo_url(
                 wine.photo_name,
@@ -253,6 +270,12 @@ def _enrich_candidates(
             ),
             "label_url": label_url(wine.photo_name, slug=wine.slug),
         }
+        # Reuse-hit: keep catalog label separately; UI/XGB use previous OCR.
+        prev_ocr = str(h.get("previous_search_ocr") or "").strip()
+        if h.get("from_previous_search") and prev_ocr:
+            item["catalog_label"] = wine.label
+            item["previous_search_ocr"] = prev_ocr
+            item["label"] = prev_ocr
         # In-process only (stripped by _json_safe): catalog HSV hist from wines.hsv
         if wine.hsv:
             item["_hsv"] = bytes(wine.hsv)
@@ -261,20 +284,30 @@ def _enrich_candidates(
 
 
 def _run_cosine_search(
-    db: Session, *, search_photos_id: int, emb_step: dict[str, Any]
+    db: Session,
+    *,
+    search_photos_id: int,
+    emb_step: dict[str, Any],
+    reuse_previous_searches: bool = False,
 ) -> dict[str, Any]:
     result: dict[str, Any] = {}
+    reuse_meta: dict[str, Any] | None = None
     for etype in ("siglip2", "dinov3"):
         if not emb_step.get(etype, {}).get("ok"):
             result[etype] = {"ok": False, "ids": [], "items": [], "error": "no embedding"}
             continue
         try:
-            hits = search_top_wines_by_cosine(
+            packed = search_top_wines_by_cosine(
                 db,
                 search_photos_id=search_photos_id,
                 embedding_type=etype,
                 limit=20,
+                reuse_previous_searches=bool(reuse_previous_searches)
+                and etype == "siglip2",
             )
+            hits = list(packed.get("hits") or [])
+            if etype == "siglip2" and packed.get("reuse"):
+                reuse_meta = dict(packed["reuse"])
             items = _enrich_candidates(db, hits)
             result[etype] = {
                 "ok": True,
@@ -288,6 +321,8 @@ def _run_cosine_search(
                 "items": [],
                 "error": str(exc),
             }
+    if reuse_meta is not None:
+        result["reuse_previous_search"] = reuse_meta
     return result
 
 
@@ -460,6 +495,12 @@ def run_findwine(
         "compute_color_delta": bool(
             pipeline_settings.get("compute_color_delta", True)
         ),
+        "reuse_previous_searches": bool(
+            pipeline_settings.get("reuse_previous_searches", False)
+        ),
+        "show_search_details": bool(
+            pipeline_settings.get("show_search_details", True)
+        ),
         "final_ocr": str(pipeline_settings.get("final_ocr") or "auto"),
     }
     # Explicit alias for weights (requested field for search_photos.status)
@@ -511,6 +552,9 @@ def run_findwine(
     )
     compute_color_delta = bool(
         pipeline_settings.get("compute_color_delta", True)
+    )
+    reuse_previous_searches = bool(
+        pipeline_settings.get("reuse_previous_searches", False)
     )
     final_ocr_pref = str(pipeline_settings.get("final_ocr") or "auto")
     try:
@@ -2176,9 +2220,11 @@ def run_findwine(
         fut_yandex = (
             pool.submit(_job_yandex) if yandex_ocr is None else None
         )
-        fut_google_vision = (
-            pool.submit(_job_google_vision) if google_vision_ocr is None else None
-        )
+        # Live Google Vision: если reuse_previous_searches — ждём cosine;
+        # при hit с GV-текстом прошлого поиска live API не вызываем.
+        fut_google_vision = None
+        if google_vision_ocr is None and not reuse_previous_searches:
+            fut_google_vision = pool.submit(_job_google_vision)
         fut_qwen = pool.submit(_job_qwen) if qwen_ocr is None else None
         fut_sig = pool.submit(_job_siglip)
         fut_dino = pool.submit(_job_dinov3)
@@ -2324,12 +2370,54 @@ def run_findwine(
         _save_status(db, row, status)
 
         # 3b) cosine top-20 — overlaps remaining OCR/Gemini work
-        _plog(">> candidates (cosine)")
+        _plog(">> candidates (cosine)", reuse=reuse_previous_searches)
         t0 = time.perf_counter()
-        candidates = _run_cosine_search(db, search_photos_id=photo_id, emb_step=emb_step)
+        candidates = _run_cosine_search(
+            db,
+            search_photos_id=photo_id,
+            emb_step=emb_step,
+            reuse_previous_searches=reuse_previous_searches,
+        )
+        reuse_step = candidates.pop("reuse_previous_search", None)
         status["steps"]["candidates"] = candidates
         status["candidates_siglip2_ids"] = candidates.get("siglip2", {}).get("ids", [])
         status["candidates_dinov3_ids"] = candidates.get("dinov3", {}).get("ids", [])
+        if reuse_step:
+            status["steps"]["reuse_previous_search"] = reuse_step
+            status["reuse_previous_search"] = reuse_step
+            # Also expose GV OCR at top-level for clients
+            status["reused_google_vision_ocr"] = reuse_step.get("google_vision_ocr")
+        # Deferred live GV: only if reuse did not supply OCR text.
+        reused_gv_text = ""
+        if isinstance(reuse_step, dict):
+            reused_gv_text = (reuse_step.get("google_vision_ocr") or "").strip()
+        if (
+            google_vision_ocr is None
+            and reuse_previous_searches
+            and fut_google_vision is None
+        ):
+            if reused_gv_text:
+                google_vision_ocr = {
+                    "id": "google_vision",
+                    "engine": "google_vision",
+                    "engine_name": "Google Vision OCR",
+                    "ok": True,
+                    "text": reused_gv_text,
+                    "reused": True,
+                    "reused_from_search_photos_id": (
+                        reuse_step or {}
+                    ).get("search_photos_id"),
+                    "skipped_live": True,
+                    "reason": "reuse_previous_search_gv",
+                }
+                _plog(
+                    "google_vision skipped (reuse OCR)",
+                    from_sid=(reuse_step or {}).get("search_photos_id"),
+                    wine_id=(reuse_step or {}).get("wine_id"),
+                )
+            else:
+                fut_google_vision = pool.submit(_job_google_vision)
+                _plog(">> google_vision live (no reuse OCR)")
         cos_persist: dict[str, float] = {}
         for branch in ("siglip2", "dinov3"):
             for it in (candidates.get(branch) or {}).get("items") or []:
@@ -2348,6 +2436,9 @@ def run_findwine(
             "candidates",
             siglip_n=len(status["candidates_siglip2_ids"] or []),
             dino_n=len(status["candidates_dinov3_ids"] or []),
+            reuse=bool(reuse_step),
+            reuse_wine=(reuse_step or {}).get("wine_id"),
+            reuse_sid=(reuse_step or {}).get("search_photos_id"),
         )
         _time_set("candidates", t0)
         _save_status(db, row, status)
@@ -2755,6 +2846,50 @@ def run_findwine(
                 ocr["text"] = gvtext
                 ocr["text_norm"] = normalize_ocr_text(gvtext)
         ocr["ok"] = bool(ocr.get("ok")) or bool(google_vision_ocr.get("ok"))
+
+    # OCR from a reused previous search (siglip2 nearest ≥0.5).
+    reuse_step_now = (status.get("steps") or {}).get("reuse_previous_search")
+    if isinstance(reuse_step_now, dict):
+        reused_gv = (reuse_step_now.get("google_vision_ocr") or "").strip()
+        if reused_gv:
+            reused_pack = {
+                "id": "google_vision_reused",
+                "engine": "google_vision_reused",
+                "ok": True,
+                "text": reused_gv,
+                "from_previous_search": True,
+                "search_photos_id": reuse_step_now.get("search_photos_id"),
+                "wine_id": reuse_step_now.get("wine_id"),
+                "cosine": reuse_step_now.get("cosine"),
+            }
+            variants["google_vision_reused"] = reused_pack
+            status["steps"]["ocr_google_vision_reused"] = reused_pack
+            agg = ocr.get("text_aggregated") or ""
+            if reused_gv not in agg:
+                ocr["text_aggregated"] = (
+                    reused_gv + ("\n" + agg if agg else "")
+                ).strip()
+            if not (ocr.get("text") or "").strip():
+                ocr["text"] = reused_gv
+                ocr["text_norm"] = normalize_ocr_text(reused_gv)
+            ocr["ok"] = True
+            # Prefer exposing reused GV as primary google_vision when live GV empty.
+            live_gv = ""
+            if isinstance(google_vision_ocr, dict):
+                live_gv = (google_vision_ocr.get("text") or "").strip()
+            if not live_gv:
+                google_vision_ocr = {
+                    "id": "google_vision",
+                    "engine": "google_vision",
+                    "ok": True,
+                    "text": reused_gv,
+                    "reused_from_search_photos_id": reuse_step_now.get(
+                        "search_photos_id"
+                    ),
+                    "reused": True,
+                }
+                variants["google_vision"] = google_vision_ocr
+
     if isinstance(qwen_ocr, dict):
         variants["qwen"] = qwen_ocr
         qtext = (qwen_ocr.get("text") or "").strip()
@@ -3185,6 +3320,52 @@ def run_findwine(
             },
         }
 
+    def _attach_reuse_xgb(step: dict[str, Any]) -> dict[str, Any]:
+        """Досчитать XGB для reuse-hits (OCR↔previous_search_ocr)."""
+        if not step.get("ok"):
+            return step
+        cand = status.get("steps", {}).get("candidates")
+        if not isinstance(cand, dict):
+            return step
+        xgb_thr_r = text_thr.get("xgb") or {"match": 0.6, "similar": 0.2}
+        wines_by_id = {
+            int(w["id"]): w for w in exclusive_wines if w.get("id") is not None
+        }
+        by_reuse = score_reuse_previous_search_xgb(
+            ocr_text=xgb_ocr_text,
+            candidates=cand,
+            wines_by_id=wines_by_id,
+            cosine_by_id=cosine_by_id_xgb,
+            match_threshold=float(xgb_thr_r["match"]),
+            similar_threshold=float(xgb_thr_r["similar"]),
+            final_weights=dict(pipe_settings.get("final_weights") or {}) or None,
+        )
+        if not by_reuse:
+            return step
+        step = dict(step)
+        step["by_reuse_sid"] = by_reuse
+        scores = list(step.get("scores") or [])
+        scores.extend(by_reuse.values())
+        scores.sort(
+            key=lambda r: (
+                -float(r.get("xgb_fin") or 0),
+                -float(r.get("xgb_score") or 0),
+            )
+        )
+        step["scores"] = scores
+        best_fin = next(
+            (
+                r
+                for r in scores
+                if r.get("suitable") and float(r.get("xgb_fin") or 0) > 0
+            ),
+            None,
+        )
+        if best_fin is not None:
+            step["best_xgb_fin"] = best_fin
+        step["n_reuse_scored"] = len(by_reuse)
+        return step
+
     if not use_xgb:
         xgb_step = {
             "ok": False,
@@ -3195,11 +3376,13 @@ def run_findwine(
             "by_id": {},
         }
     else:
-        xgb_step = _make_xgb_step(
-            xgb_scored,
-            exclusive_reject_ids,
-            compute_ms=xgb_compute_ms,
-            error=xgb_score_error,
+        xgb_step = _attach_reuse_xgb(
+            _make_xgb_step(
+                xgb_scored,
+                exclusive_reject_ids,
+                compute_ms=xgb_compute_ms,
+                error=xgb_score_error,
+            )
         )
     status["steps"]["xgb_match"] = xgb_step
     cand_step = status.get("steps", {}).get("candidates")
@@ -3285,11 +3468,13 @@ def run_findwine(
 
     # Пересчитать XGB_fin с exclusive lexicon reject
     if use_xgb and xgb_step.get("ok") and not xgb_score_error:
-        xgb_step = _make_xgb_step(
-            xgb_scored,
-            exclusive_reject_ids,
-            compute_ms=xgb_compute_ms,
-            error=None,
+        xgb_step = _attach_reuse_xgb(
+            _make_xgb_step(
+                xgb_scored,
+                exclusive_reject_ids,
+                compute_ms=xgb_compute_ms,
+                error=None,
+            )
         )
         status["steps"]["xgb_match"] = xgb_step
         cand_step = status.get("steps", {}).get("candidates")
@@ -4039,22 +4224,42 @@ def run_findwine(
             # Band by TextScore (xgb_score); prefer primary OCR pack
             packed = _from_pack(use_text=True)
             if packed is not None:
-                return packed
-            by_id = ((status.get("steps") or {}).get("xgb_match") or {}).get("by_id") or {}
-            for k, v in by_id.items():
-                if not isinstance(v, dict):
-                    continue
-                try:
-                    wid = int(k)
-                except (TypeError, ValueError):
-                    continue
-                if wid in excl or v.get("exclusive_rejected"):
-                    continue
-                try:
-                    sc = float(v.get("xgb_score"))
-                except (TypeError, ValueError):
-                    continue
-                rows.append((wid, sc))
+                rows.extend(packed)
+            else:
+                by_id = ((status.get("steps") or {}).get("xgb_match") or {}).get(
+                    "by_id"
+                ) or {}
+                for k, v in by_id.items():
+                    if not isinstance(v, dict):
+                        continue
+                    try:
+                        wid = int(k)
+                    except (TypeError, ValueError):
+                        continue
+                    if wid in excl or v.get("exclusive_rejected"):
+                        continue
+                    try:
+                        sc = float(v.get("xgb_score"))
+                    except (TypeError, ValueError):
+                        continue
+                    rows.append((wid, sc))
+            # Reuse-hits: query OCR ↔ previous_search_ocr (не режем exclusive)
+            by_reuse = (
+                ((status.get("steps") or {}).get("xgb_match") or {}).get(
+                    "by_reuse_sid"
+                )
+                or {}
+            )
+            if isinstance(by_reuse, dict):
+                for v in by_reuse.values():
+                    if not isinstance(v, dict) or v.get("id") is None:
+                        continue
+                    try:
+                        wid = int(v["id"])
+                        sc = float(v.get("xgb_score"))
+                    except (TypeError, ValueError, KeyError):
+                        continue
+                    rows.append((wid, sc))
         elif method_id in ("crenc", "crenc_srv"):
             packed = _from_pack(use_text=True)
             if packed is not None:
@@ -4287,14 +4492,33 @@ def run_findwine(
                         ((status.get("steps") or {}).get(step_key) or {}).get("by_id")
                         or {}
                     )
+                    by_reuse = (
+                        ((status.get("steps") or {}).get(step_key) or {}).get(
+                            "by_reuse_sid"
+                        )
+                        or {}
+                    )
                     for wid in match_ids:
                         score_row = by_id.get(str(wid)) or {}
                         try:
                             fin_v = float(score_row.get(fin_key) or 0.0)
                         except (TypeError, ValueError):
-                            continue
+                            fin_v = 0.0
+                        if isinstance(by_reuse, dict):
+                            for rv in by_reuse.values():
+                                if not isinstance(rv, dict):
+                                    continue
+                                try:
+                                    if int(rv.get("id") or 0) != int(wid):
+                                        continue
+                                    fin_r = float(rv.get(fin_key) or 0.0)
+                                except (TypeError, ValueError):
+                                    continue
+                                if fin_r > fin_v:
+                                    fin_v = fin_r
                         if best_pair is None or fin_v > best_pair[1]:
                             best_pair = (wid, fin_v)
+
             else:
                 for wid, sc in scored_rows:
                     if wid not in match_set:
@@ -4331,24 +4555,38 @@ def run_findwine(
                         },
                     )
                 elif method == "xgb":
-                    score_row = (
-                        ((status.get("steps") or {}).get("xgb_match") or {}).get("by_id")
-                        or {}
-                    ).get(str(wid)) or {}
-                    _set_matched(
-                        wid,
-                        conf_f,
-                        "xgb_fin",
-                        {
-                            "xgb_score": score_row.get("xgb_score"),
-                            "xgb_fin": conf_f,
-                            "final_ocr": final_ocr_engine,
-                            "cosine_similarity": score_row.get("cosine")
-                            or cosine_by_id.get(wid),
-                            "name": by_cos.get(wid, {}).get("name"),
-                            "winery": by_cos.get(wid, {}).get("winery"),
-                        },
-                    )
+                    xgb_step_now = (status.get("steps") or {}).get("xgb_match") or {}
+                    score_row = (xgb_step_now.get("by_id") or {}).get(str(wid)) or {}
+                    by_reuse_now = xgb_step_now.get("by_reuse_sid") or {}
+                    reuse_from_sid = None
+                    if isinstance(by_reuse_now, dict):
+                        for rv in by_reuse_now.values():
+                            if not isinstance(rv, dict):
+                                continue
+                            try:
+                                if int(rv.get("id") or 0) != int(wid):
+                                    continue
+                                if float(rv.get("xgb_fin") or 0) >= float(
+                                    score_row.get("xgb_fin") or 0
+                                ):
+                                    score_row = rv
+                                    reuse_from_sid = rv.get("search_photos_id")
+                            except (TypeError, ValueError):
+                                continue
+                    extra_matched: dict[str, Any] = {
+                        "xgb_score": score_row.get("xgb_score"),
+                        "xgb_fin": conf_f,
+                        "final_ocr": final_ocr_engine,
+                        "cosine_similarity": score_row.get("cosine")
+                        or cosine_by_id.get(wid),
+                        "name": by_cos.get(wid, {}).get("name"),
+                        "winery": by_cos.get(wid, {}).get("winery"),
+                    }
+                    if score_row.get("compare_source") == "previous_search_ocr":
+                        extra_matched["from_previous_search"] = True
+                        extra_matched["previous_search_photos_id"] = reuse_from_sid
+                        extra_matched["xgb_compare_source"] = "previous_search_ocr"
+                    _set_matched(wid, conf_f, "xgb_fin", extra_matched)
                 elif method in ("crenc", "crenc_srv"):
                     score_row = (
                         ((status.get("steps") or {}).get("crenc_match") or {}).get("by_id")
@@ -4443,15 +4681,22 @@ def run_findwine(
 
     _flush_hf_start_status()
     _time_total()
-    # Аналоги — только для сайта и вне общего timeline (после total).
-    # Нет match: по критериям OCR; если текст не распарсился / пул пуст —
-    # top-10 по cos среди embedding-кандидатов (внутри find_analogs).
-    if not eval_flag and status.get("matched_wine_id") is None:
+    # Аналоги / похожие — для сайта, вне общего timeline (после total).
+    # Match: критерии из каталожного winner → «похожие вина».
+    # Нет match: критерии OCR искомого (как раньше).
+    if not eval_flag:
         try:
-            status["analogs"] = find_analogs(
-                str(xgb_ocr_text or exclusive_query or ""),
-                cosine_by_id=cosine_by_id,
-            )
+            matched_id = status.get("matched_wine_id")
+            if matched_id is not None:
+                status["analogs"] = find_analogs_from_wine(
+                    int(matched_id),
+                    cosine_by_id=cosine_by_id,
+                )
+            else:
+                status["analogs"] = find_analogs(
+                    str(xgb_ocr_text or exclusive_query or ""),
+                    cosine_by_id=cosine_by_id,
+                )
         except Exception as exc:  # noqa: BLE001
             status["analogs"] = {"ok": False, "error": str(exc), "items": []}
         _plog(

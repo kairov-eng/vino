@@ -5,12 +5,26 @@
 """
 
 # x.x.x — текущая версия пайплайна сравнения / распознавания
-ALGORITHM_VERSION = "0.91.0"
+ALGORITHM_VERSION = "0.96.0"
 
 # ISO-8601 local timestamp последнего изменения алгоритма (обновлять вместе с VERSION)
-ALGORITHM_UPDATED_AT = "2026-09-27T17:05:00+03:00"
+ALGORITHM_UPDATED_AT = "2026-09-27T21:25:00+03:00"
 
 ALGORITHM_NOTES = (
+    "0.96.0: reuse candidate — XGB compares query OCR↔previous search OCR "
+    "(not catalog label); card/popup show previous OCR + badge; "
+    "0.95.0: reuse_previous_searches — nearest past search among those with "
+    "winner (manual_wines_id or matched/hist), skip empty-winner neighbors; "
+    "0.94.0: reuse top-20 — each hit search_photos_id (0=catalog, >0=past "
+    "search); allow duplicate wine via catalog+search_photos; live Google "
+    "Vision skipped when reuse supplies that search's GV OCR; "
+    "0.93.0: analogs always (site) — if matched, similar wines from catalog "
+    "fields of winner (source=matched_wine_catalog, exclude winner); "
+    "else OCR-criteria analogs as before; show_search_details setting "
+    "(admin UI only); "
+    "0.92.0: reuse_previous_searches — nearest past siglip2 search_photo "
+    "embedding (cos≥0.5) injects that search's winner into top-19+1 and "
+    "returns its Google Vision OCR; "
     "0.91.0: settings compute_hsv (default off) — skip HSV compute/gates; "
     "compute_color_delta (default on) — dominant Lab CIEDE2000 ColorDelta "
     "on candidate/winner cards; "

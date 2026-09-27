@@ -9,29 +9,31 @@
 
 .history-filters {
   display: flex;
-  flex-wrap: wrap;
-  gap: 14px 24px;
-  align-items: flex-end;
+  flex-wrap: nowrap;
+  gap: 10px 14px;
+  align-items: center;
   margin: 0 0 14px;
-  padding: 12px 14px;
+  padding: 10px 12px;
   background: #fff;
   border-radius: 12px;
   box-shadow: 0 6px 18px rgba(70, 40, 30, 0.05);
   border: 1px solid rgba(139, 29, 44, 0.1);
+  overflow-x: auto;
 }
 
 .history-filters__flags {
   display: flex;
-  flex-wrap: wrap;
-  gap: 10px 16px;
+  flex-wrap: nowrap;
+  gap: 8px 12px;
   align-items: center;
+  flex-shrink: 0;
 }
 
 .history-filters__check {
   display: flex;
   align-items: center;
-  gap: 6px;
-  font-size: 0.82rem;
+  gap: 5px;
+  font-size: 0.78rem;
   color: #5b433c;
   cursor: pointer;
   user-select: none;
@@ -44,28 +46,32 @@
 
 .history-filters__ids {
   display: flex;
-  flex-wrap: wrap;
-  gap: 12px 18px;
-  align-items: flex-end;
+  flex-wrap: nowrap;
+  gap: 8px 12px;
+  align-items: center;
   margin-left: auto;
+  flex-shrink: 0;
 }
 
 .history-filters__field {
-  display: flex;
-  flex-wrap: wrap;
+  display: inline-flex;
+  flex-wrap: nowrap;
   align-items: center;
-  gap: 6px 8px;
-  font-size: 0.78rem;
+  gap: 6px;
+  font-size: 0.75rem;
   color: #7a655d;
+  white-space: nowrap;
 }
 
 .history-filters__field span {
-  min-width: 6.5rem;
+  min-width: 0;
+  flex-shrink: 0;
 }
 
 .history-filters__field input {
-  width: 11rem;
-  padding: 6px 8px;
+  width: 8rem;
+  min-width: 6rem;
+  padding: 5px 8px;
   border: 1px solid rgba(80, 48, 40, 0.18);
   border-radius: 8px;
   font: inherit;
@@ -76,6 +82,7 @@
 .history-filters__field input[type='number'] {
   -moz-appearance: textfield;
   appearance: textfield;
+  width: 6.5rem;
 }
 
 .history-filters__field input[type='number']::-webkit-outer-spin-button,
@@ -87,13 +94,15 @@
 .history-filters__btn {
   border: 0;
   border-radius: 8px;
-  padding: 6px 12px;
+  padding: 5px 10px;
   background: #8b1d2c;
   color: #fff;
   font: inherit;
-  font-size: 0.78rem;
+  font-size: 0.75rem;
   font-weight: 600;
   cursor: pointer;
+  flex-shrink: 0;
+  white-space: nowrap;
 }
 
 .history-filters__btn:hover {

@@ -40,13 +40,24 @@ OFFICIAL_MATCH_SOURCES = frozenset(
         "empty_ocr_cosine",
         "eval_cosine",
         "eval_top1",
+        "xgb_dead_fin2",
+        "xgb_dead_cosine",
     }
 )
 
 
+def _is_official_match_source(source: str) -> bool:
+    s = str(source or "").strip().lower()
+    return s in OFFICIAL_MATCH_SOURCES or s.startswith("xgb_dead_")
+
+
 def history_resolve_matched_wine_id(status: dict) -> int | None:
-    """Official matched wine from pipeline decision (fin1/fin2/xgb/crenc/…)."""
-    help_ = (status.get("steps") or {}).get("ocr_wine_id") or {}
+    """Official matched wine from pipeline decision only.
+
+    Do **not** fall back to ocr_wine_id best_final / best_wine_id — that is
+    only a ranking hint and must not look like a found match in history when
+    text_match_decision.band is none.
+    """
     matched = status.get("matched_wine") or {}
     source = str(matched.get("source") or "").strip().lower()
 
@@ -58,30 +69,15 @@ def history_resolve_matched_wine_id(status: dict) -> int | None:
         except (TypeError, ValueError):
             return None
 
-    # Prefer status.matched_wine_id when pipeline wrote an official match card.
     mid = _as_int(status.get("matched_wine_id"))
-    if mid is not None and (
-        source in OFFICIAL_MATCH_SOURCES
-        or (isinstance(matched, dict) and matched.get("id") is not None)
-    ):
+    if mid is not None:
         return mid
 
-    if source in OFFICIAL_MATCH_SOURCES:
+    # Legacy statuses: card present with official source, id not mirrored.
+    if _is_official_match_source(source):
         mid = _as_int(matched.get("id"))
         if mid is not None:
             return mid
-
-    # fin1 then fin2 from ocr_wine_id help (ignore siglip2/dinov3 fallback)
-    for key in ("best_wine_id", "best_wine_id2"):
-        mid = _as_int(help_.get(key))
-        if mid is not None:
-            return mid
-    for key in ("best_final", "best_final2"):
-        row = help_.get(key) or {}
-        if isinstance(row, dict):
-            mid = _as_int(row.get("id"))
-            if mid is not None:
-                return mid
     return None
 
 
@@ -96,14 +92,13 @@ def _as_float(raw: object) -> float | None:
 
 def history_extract_fields(status: dict) -> dict[str, Any]:
     """Compute denormalized history fields from status JSON."""
-    help_ = (status.get("steps") or {}).get("ocr_wine_id") or {}
     matched_raw = status.get("matched_wine") or {}
     source = str(matched_raw.get("source") or "").strip().lower()
     mid = history_resolve_matched_wine_id(status)
     fp, fn = history_eval_flags(status)
 
     matched: dict = {}
-    if mid is not None and source in OFFICIAL_MATCH_SOURCES:
+    if mid is not None and _is_official_match_source(source):
         try:
             if int(matched_raw.get("id") or 0) == int(mid):
                 matched = matched_raw
@@ -121,23 +116,7 @@ def history_extract_fields(status: dict) -> dict[str, Any]:
         confidence = status.get("matched_wine_confidence")
         if confidence is None:
             confidence = matched.get("confidence") or matched.get("final_score")
-    if confidence is None and mid is not None:
-        bf = help_.get("best_final") or {}
-        bf2 = help_.get("best_final2") or {}
-        if isinstance(bf, dict) and int(bf.get("id") or 0) == int(mid):
-            confidence = bf.get("final_score")
-            if not matched:
-                matched = {
-                    "name": bf.get("name"),
-                    "slug": bf.get("slug"),
-                }
-        elif isinstance(bf2, dict) and int(bf2.get("id") or 0) == int(mid):
-            confidence = bf2.get("final_score2")
-            if not matched:
-                matched = {
-                    "name": bf2.get("name"),
-                    "slug": bf2.get("slug"),
-                }
+    # No ocr_wine_id best_final fallback: that is not an official match.
 
     slug = matched.get("slug") if matched else None
     if not slug and isinstance(matched_raw, dict):
@@ -146,13 +125,6 @@ def history_extract_fields(status: dict) -> dict[str, Any]:
                 slug = matched_raw.get("slug")
         except (TypeError, ValueError):
             pass
-    if not slug and mid is not None:
-        for key in ("best_final", "best_final2"):
-            row = help_.get(key) or {}
-            if isinstance(row, dict) and int(row.get("id") or 0) == int(mid):
-                slug = row.get("slug")
-                if slug:
-                    break
 
     timings = status.get("timings_ms") or {}
     return {

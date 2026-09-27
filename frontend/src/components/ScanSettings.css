@@ -63,6 +63,30 @@
   color: #2b1a16;
 }
 
+.scan-settings__top-flag {
+  margin: 0 0 12px;
+  padding: 10px 12px;
+  border-radius: 12px;
+  background: rgba(139, 29, 44, 0.06);
+  border: 1px solid rgba(139, 29, 44, 0.12);
+}
+
+.scan-settings__top-flag label {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  cursor: pointer;
+  font-size: 0.95rem;
+  color: #2b1a16;
+  font-weight: 600;
+}
+
+.scan-settings__top-flag input {
+  width: 18px;
+  height: 18px;
+  accent-color: #8b1d2c;
+}
+
 .scan-settings__close {
   border: none;
   background: transparent;

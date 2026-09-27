@@ -169,6 +169,13 @@ def _defaults() -> dict[str, Any]:
         "hsv_hard_reject_max": 0.90,
         # Dominant-color CIEDE2000 (ColorDelta) on candidate cards.
         "compute_color_delta": True,
+        # Reuse past search: nearest siglip2 search_photo embedding ≥0.5
+        # → inject winner (search_photos_id=prev) + catalog top-19 (id=0);
+        # use that search's GV OCR (skip live GV when text present).
+        "reuse_previous_searches": False,
+        # Admin UI: show technical search details (candidates, OCR, scores).
+        # Non-admins always see the simplified scanner regardless of this flag.
+        "show_search_details": True,
         "final_ocr": "auto",
         "exclusive_use_translit": True,
         "exclusive_match_spaced": True,
@@ -515,6 +522,16 @@ def _normalize(raw: dict[str, Any] | None) -> dict[str, Any]:
             data["compute_color_delta"],
             base.get("compute_color_delta", True),
         )
+    if "reuse_previous_searches" in data:
+        base["reuse_previous_searches"] = _as_bool(
+            data["reuse_previous_searches"],
+            base.get("reuse_previous_searches", False),
+        )
+    if "show_search_details" in data:
+        base["show_search_details"] = _as_bool(
+            data["show_search_details"],
+            base.get("show_search_details", True),
+        )
     # HSV gates require compute_hsv; keep defaults if master is off.
     if not bool(base.get("compute_hsv", False)):
         base["use_hsv_filter"] = False
@@ -668,6 +685,8 @@ def save_settings(patch: dict[str, Any]) -> dict[str, Any]:
             "use_hsv_hard_reject",
             "hsv_hard_reject_max",
             "compute_color_delta",
+            "reuse_previous_searches",
+            "show_search_details",
             "final_ocr",
             "exclusive_use_translit",
             "exclusive_match_spaced",
@@ -802,6 +821,8 @@ def settings_public_view(data: dict[str, Any] | None = None) -> dict[str, Any]:
         "use_hsv_hard_reject": bool(s.get("use_hsv_hard_reject", False)),
         "hsv_hard_reject_max": _clamp01(s.get("hsv_hard_reject_max"), 0.90),
         "compute_color_delta": bool(s.get("compute_color_delta", True)),
+        "reuse_previous_searches": bool(s.get("reuse_previous_searches", False)),
+        "show_search_details": bool(s.get("show_search_details", True)),
         "final_ocr": _normalize_final_ocr(s.get("final_ocr")),
         "final_ocr_options": [
             {"id": k, "label": FINAL_OCR_META[k]["label"]} for k in FINAL_OCR_ALL

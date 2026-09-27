@@ -76,8 +76,10 @@
   "hsv_ignore_cosine_min": 0.87,
   "use_hsv_hard_reject": false,
   "hsv_hard_reject_max": 0.94,
-  "compute_color_delta": true,
-  "final_ocr": "auto",
+  "compute_color_delta": false,
+  "reuse_previous_searches": true,
+  "show_search_details": true,
+  "final_ocr": "google_vision",
   "exclusive_use_translit": false,
   "exclusive_match_spaced": false
 }

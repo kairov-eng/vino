@@ -3,6 +3,7 @@ import { createPortal } from 'react-dom'
 import { useSearchParams } from 'react-router-dom'
 import {
   fetchFindWineResult,
+  fetchPipelineSettings,
   findWine,
   makePreviewUrl,
   updateScanHistoryEval,
@@ -13,6 +14,7 @@ import {
   type WineAnalogItem,
   type WineAnalogs,
 } from '../api/client'
+import { useSiteAuth } from '../auth/SiteAuthContext'
 import { ScanSettingsGear, ScanSettingsPopup } from '../components/ScanSettings'
 import './HomePage.css'
 
@@ -1479,7 +1481,16 @@ function WineHoverPopup({
     return OCR_PREPROCESS_TITLES[ch] || ch
   }
 
-  const catalogLabel = String(wine.label || '').trim()
+  const catalogLabel = String(
+    wine.from_previous_search
+      ? wine.previous_search_ocr || wine.label || ''
+      : wine.label || '',
+  ).trim()
+  const labelBlockTitle = wine.from_previous_search
+    ? `OCR прошлого поиска${
+        wine.search_photos_id ? ` #${wine.search_photos_id}` : ''
+      }`
+    : 'Текст этикетки каталога'
   const queryOcr = String(ocrQueryText || '').trim()
   const matchedTokens = useMemo(
     () => sharedMatchTokens(queryOcr, catalogLabel),
@@ -1517,6 +1528,17 @@ function WineHoverPopup({
       onMouseLeave={onMouseLeave}
     >
       <div className="cand-popup__inner">
+        {wine.from_previous_search && (
+          <p className="cand-popup__reuse-badge" role="status">
+            Победитель прошлого поиска
+            {wine.search_photos_id != null && wine.search_photos_id > 0
+              ? ` #${wine.search_photos_id}`
+              : ''}
+            {wine.xgb_compare_source === 'previous_search_ocr'
+              ? ' · XGB: OCR↔OCR'
+              : ''}
+          </p>
+        )}
         <div className="cand-popup__left">
           <div className="cand-popup__photos">
             <div className="cand-popup__photo">
@@ -1557,7 +1579,7 @@ function WineHoverPopup({
                 </pre>
               </div>
               <div className="cand-popup__label-text">
-                <strong>Текст этикетки каталога</strong>
+                <strong>{labelBlockTitle}</strong>
                 <pre>
                   {highlightExclusiveLines(
                     catalogLabel,
@@ -2710,13 +2732,18 @@ function CandidateCard({
       href={href}
       target="_blank"
       rel="noopener noreferrer"
-      className={`cand-card ${overlap ? 'is-overlap' : ''} ${hovered ? 'is-hovered' : ''} ${isFinalWinner ? 'is-final-winner' : ''} ${isXgbWinner ? 'is-xgb-winner' : ''} ${isSimilarBand && !isFinalWinner ? 'is-similar-band' : ''} ${isManualMatch ? 'is-manual-match' : ''}`.trim()}
+      className={`cand-card ${overlap ? 'is-overlap' : ''} ${hovered ? 'is-hovered' : ''} ${isFinalWinner ? 'is-final-winner' : ''} ${isXgbWinner ? 'is-xgb-winner' : ''} ${isSimilarBand && !isFinalWinner ? 'is-similar-band' : ''} ${isManualMatch ? 'is-manual-match' : ''} ${wine.from_previous_search ? 'is-from-previous-search' : ''}`.trim()}
       title={
         [
           isFinalWinner ? 'Победитель FinalScore' : '',
           isXgbWinner ? 'Победитель XGB_fin' : '',
           isSimilarBand && !isFinalWinner ? 'Similar (между similar и match)' : '',
           isManualMatch ? 'Это вино!' : '',
+          wine.from_previous_search
+            ? `Победитель прошлого поиска${
+                wine.search_photos_id ? ` #${wine.search_photos_id}` : ''
+              }`
+            : '',
         ]
           .filter(Boolean)
           .join(' · ') || undefined
@@ -2728,6 +2755,21 @@ function CandidateCard({
         onMouseEnter={openHover}
         onMouseLeave={closeHoverSoon}
       >
+        {wine.from_previous_search && (
+          <span
+            className="cand-card__reuse-badge"
+            title={
+              wine.search_photos_id
+                ? `Победитель поиска #${wine.search_photos_id}`
+                : 'Победитель прошлого поиска'
+            }
+          >
+            из поиска
+            {wine.search_photos_id != null && wine.search_photos_id > 0
+              ? ` #${wine.search_photos_id}`
+              : ''}
+          </span>
+        )}
         {finalistRank != null && finalistRank >= 1 && finalistRank <= 5 && (
           <span
             className="cand-card__rank"
@@ -2770,7 +2812,11 @@ function CandidateCard({
         {(wine.xgb_score != null || wine.xgb_fin != null) && (
           <p
             className="cand-card__xgb"
-            title="XGBoost OCR↔label"
+            title={
+              wine.xgb_compare_source === 'previous_search_ocr'
+                ? 'XGBoost: OCR текущего поиска ↔ OCR прошлого поиска'
+                : 'XGBoost OCR↔label каталога'
+            }
           >
             <span className={sortMetricClass(sortBy, 'xgb').trim() || undefined}>
               XGB <em>{formatScore00(wine.xgb_score)}</em>
@@ -4350,6 +4396,7 @@ function AnalogCard({ item }: { item: WineAnalogItem }) {
 
 function AnalogsPanel({ analogs }: { analogs: WineAnalogs }) {
   const c = analogs.criteria
+  const fromMatch = analogs.source === 'matched_wine_catalog'
   const chips: { key: string; label: string; values: string[] }[] = [
     { key: 'winery', label: 'Винодельня', values: c?.winery || [] },
     { key: 'category', label: 'Категория', values: c?.category || [] },
@@ -4383,7 +4430,9 @@ function AnalogsPanel({ analogs }: { analogs: WineAnalogs }) {
             ? `Поиск аналогов не удался: ${analogs.error || 'ошибка'}`
             : analogs.reason === 'no_criteria' ||
                 analogs.reason === 'no_criteria_cosine_fallback'
-              ? 'На этикетке не удалось выделить винодельню, категорию, тип или сорт'
+              ? fromMatch
+                ? 'У найденного вина недостаточно данных для подбора похожих'
+                : 'На этикетке не удалось выделить винодельню, категорию, тип или сорт'
               : 'Подходящих вин в каталоге нет'}
         </p>
       )}
@@ -4414,6 +4463,7 @@ function WinnerMatchPanel({
   fin1Score,
   finalMethod = 'fin1',
   finalOcrPrimary = null,
+  simpleMode = false,
 }: {
   wine: FindWineCandidate | null
   ocrQueryText: string
@@ -4440,6 +4490,8 @@ function WinnerMatchPanel({
   fin1Score?: number | null
   finalMethod?: string
   finalOcrPrimary?: OcrScoreChannel | null
+  /** Catalog card only: no tech scores / hover popup. */
+  simpleMode?: boolean
 }) {
   const catalogLabel = String(wine?.label || '').trim()
   const queryOcr = String(ocrQueryText || '').trim()
@@ -4485,14 +4537,16 @@ function WinnerMatchPanel({
   }, [])
 
   const openHover = useCallback(() => {
+    if (simpleMode) return
     clearLeaveTimer()
     setHovered(true)
-  }, [clearLeaveTimer])
+  }, [clearLeaveTimer, simpleMode])
 
   const closeHoverSoon = useCallback(() => {
+    if (simpleMode) return
     clearLeaveTimer()
     leaveTimer.current = setTimeout(() => setHovered(false), 200)
-  }, [clearLeaveTimer])
+  }, [clearLeaveTimer, simpleMode])
 
   useEffect(() => () => clearLeaveTimer(), [clearLeaveTimer])
 
@@ -4503,7 +4557,7 @@ function WinnerMatchPanel({
   }, [])
 
   useLayoutEffect(() => {
-    if (!hovered || !wine) {
+    if (!hovered || !wine || simpleMode) {
       setPopupPos(null)
       return
     }
@@ -4515,17 +4569,20 @@ function WinnerMatchPanel({
       window.removeEventListener('scroll', onMove, true)
       window.removeEventListener('resize', onMove)
     }
-  }, [hovered, wine, placePopup])
+  }, [hovered, wine, placePopup, simpleMode])
 
   return (
-    <aside className="scan-winner" aria-label="Результат поиска">
+    <aside
+      className={`scan-winner${simpleMode ? ' scan-winner--simple' : ''}`}
+      aria-label="Результат поиска"
+    >
       <div className="scan-winner__card-col">
         <div className="scan-winner__card-row">
           {wine ? (
             <div
               className={`scan-winner__card cand-card is-final-winner${
-                isXgbWinner ? ' is-xgb-winner' : ''
-              }${hovered ? ' is-hovered' : ''}`}
+                isXgbWinner && !simpleMode ? ' is-xgb-winner' : ''
+              }${hovered && !simpleMode ? ' is-hovered' : ''}`}
             >
               {href ? (
                 <a
@@ -4571,18 +4628,56 @@ function WinnerMatchPanel({
                 </div>
               )}
               <div className="cand-card__meta">
-                <p className="cand-card__id">id {wine.id}</p>
+                {!simpleMode && <p className="cand-card__id">id {wine.id}</p>}
                 <p className="cand-card__name">{wine.name || '—'}</p>
-                <p className="scan-winner__winery">{wine.winery || '—'}</p>
+                {!simpleMode && (
+                  <p className="scan-winner__winery">{wine.winery || '—'}</p>
+                )}
               </div>
+              {simpleMode && (
+                <dl className="scan-winner__catalog">
+                  {wine.winery ? (
+                    <div>
+                      <dt>Винодельня</dt>
+                      <dd>{wine.winery}</dd>
+                    </div>
+                  ) : null}
+                  {wine.category ? (
+                    <div>
+                      <dt>Категория</dt>
+                      <dd>{wine.category}</dd>
+                    </div>
+                  ) : null}
+                  {wine.wine_type ? (
+                    <div>
+                      <dt>Тип</dt>
+                      <dd>{wine.wine_type}</dd>
+                    </div>
+                  ) : null}
+                  {wine.grape_variety ? (
+                    <div>
+                      <dt>Купаж</dt>
+                      <dd>{wine.grape_variety}</dd>
+                    </div>
+                  ) : null}
+                  {wine.description ? (
+                    <div className="scan-winner__catalog-desc">
+                      <dt>Описание</dt>
+                      <dd>{wine.description}</dd>
+                    </div>
+                  ) : null}
+                </dl>
+              )}
             </div>
           ) : (
             <div className="scan-winner__empty">
               <strong>Совпадение не найдено</strong>
-              <span>FinalScore / выбранный метод не выбрали вино</span>
+              {!simpleMode && (
+                <span>FinalScore / выбранный метод не выбрали вино</span>
+              )}
             </div>
           )}
-          {onEvalChange && (
+          {!simpleMode && onEvalChange && (
             <div
               className="scan-winner__eval"
               onClick={(e) => e.stopPropagation()}
@@ -4616,7 +4711,7 @@ function WinnerMatchPanel({
             </div>
           )}
         </div>
-        {wine && hovered && popupPos && (
+        {!simpleMode && wine && hovered && popupPos && (
           <WineHoverPopup
             wine={wine}
             pos={popupPos}
@@ -4634,6 +4729,7 @@ function WinnerMatchPanel({
             onMouseLeave={closeHoverSoon}
           />
         )}
+        {!simpleMode && (
         <div className="scan-winner__scores">
           <p>
             <span>cos SigLIP2</span>
@@ -4742,7 +4838,9 @@ function WinnerMatchPanel({
             </p>
           ))}
         </div>
+        )}
       </div>
+      {!simpleMode && (
       <div className="scan-winner__texts">
         <div className="cand-popup__label-cols">
           <div className="cand-popup__label-text">
@@ -4773,11 +4871,13 @@ function WinnerMatchPanel({
           <span className="is-ex-winery">винодельня</span>
         </div>
       </div>
+      )}
     </aside>
   )
 }
 
 export function HomePage() {
+  const { isAdmin } = useSiteAuth()
   const inputRef = useRef<HTMLInputElement>(null)
   const [searchParams, setSearchParams] = useSearchParams()
   const [dragging, setDragging] = useState(false)
@@ -4790,6 +4890,7 @@ export function HomePage() {
   const [busy, setBusy] = useState(false)
   const [loadingScan, setLoadingScan] = useState(false)
   const [settingsOpen, setSettingsOpen] = useState(false)
+  const [showSearchDetailsSetting, setShowSearchDetailsSetting] = useState(true)
   const [candSortBy, setCandSortBy] = useState<CandSortKey>('cos')
   const [isMobile, setIsMobile] = useState(false)
   const loadedIdRef = useRef<number | null>(null)
@@ -4801,9 +4902,31 @@ export function HomePage() {
   /** Blocks ?scanid= hydrate while POST /api/findwine is in flight. */
   const searchingRef = useRef(false)
 
+  const showDetails = isAdmin && showSearchDetailsSetting
+
   useEffect(() => {
     setCandSortBy(readCandSortCookie())
   }, [])
+
+  useEffect(() => {
+    if (!isAdmin) {
+      setShowSearchDetailsSetting(false)
+      return
+    }
+    let cancelled = false
+    fetchPipelineSettings()
+      .then((s) => {
+        if (!cancelled) {
+          setShowSearchDetailsSetting(s.show_search_details !== false)
+        }
+      })
+      .catch(() => {
+        /* keep default true for admin */
+      })
+    return () => {
+      cancelled = true
+    }
+  }, [isAdmin])
 
   useEffect(() => {
     const mq = window.matchMedia('(max-width: 720px)')
@@ -5417,8 +5540,18 @@ export function HomePage() {
         showMobileLanding ? ' home-page--mobile-landing' : ''
       }`}
     >
-      <ScanSettingsGear onClick={() => setSettingsOpen(true)} />
-      <ScanSettingsPopup open={settingsOpen} onClose={() => setSettingsOpen(false)} />
+      {isAdmin && (
+        <>
+          <ScanSettingsGear onClick={() => setSettingsOpen(true)} />
+          <ScanSettingsPopup
+            open={settingsOpen}
+            onClose={() => setSettingsOpen(false)}
+            onSettingsSaved={(s) =>
+              setShowSearchDetailsSetting(s.show_search_details !== false)
+            }
+          />
+        </>
+      )}
 
       {!isMobile && (
         <div className="page__intro">
@@ -5577,7 +5710,7 @@ export function HomePage() {
       >
       <div
         className={`dropzone ${dragging ? 'is-dragging' : ''} ${uiBusy ? 'is-busy' : ''} ${preview ? 'has-preview' : ''}${
-          result && !uiBusy && (result.crops_url || result.label_url)
+          showDetails && result && !uiBusy && (result.crops_url || result.label_url)
             ? ' has-thumbs'
             : ''
         }`}
@@ -5634,7 +5767,7 @@ export function HomePage() {
           )}
         </div>
 
-        {result && !uiBusy && (result.crops_url || result.label_url) && (
+        {showDetails && result && !uiBusy && (result.crops_url || result.label_url) && (
           <aside
             className="dropzone__thumbs"
             aria-label="Кроп и этикетка"
@@ -5757,11 +5890,12 @@ export function HomePage() {
           fin1Score={winnerFin1}
           finalMethod={finalMethod}
           finalOcrPrimary={finalOcrPrimary}
+          simpleMode={!showDetails}
         />
       )}
       </div>
 
-      {result && !uiBusy && finalWinnerId == null && analogs && (
+      {result && !uiBusy && analogs && (
         <AnalogsPanel analogs={analogs} />
       )}
 
@@ -5820,7 +5954,7 @@ export function HomePage() {
         </button>
       </div>
 
-      {(timings) && (
+      {showDetails && timings && (
         <div className="scan-results scan-results--triple">
           <TimingsGantt
               timings={timings as Record<string, unknown>}
@@ -5865,6 +5999,7 @@ export function HomePage() {
         </div>
       )}
 
+      {showDetails && (
       <CandidatesBlock
         title="Top-20 · SigLIP2"
         items={siglip}
@@ -5895,6 +6030,8 @@ export function HomePage() {
             : undefined
         }
       />
+      )}
+      {showDetails && (
       <CandidatesBlock
         title="Top-20 · DINOv3"
         items={dinov3}
@@ -5925,8 +6062,9 @@ export function HomePage() {
             : undefined
         }
       />
+      )}
 
-      {result && (
+      {showDetails && result && (
         <OcrVariantsBlock
           result={result}
           wineById={wineById}
@@ -5939,7 +6077,7 @@ export function HomePage() {
         />
       )}
 
-      {(fileName || status) && (
+      {showDetails && (fileName || status) && (
         <div className="scan-status">
           {fileName && <p>Файл: {fileName}</p>}
           {status && <p>{status}</p>}

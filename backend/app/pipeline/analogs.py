@@ -1,11 +1,8 @@
-"""Аналоги вина для сайта, когда findwine не выбрал совпадение.
+"""Похожие / аналогичные вина для сайта.
 
-Критерии из OCR искомого: винодельня, категория (цвет: white/red/rose/orange),
-тип (сахаристость: dry/brut/…), купаж (сорта). Category/type — каноны
-exclusive_lexicon.json, синонимы одного канона равны (rouge == red).
-
-Каталог (~2k вин) держим в памяти: грузится при старте backend вместе со
-справочниками exclusive_lexicon. Скоринг — чистый Python по всему каталогу.
+Без match — критерии из OCR искомого; с match — те же веса по полям
+найденного каталожного вина (исключая сам winner). Category/type — каноны
+exclusive_lexicon.json (rouge == red). Каталог в памяти при старте backend.
 """
 
 from __future__ import annotations
@@ -432,20 +429,19 @@ def _items_by_embedding_cosine(
     return items
 
 
-def find_analogs(
-    query_text: str,
+def _rank_analogs(
+    crit: dict[str, Any],
     *,
     cosine_by_id: dict[int, float] | None = None,
     top_n: int = TOP_N,
+    exclude_ids: set[int] | None = None,
+    source: str = "criteria",
+    seed_wine_id: int | None = None,
 ) -> dict[str, Any]:
-    """Top-N вин каталога по совпадению критериев OCR искомого.
-
-    Если критерии из текста не извлечены или подходящих вин нет —
-    top-N по cos среди кандидатов embedding.
-    """
+    """Rank catalog wines by OCR/catalog criteria; cosine fallback if empty."""
     t0 = time.perf_counter()
     cos = cosine_by_id or {}
-    crit = extract_analog_criteria(query_text)
+    skip = exclude_ids or set()
     found = [k for k in WEIGHTS if crit.get(k)]
     available = sum(WEIGHTS[k] for k in found)
     base: dict[str, Any] = {
@@ -455,13 +451,19 @@ def find_analogs(
         "weights": dict(WEIGHTS),
         "catalog": dict(_LOAD_INFO),
     }
+    if seed_wine_id is not None:
+        base["seed_wine_id"] = int(seed_wine_id)
     if not _CATALOG:
         base.update(ok=False, error="catalog not loaded", items=[])
         base["ms"] = round((time.perf_counter() - t0) * 1000, 1)
         return base
 
     def _cosine_fallback(reason: str) -> dict[str, Any]:
-        items = _items_by_embedding_cosine(cos, top_n=top_n)
+        items = [
+            it
+            for it in _items_by_embedding_cosine(cos, top_n=top_n + len(skip))
+            if int(it["id"]) not in skip
+        ][:top_n]
         base.update(
             items=items,
             pool=len(items),
@@ -480,10 +482,12 @@ def find_analogs(
     q_wineries = set(crit["winery"])
     q_colors = set(crit["category"])
     q_type = crit["type"]
-    q_grapes: list[str] = crit["grape"]
+    q_grapes: list[str] = list(crit["grape"] or [])
 
     scored: list[tuple[float, float, int, _CatalogWine, dict[str, Any]]] = []
     for w in _CATALOG:
+        if w.id in skip:
+            continue
         raw = 0.0
         n_hit = 0
         conflict = False
@@ -559,6 +563,65 @@ def find_analogs(
                 grape_hits=grape_hits,
             )
         )
-    base.update(items=items, pool=len(scored), source="criteria")
+    base.update(items=items, pool=len(scored), source=source)
     base["ms"] = round((time.perf_counter() - t0) * 1000, 1)
     return base
+
+
+def find_analogs(
+    query_text: str,
+    *,
+    cosine_by_id: dict[int, float] | None = None,
+    top_n: int = TOP_N,
+) -> dict[str, Any]:
+    """Top-N вин каталога по совпадению критериев OCR искомого.
+
+    Если критерии из текста не извлечены или подходящих вин нет —
+    top-N по cos среди кандидатов embedding.
+    """
+    return _rank_analogs(
+        extract_analog_criteria(query_text),
+        cosine_by_id=cosine_by_id,
+        top_n=top_n,
+        source="criteria",
+    )
+
+
+def find_analogs_from_wine(
+    wine_id: int,
+    *,
+    cosine_by_id: dict[int, float] | None = None,
+    top_n: int = TOP_N,
+) -> dict[str, Any]:
+    """Похожие вина по полям найденного каталожного вина (без самого winner)."""
+    by_id = _catalog_by_id()
+    seed = by_id.get(int(wine_id))
+    if seed is None:
+        return {
+            "ok": False,
+            "error": f"wine {wine_id} not in analog catalog",
+            "items": [],
+            "criteria": {
+                "winery": [],
+                "category": [],
+                "type": None,
+                "grape": [],
+            },
+            "criteria_found": [],
+            "source": "matched_wine_catalog",
+            "seed_wine_id": int(wine_id),
+        }
+    crit: dict[str, Any] = {
+        "winery": [seed.winery_canon] if seed.winery_canon else [],
+        "category": [seed.color_canon] if seed.color_canon else [],
+        "type": seed.type_canon,
+        "grape": sorted(seed.grapes),
+    }
+    return _rank_analogs(
+        crit,
+        cosine_by_id=cosine_by_id,
+        top_n=top_n,
+        exclude_ids={seed.id},
+        source="matched_wine_catalog",
+        seed_wine_id=seed.id,
+    )

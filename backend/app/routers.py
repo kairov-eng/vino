@@ -22,7 +22,7 @@ from app.pipeline.runtime_settings import (
 )
 from app.pipeline.version import ALGORITHM_UPDATED_AT, ALGORITHM_VERSION
 from app.scan_history_denorm import (
-    OFFICIAL_MATCH_SOURCES,
+    _is_official_match_source,
     history_resolve_matched_wine_id as _history_resolve_matched_wine_id,
     sync_search_photo_history_columns,
 )
@@ -508,17 +508,21 @@ def _history_scores(
             if isinstance(r, dict) and int(r.get("id") or 0) == int(matched_id):
                 row2 = r
                 break
-    if not row:
+    # No match → do not attribute ocr_wine_id best_* scores to the score column
+    # (history shows xgb_top cards instead).
+    if matched_id is not None and not row:
         row = help_.get("best_final") or {}
-    if not row2:
+        if not isinstance(row, dict):
+            row = {}
+        try:
+            if int(row.get("id") or 0) != int(matched_id):
+                row = {}
+        except (TypeError, ValueError):
+            row = {}
+    if matched_id is not None and not row2:
         bf2 = help_.get("best_final2") or {}
-        if matched_id is None or (
-            isinstance(bf2, dict) and int(bf2.get("id") or 0) == int(matched_id or 0)
-        ):
-            row2 = bf2 if isinstance(bf2, dict) else {}
-        elif not row2 and matched_id is not None:
-            # Soft scores for this wine may only live on best_final after veto attach
-            pass
+        if isinstance(bf2, dict) and int(bf2.get("id") or 0) == int(matched_id):
+            row2 = bf2
     matched = status.get("matched_wine") or {}
     matched_source = str(
         matched.get("source") or status.get("matched_wine_source") or ""
@@ -589,10 +593,7 @@ def _history_scores(
                 xgb_row = by_id.get(str(int(matched_id))) or by_id.get(matched_id) or {}
                 if not isinstance(xgb_row, dict):
                     xgb_row = {}
-        if not xgb_row:
-            bf = xgb_step.get("best_xgb_fin")
-            if isinstance(bf, dict):
-                xgb_row = bf
+        # No best_xgb_fin fallback without an official match.
         xgb = _f(xgb_row.get("xgb_score"))
         xgb_fin = _f(xgb_row.get("xgb_fin"))
         if xgb_fin is None and matched_source in {"xgb", "xgb_fin"}:
@@ -795,14 +796,12 @@ def _history_item_from_row(
     )
 
     matched_raw = status.get("matched_wine") or {}
-    matched_id = row.hist_wine_id
-    if matched_id is None:
-        matched_id = _history_resolve_matched_wine_id(status)
-    help_ = (status.get("steps") or {}).get("ocr_wine_id") or {}
+    # Always resolve from status — hist_* can be stale (pre-fix denorm).
+    matched_id = _history_resolve_matched_wine_id(status)
     source = str(matched_raw.get("source") or "").strip().lower()
     # Use stored card when it is the official match we resolved (fin/xgb/crenc/…)
     matched: dict = {}
-    if matched_id is not None and source in OFFICIAL_MATCH_SOURCES:
+    if matched_id is not None and _is_official_match_source(source):
         try:
             if int(matched_raw.get("id") or 0) == int(matched_id):
                 matched = matched_raw
@@ -815,30 +814,18 @@ def _history_item_from_row(
         except (TypeError, ValueError):
             matched = {}
 
-    confidence = row.hist_wine_confidence
+    confidence = None
+    if (
+        matched_id is not None
+        and row.hist_wine_id is not None
+        and int(row.hist_wine_id) == int(matched_id)
+    ):
+        confidence = row.hist_wine_confidence
     if confidence is None and matched:
         confidence = status.get("matched_wine_confidence")
         if confidence is None:
             confidence = matched.get("confidence") or matched.get("final_score")
-    if confidence is None and matched_id is not None:
-        bf = help_.get("best_final") or {}
-        bf2 = help_.get("best_final2") or {}
-        if isinstance(bf, dict) and int(bf.get("id") or 0) == int(matched_id):
-            confidence = bf.get("final_score")
-            if not matched:
-                matched = {
-                    "name": bf.get("name"),
-                    "winery": bf.get("winery"),
-                    "text_from": bf.get("text_from"),
-                }
-        elif isinstance(bf2, dict) and int(bf2.get("id") or 0) == int(matched_id):
-            confidence = bf2.get("final_score2")
-            if not matched:
-                matched = {
-                    "name": bf2.get("name"),
-                    "winery": bf2.get("winery"),
-                    "text_from": bf2.get("text_from"),
-                }
+    # Do not invent confidence from ocr_wine_id best_final when there is no match.
 
     timings = status.get("timings_ms") or {}
     total_ms = row.hist_total_ms
@@ -857,7 +844,14 @@ def _history_item_from_row(
     matched_label = matched.get("label")
     matched_photo = matched.get("label_url") or matched.get("photo_url")
     matched_name = matched.get("name")
-    matched_slug = row.hist_wine_slug or matched.get("slug")
+    matched_slug = matched.get("slug")
+    if (
+        mid is not None
+        and row.hist_wine_id is not None
+        and int(row.hist_wine_id) == mid
+        and row.hist_wine_slug
+    ):
+        matched_slug = matched_slug or row.hist_wine_slug
     if wine is not None:
         if not matched_label:
             matched_label = wine.label
@@ -1655,6 +1649,10 @@ def put_pipeline_settings(body: PipelineSettingsUpdate) -> PipelineSettingsOut:
         patch["hsv_hard_reject_max"] = hhard
     if body.compute_color_delta is not None:
         patch["compute_color_delta"] = body.compute_color_delta
+    if body.reuse_previous_searches is not None:
+        patch["reuse_previous_searches"] = body.reuse_previous_searches
+    if body.show_search_details is not None:
+        patch["show_search_details"] = body.show_search_details
     if body.final_ocr is not None:
         patch["final_ocr"] = str(body.final_ocr)
     if body.exclusive_use_translit is not None:

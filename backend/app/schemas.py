@@ -89,6 +89,16 @@ class FindWineCandidate(BaseModel):
     hsv: float | None = None
     # CIEDE2000 of dominant Lab colors (lower = closer gamut)
     color_delta: float | None = None
+    # Injected from a past search when reuse_previous_searches matched
+    from_previous_search: bool | None = None
+    # 0 = catalog ANN; >0 = past search_photos.id that supplied this hit
+    search_photos_id: int | None = None
+    # OCR text from that past search (shown instead of catalog label)
+    previous_search_ocr: str | None = None
+    # Original catalog label when previous_search_ocr replaced label
+    catalog_label: str | None = None
+    # xgb compared against previous_search_ocr
+    xgb_compare_source: str | None = None
     # Final score per OCR engine for selected text method (fin1/fin2/xgb/crenc)
     final_by_ocr: dict[str, float] | None = None
     final_ocr_primary: str | None = None
@@ -297,6 +307,8 @@ class PipelineSettingsUpdate(BaseModel):
     use_hsv_hard_reject: bool | None = None
     hsv_hard_reject_max: float | None = None
     compute_color_delta: bool | None = None
+    reuse_previous_searches: bool | None = None
+    show_search_details: bool | None = None
     final_ocr: str | None = None
     exclusive_use_translit: bool | None = None
     exclusive_match_spaced: bool | None = None
@@ -348,6 +360,8 @@ class PipelineSettingsOut(BaseModel):
     use_hsv_hard_reject: bool = False
     hsv_hard_reject_max: float = 0.90
     compute_color_delta: bool = True
+    reuse_previous_searches: bool = False
+    show_search_details: bool = True
     final_ocr: str = "auto"
     final_ocr_options: list[dict] = []
     exclusive_use_translit: bool = True
