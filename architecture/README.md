@@ -1,68 +1,72 @@
-# Своё Вино — Сканер вина
+# Vino Svoe — архитектура и ТЗ
 
-Сервис распознавания российского вина по фотографии этикетки с выдачей карточки из каталога платформы «Своё Вино». Конкурсное задание РСХБ.Цифра 2026.
+Сервис распознавания российского вина по фото этикетки/бутылки с выдачей карточки из каталога «Своё Вино». Конкурс РСХБ.Цифра 2026.
 
-Статус: **проектирование завершено, реализация — этап 1** (см. `ROADMAP.md`).
+**Статус:** рабочий продукт на https://vino-svoe.online · алгоритм findwine **0.97.x** · стек React + FastAPI + PostgreSQL/pgvector.
 
-## Документы
-
-| Документ | Содержание |
-|----------|-----------|
-| [TZ.md](TZ.md) | Техническое задание: цели, сценарии, функциональные и нефункциональные требования, метрики, риски, приёмка |
-| [ARCHITECTURE.md](ARCHITECTURE.md) | Архитектура: пайплайн, границы слоёв, структура репозитория, модель данных, развёртывание |
-| [TECH_CHOICE.md](TECH_CHOICE.md) | Выбор технологий для векторов по фото: сравнение моделей, итоговый стек, план экспериментов |
-| [DATA.md](DATA.md) | Анализ исходных данных и правила сопоставления slug ↔ фото |
-| [API.md](API.md) | Контракты REST API, включая точку для скрипта организатора |
-| [ROADMAP.md](ROADMAP.md) | Три этапа реализации с задачами и критериями приёмки |
-
-**Живой пайплайн реализации (findwine, актуальные правила детекции/скоринга):**
+## Документы в этой папке
 
 | Документ | Содержание |
 |----------|-----------|
-| [`../docs/findwine-pipeline.md`](../docs/findwine-pipeline.md) | YOLO / bottle+label, exclusive lexicon, XGB, Cross Encoder, `matched_wine` |
-| [`../docs/algorithm-ocr-text-finalscore-f1.md`](../docs/algorithm-ocr-text-finalscore-f1.md) | TextScore, FinalScore, F1, hard mismatch |
+| [TZ.md](TZ.md) | Техническое задание: цели, сценарии, требования, метрики, приёмка |
+| [ARCHITECTURE.md](ARCHITECTURE.md) | Как устроен сервис сейчас: слои, пайплайн, деплой, данные |
+| [TECH_CHOICE.md](TECH_CHOICE.md) | Выбор моделей и технологий (что взяли и почему) |
+| [DATA.md](DATA.md) | Исходные данные каталога и правило slug ↔ фото |
+| [API.md](API.md) | REST API backend (`/api/*`, eval) |
+| [ROADMAP.md](ROADMAP.md) | Этапы: что сделано / что осталось |
 
----
+## Живые документы реализации (вне этой папки)
 
-## Кратко об устройстве
+| Документ | Содержание |
+|----------|-----------|
+| [`../docs/findwine-pipeline.md`](../docs/findwine-pipeline.md) | Подробный алгоритм findwine (YOLO, OCR, exclusive, XGB, FinalScore) |
+| [`../docs/algorithm-ocr-text-finalscore-f1.md`](../docs/algorithm-ocr-text-finalscore-f1.md) | TextScore / FinalScore / F1 |
+| [`../distrib/README.md`](../distrib/README.md) | Деплой на vino-svoe.online |
+| [`../docs/contest/`](../docs/contest/) | Приёмка и презентация конкурса |
+| [`../training/`](../training/) | Обучение SigLIP2 (Colab) и XGBoost |
 
-Целевая схема конкурса (ниже) частично расходится с текущим `POST /api/findwine` — см. docs выше.
+## Устройство (кратко)
+
 ```
-фото → нормализация (детекция бутылки/этикетки, кроп) → SigLIP 2 + DINOv2 эмбеддинги ∥ OCR ∥ локальные признаки
-     → кандидаты (pgvector + текст) → реранк (геометрия этикетки, атрибуты, OCR) → confidence/margin → карточка JSON
+фото → YOLO (этикетка / bottle+label) → кроп
+     → SigLIP2 (+ опц. DINOv3) ANN top-20 в pgvector
+     → OCR (RapidOCR / Gemini / Google Vision / …) параллельно
+     → exclusive lexicon + ColorDelta + XGB / Cross-Encoder
+     → FinalScore → matched_wine + аналоги → UI / {"slug"}
 ```
 
-- `services/ml` — Python 3.12 / FastAPI / PyTorch: пайплайн, индексатор, API (`:8080`).
-- `services/web` — Nuxt 3, mobile-first UI в стилистике портала (`:3000`).
-- PostgreSQL 16 + pgvector — каталог, векторы, логи.
-- Работает на CPU; GPU ускоряет через `DEVICE=cuda`.
+| Компонент | Реализация |
+|-----------|------------|
+| UI | React (Vite), dev `:8091`, прод — `vino_frontend` |
+| API / пайплайн | FastAPI, dev `:8092`, прод — `vino_backend` |
+| БД | PostgreSQL + `vector` + `pg_trgm` (прод: контейнер `vino_postgres`) |
+| Эмбеддинги | HTTP: SigLIP2 / DINOv3 / CE (+ опц. HF Inference Endpoints) |
+| Медиа | `/media/*` — nginx static с диска (`media/` + `media/crop/`) |
 
-## Запуск (целевой, после этапа 1)
+## Быстрый старт (dev)
 
 ```bash
-cp .env.example .env            # пути к CSV и uploads, DEVICE, LLM-провайдер
-make setup                      # веса моделей
-make ingest index               # каталог → БД → векторы
-docker compose up               # db + ml + web
-./eval/participant_test.sh --images-dir eval/queries --manifest eval/queries.tsv \
-  --endpoint http://127.0.0.1:8080/v1/eval/predict --output predictions.jsonl
+# backend
+cd backend && cp .env.example .env   # ключи
+pip install -r requirements.txt
+python run_dev.py                   # http://127.0.0.1:8092
+
+# frontend
+cd frontend && npm install && npm run dev   # http://127.0.0.1:8091
 ```
 
-## Переменные окружения (планируемые)
+Eval организатора:
 
-| Переменная | Назначение | По умолчанию |
-|-----------|------------|--------------|
-| `DATABASE_URL` | PostgreSQL с расширением `vector` | `postgresql://svoe:svoe@db:5432/svoe` |
-| `MEDIA_DIR` | папка `uploads/` Strapi | `./data/media` |
-| `CATALOG_CSV` | экспорт каталога | `./data/raw/strapi_output.csv` |
-| `DEVICE` | `cpu` \| `cuda` | `cpu` |
-| `SIGLIP_MODEL` | `google/siglip2-base-patch16-384` \| `…so400m-patch16-naflex` | base |
-| `OCR_ENABLED`, `OCR_TIMEOUT_MS` | текстовый канал | `1`, `700` |
-| `LLM_PROVIDER`, `LLM_API_KEY` | `openai` \| `gemini` \| `yandexgpt` \| `ollama` \| `none` | `none` |
-| `ADMIN_TOKEN` | защита `/v1/admin/*` | — |
+```bash
+./eval/participant_test.sh \
+  --images-dir eval/queries \
+  --manifest eval/queries.tsv \
+  --endpoint https://vino-svoe.online/v1/eval/predict \
+  --output /tmp/predictions.jsonl
+```
 
-## Ограничения
+## Ограничения каталога
 
-- 9 из 2103 позиций каталога не имеют эталонного фото — ищутся только по тексту.
-- 14 эталонных фото принадлежат двум позициям одновременно — различаются только по OCR.
-- Публичный набор полевых фото — 3 снимка; для настройки порогов требуется собственная съёмка (см. `DATA.md` §6).
+- ~2103 вина; у части нет эталонного фото — только текстовый канал.
+- 14 эталонных фото принадлежат двум slug одновременно — различаются OCR/атрибутами.
+- Публичный eval — 3 полевых снимка; полный бенчмарк — на собственной/управленческой выборке.

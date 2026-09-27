@@ -32,11 +32,9 @@ npm run dev
 
 ## Прод (кратко)
 
-- Контейнеры: `vino_backend`, `vino_frontend` (`distrib/docker-compose.yml`)
-- PostgreSQL: существующий на сервере + `CREATE EXTENSION vector`
-- Media и веса YOLO/XGB: `/var/lib/vino-svoe/...` (volume, не в образ)
-- Media и веса YOLO/XGB: `/var/lib/vino-svoe/...` (volume, не в образ)
-- Дамп каталога без истории сканов: `distrib/sql/vino_catalog.dump.pgc`
+- Контейнеры: `vino_postgres` (pgvector), `vino_backend`, `vino_frontend`
+- Media (`/media`, в т.ч. `crop/`) и веса YOLO/XGB: `/var/lib/vino-svoe/...` (volume)
+- Дамп каталога без истории сканов: `distrib/sql/vino_catalog.dump.*`
 - Обучение: `training/siglip2/` (Colab), `training/xgboost/xgboost_train_bundle.zip`
 - В git **нет** SigLIP2/Cross-Encoder весов (`*.safetensors`); XGBoost `model.json` — да
 
