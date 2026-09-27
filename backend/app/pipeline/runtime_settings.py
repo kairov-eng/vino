@@ -155,7 +155,8 @@ def _defaults() -> dict[str, Any]:
         "text_match_methods": list(TEXT_MATCH_DEFAULT),
         "final_score_method": "fin1",
         "text_match_thresholds": _default_text_match_thresholds(),
-        "empty_ocr_cosine_threshold": 0.75,
+        # Empty OCR: match only if max cosine among candidates ≥ this.
+        "empty_ocr_cosine_threshold": 0.86,
         # Dead-XGB: if max xgb_score among exclusive survivors < τ →
         # Soft TF-IDF (fin2 always, even if disabled in methods) or cosine.
         "xgb_dead_max": 0.15,
@@ -477,7 +478,7 @@ def _normalize(raw: dict[str, Any] | None) -> dict[str, Any]:
     if "empty_ocr_cosine_threshold" in data:
         base["empty_ocr_cosine_threshold"] = _clamp099(
             data["empty_ocr_cosine_threshold"],
-            base.get("empty_ocr_cosine_threshold", 0.75),
+            base.get("empty_ocr_cosine_threshold", 0.86),
         )
     if "xgb_dead_max" in data:
         base["xgb_dead_max"] = _clamp099(
@@ -806,7 +807,7 @@ def settings_public_view(data: dict[str, Any] | None = None) -> dict[str, Any]:
             {"id": k, "label": TEXT_MATCH_META[k]["label"]} for k in TEXT_MATCH_ALL
         ],
         "empty_ocr_cosine_threshold": _clamp099(
-            s.get("empty_ocr_cosine_threshold"), 0.75
+            s.get("empty_ocr_cosine_threshold"), 0.86
         ),
         "xgb_dead_max": _clamp099(s.get("xgb_dead_max"), 0.15),
         "compute_hsv": bool(s.get("compute_hsv", False)),

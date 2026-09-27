@@ -33,7 +33,7 @@
   "bottle_orient_min_deg": 8.0,
   "label_detect_openai": false,
   "label_detect_gemini": true,
-  "embedding_device": "cpu",
+  "embedding_device": "gpu",
   "embed_cpu_use_cache": true,
   "normalize_max_side": 800,
   "hf_start_timeout_sec": 15.0,
@@ -67,7 +67,7 @@
       "similar": 0.03
     }
   },
-  "empty_ocr_cosine_threshold": 0.82,
+  "empty_ocr_cosine_threshold": 0.86,
   "xgb_dead_max": 0.18,
   "compute_hsv": false,
   "use_hsv_filter": false,
@@ -77,7 +77,7 @@
   "use_hsv_hard_reject": false,
   "hsv_hard_reject_max": 0.94,
   "compute_color_delta": false,
-  "reuse_previous_searches": true,
+  "reuse_previous_searches": false,
   "show_search_details": true,
   "final_ocr": "google_vision",
   "exclusive_use_translit": false,

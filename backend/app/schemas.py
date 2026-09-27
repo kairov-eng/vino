@@ -350,7 +350,7 @@ class PipelineSettingsOut(BaseModel):
     text_match_thresholds: dict[str, dict[str, float]] = {}
     final_score_method: str = "fin1"
     final_score_method_options: list[dict] = []
-    empty_ocr_cosine_threshold: float = 0.75
+    empty_ocr_cosine_threshold: float = 0.86
     xgb_dead_max: float = 0.15
     compute_hsv: bool = False
     use_hsv_filter: bool = False

@@ -112,6 +112,7 @@ from app.pipeline.yolo_detect import (
     filter_bottles_by_min_conf,
     normalize_yolo_variant,
     select_primary_bottle,
+    select_primary_bottle_with_labels,
     select_primary_label,
     select_primary_label_with_bottles,
 )
@@ -473,7 +474,7 @@ def run_findwine(
             pipeline_settings.get("text_match_thresholds")
         ),
         "empty_ocr_cosine_threshold": _clamp099(
-            pipeline_settings.get("empty_ocr_cosine_threshold"), 0.75
+            pipeline_settings.get("empty_ocr_cosine_threshold"), 0.86
         ),
         "compute_hsv": bool(pipeline_settings.get("compute_hsv", False)),
         "use_hsv_filter": bool(pipeline_settings.get("use_hsv_filter", False)),
@@ -1641,13 +1642,19 @@ def run_findwine(
             ) or []
             foreign_mask: dict[str, Any] | None = None
             if bottles_live and raw_labels_live:
+                # Primary = бутылка выбранной этикетки (не max-area), иначе
+                # foreign_mask считает selected «чужой» и заливает весь кроп.
+                primary_for_mask, _ = select_primary_bottle_with_labels(
+                    list(bottles_live),
+                    list(raw_labels_live),
+                )
                 foreign_mask = crop_box_mask_foreign_labels(
                     pipeline_path,
                     selected_box["xyxy"],
                     label_path,
                     bottles=list(bottles_live),
                     raw_labels=list(raw_labels_live),
-                    primary_bottle=select_primary_bottle(list(bottles_live)),
+                    primary_bottle=primary_for_mask,
                 )
             else:
                 crop_box(pipeline_path, selected_box["xyxy"], label_path)
@@ -3059,7 +3066,7 @@ def run_findwine(
     ocr_text_present = bool(str(xgb_ocr_text or "").strip())
     status["ocr_text_present"] = ocr_text_present
     empty_ocr_cos_thr = _clamp099(
-        pipe_settings.get("empty_ocr_cosine_threshold"), 0.75
+        pipe_settings.get("empty_ocr_cosine_threshold"), 0.86
     )
     xgb_dead_max = _clamp099(pipe_settings.get("xgb_dead_max"), 0.15)
     text_thr = _normalize_text_match_thresholds(

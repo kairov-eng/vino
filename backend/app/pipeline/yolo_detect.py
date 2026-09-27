@@ -24,8 +24,18 @@ from app.pipeline.image_io import open_image_rgb
 # Conf gap: if largest is ≥ this below next-by-size → pick next
 # (0.9 ≈ почти никогда: conf ∈ [0,1], gap 0.9 почти недостижим)
 _LABEL_CONF_SIZE_GAP = 0.9
+# Если «самая большая» этикетка слабая — достаточно меньшего gap по conf
+_LABEL_CONF_SIZE_GAP_WEAK_LARGEST = 0.15
+_LABEL_WEAK_LARGEST_CONF = 0.55
 # Не брать «следующую по размеру», если она ≤ половины площади самой большой
 _LABEL_MIN_AREA_RATIO = 0.5
+# Слабая этикетка на всю высоту бутылки → обычно FP (фон / силуэт), не корпус
+_LABEL_FULL_BOTTLE_H_FRAC = 0.85
+_LABEL_FULL_BOTTLE_MAX_CONF = 0.55
+# Главная бутылка: если на другой max conf этикетки корпуса выше на gap —
+# переключаемся (scan 2729: площадь слева vs real label conf 0.96 справа)
+_PRIMARY_BOTTLE_LABEL_CONF_GAP = 0.20
+_PRIMARY_BOTTLE_LABEL_MIN_CONF = 0.55
 _BOX_LABEL_FONT_SIZE = 20
 # label∩bottle / area(label) ≥ порог → этикетка «принадлежит» бутылке (merge)
 _BOTTLE_LABEL_OVERLAP_RATIO = 0.85
@@ -588,6 +598,8 @@ def select_primary_label(
     - Else if next-by-size has conf ≥ ``conf_gap`` above largest *and*
       its area is > ``min_area_ratio`` of the largest (not ≤ half size),
       pick the next-by-size.
+    - Else if largest is weak (conf < 0.55) and next is ≥0.15 higher with
+      area > 25% of largest — pick next (scan-style FP «whole bottle» boxes).
     """
     if not boxes:
         return None
@@ -616,6 +628,17 @@ def select_primary_label(
             pick["select_reason"] = "next_by_size_higher_conf"
             pick["select_conf_gap"] = round(c1 - c0, 4)
             return pick
+        # Крупный low-conf бокс (часто весь силуэт) vs меньший high-conf label
+        if (
+            c0 < float(_LABEL_WEAK_LARGEST_CONF)
+            and (c1 - c0) >= float(_LABEL_CONF_SIZE_GAP_WEAK_LARGEST)
+            and a0 > 0
+            and a1 > 0.25 * a0
+        ):
+            pick = dict(ordered[1])
+            pick["select_reason"] = "next_by_size_weak_largest"
+            pick["select_conf_gap"] = round(c1 - c0, 4)
+            return pick
     pick = dict(ordered[0])
     pick["select_reason"] = "largest"
     return pick
@@ -634,6 +657,93 @@ def select_primary_bottle(
             float(b.get("conf") or 0.0),
         ),
     )
+
+
+def _label_is_full_bottle_false_positive(
+    label: dict[str, Any],
+    bottle: dict[str, Any],
+) -> bool:
+    """Low-conf box spanning almost the full bottle height — not a real label."""
+    conf = float(label.get("conf") or 0.0)
+    if conf >= float(_LABEL_FULL_BOTTLE_MAX_CONF):
+        return False
+    try:
+        _lx1, ly1, _lx2, ly2 = [float(v) for v in label["xyxy"]]
+        _bx1, by1, _bx2, by2 = [float(v) for v in bottle["xyxy"]]
+    except (TypeError, ValueError, KeyError):
+        return False
+    bh = by2 - by1
+    if bh <= 1e-6:
+        return False
+    return ((ly2 - ly1) / bh) >= float(_LABEL_FULL_BOTTLE_H_FRAC)
+
+
+def _best_body_label_on_bottle(
+    bottle: dict[str, Any],
+    labels: list[dict[str, Any]],
+) -> tuple[float, dict[str, Any] | None]:
+    """Max conf among body labels that belong to this bottle (not FP silhouette)."""
+    best_c = -1.0
+    best_lab: dict[str, Any] | None = None
+    for lab in labels:
+        if _label_in_bottle_ratio(lab, bottle) < float(_LABEL_MIN_IN_BOTTLE_RATIO):
+            continue
+        if _label_is_full_bottle_false_positive(lab, bottle):
+            continue
+        frac = _label_center_y_frac(lab, bottle)
+        if frac is not None and frac < float(_LABEL_NECK_Y_MAX):
+            continue
+        conf = float(lab.get("conf") or 0.0)
+        if conf > best_c:
+            best_c = conf
+            best_lab = lab
+    return best_c, best_lab
+
+
+def select_primary_bottle_with_labels(
+    bottles: list[dict[str, Any]],
+    labels: list[dict[str, Any]],
+) -> tuple[dict[str, Any] | None, dict[str, Any]]:
+    """Главная бутылка с учётом этикеток.
+
+    База — max area. Если на другой бутылке есть сильная этикетка корпуса
+    (conf ≥ min и gap над лучшей этикеткой area-primary) — берём её.
+    """
+    meta: dict[str, Any] = {"mode": "area"}
+    by_area = select_primary_bottle(bottles)
+    if by_area is None:
+        return None, meta
+    if len(bottles) <= 1 or not labels:
+        return by_area, meta
+
+    scored: list[tuple[float, float, dict[str, Any]]] = []
+    for b in bottles:
+        best_c, _ = _best_body_label_on_bottle(b, labels)
+        scored.append((best_c, float(b.get("area") or 0.0), b))
+    # Лучшая по conf этикетки, tie-break площадью
+    best_label_bottle = max(scored, key=lambda t: (t[0], t[1]))
+    area_best_c, _ = _best_body_label_on_bottle(by_area, labels)
+    other = best_label_bottle[2]
+    other_c = float(best_label_bottle[0])
+    same_as_area = other.get("xyxy") == by_area.get("xyxy")
+    if (
+        not same_as_area
+        and other_c >= float(_PRIMARY_BOTTLE_LABEL_MIN_CONF)
+        and (other_c - max(area_best_c, 0.0))
+        >= float(_PRIMARY_BOTTLE_LABEL_CONF_GAP)
+    ):
+        meta = {
+            "mode": "best_body_label",
+            "area_primary_conf": round(float(by_area.get("conf") or 0.0), 4),
+            "area_primary_area": round(float(by_area.get("area") or 0.0), 1),
+            "area_primary_best_label_conf": round(max(area_best_c, 0.0), 4)
+            if area_best_c >= 0
+            else None,
+            "chosen_best_label_conf": round(other_c, 4),
+            "label_conf_gap": round(other_c - max(area_best_c, 0.0), 4),
+        }
+        return other, meta
+    return by_area, meta
 
 
 def filter_bottles_by_min_conf(
@@ -739,7 +849,7 @@ def select_primary_label_with_bottles(
     if not bottles:
         return select_primary_label(labels)
 
-    primary = select_primary_bottle(bottles)
+    primary, primary_meta = select_primary_bottle_with_labels(bottles, labels)
     if primary is None:
         return select_primary_label(labels)
 
@@ -766,6 +876,14 @@ def select_primary_label_with_bottles(
             drop["best_bottle_ratio"] = round(best, 4)
             drop["primary_bottle_ratio"] = round(ratio_pri, 4)
             other_bottle.append(drop)
+            continue
+        # Weak full-height box on primary → FP silhouette, not label
+        if _label_is_full_bottle_false_positive(lab, primary):
+            drop = dict(lab)
+            drop["ignore_reason"] = "full_bottle_low_conf"
+            drop["best_bottle_ratio"] = round(best, 4)
+            drop["primary_bottle_ratio"] = round(ratio_pri, 4)
+            protruding.append(drop)
             continue
         frac = _label_center_y_frac(lab, primary)
         if frac is None:
@@ -797,6 +915,7 @@ def select_primary_label_with_bottles(
             "mode": "label_on_primary_bottle",
             "primary_bottle_area": round(float(primary.get("area") or 0.0), 1),
             "primary_bottle_conf": round(float(primary.get("conf") or 0.0), 4),
+            "primary_bottle_pick": primary_meta,
             "body_n": len(body),
             "neck_n": len(neck),
             "protruding_n": len(protruding),
@@ -813,6 +932,7 @@ def select_primary_label_with_bottles(
         "mode": "bottle_body_fallback",
         "primary_bottle_area": round(float(primary.get("area") or 0.0), 1),
         "primary_bottle_conf": round(float(primary.get("conf") or 0.0), 4),
+        "primary_bottle_pick": primary_meta,
         "bottles_n": len(bottles),
         "bottle_conf_filter": bottle_filter,
         "body_n": 0,
@@ -969,6 +1089,19 @@ def _box_fully_inside(
 _FOREIGN_CUT_MAX_MAIN_OVERLAP = 0.20
 # area(inter)/area(foreign) ≥ порога → считаем «полностью внутри» по площади
 _FOREIGN_CUT_FULL_INSIDE_FRAC = 0.98
+# Не вырезать кусок > этой доли selected-кропа (иначе «заливка всего label»)
+_FOREIGN_CUT_MAX_SELECTED_FRAC = 0.35
+
+
+def _xyxy_close(
+    a: list[float],
+    b: list[float],
+    *,
+    tol: float = 3.0,
+) -> bool:
+    if len(a) != 4 or len(b) != 4:
+        return False
+    return all(abs(float(x) - float(y)) <= tol for x, y in zip(a, b))
 
 
 def foreign_label_cut_rects(
@@ -983,34 +1116,45 @@ def foreign_label_cut_rects(
 
     Условия (все):
     - raw-этикетка принадлежит другой бутылке (best ≠ primary);
-    - пересекается с основной (main) этикеткой primary;
+    - не совпадает с selected (сама выбранная этикетка);
+    - пересекается с основной (main = selected crop);
     - чужая **не** целиком внутри main (ни по боксу, ни по площади ≥98%);
     - area(foreign∩main) / area(main) ≤ max_main_overlap (по умолчанию 20%);
+    - вырез ≤ 35% площади selected (защита от залития всего кропа);
     - есть пересечение с selected (что реально вырезаем на кропе).
     Треугольники / наклон границы — отключены.
     """
     if not bottles or not raw_labels or not selected_xyxy:
         return []
-    primary = primary_bottle or select_primary_bottle(bottles)
+    try:
+        sel_xy = [float(v) for v in selected_xyxy]
+    except (TypeError, ValueError):
+        return []
+    sel_area = _xyxy_area(sel_xy)
+    if sel_area <= 0:
+        return []
+
+    # Primary = бутылка выбранного кропа (не max-area — иначе cut «съедает» label).
+    owner, owner_r = _best_bottle_for_label({"xyxy": sel_xy}, bottles)
+    if owner is not None and owner_r >= 0.5:
+        primary = owner
+    else:
+        primary = primary_bottle or select_primary_bottle(bottles)
     if primary is None:
         return []
     pk = _bottle_key(primary)
-    main = _primary_main_label(raw_labels, bottles, primary)
-    if main is None:
-        return []
-    try:
-        main_xy = [float(v) for v in main["xyxy"]]
-    except (TypeError, ValueError, KeyError):
-        return []
-    main_area = _xyxy_area(main_xy)
-    if main_area <= 0:
-        return []
+
+    # Main = сам selected crop (то, что реально идёт в OCR/embed).
+    main_xy = sel_xy
+    main_area = sel_area
 
     cuts: list[dict[str, Any]] = []
     for lab in raw_labels:
         try:
             lxy = [float(v) for v in lab["xyxy"]]
         except (TypeError, ValueError, KeyError):
+            continue
+        if _xyxy_close(lxy, sel_xy):
             continue
         best_b, best_r = _best_bottle_for_label(lab, bottles)
         if best_b is None or best_r < 0.5:
@@ -1035,12 +1179,14 @@ def foreign_label_cut_rects(
         if overlap_main > float(max_main_overlap):
             continue
         # Что заливаем на кропе — пересечение чужой с selected box
-        inter_sel = _xyxy_intersection(lxy, selected_xyxy)
+        inter_sel = _xyxy_intersection(lxy, sel_xy)
         if inter_sel is None:
             continue
         ia_sel = _xyxy_area(inter_sel)
         sx1, sy1, sx2, sy2 = inter_sel
         if ia_sel < 400.0 or (sx2 - sx1) < 4.0 or (sy2 - sy1) < 4.0:
+            continue
+        if (ia_sel / sel_area) > float(_FOREIGN_CUT_MAX_SELECTED_FRAC):
             continue
         cuts.append(
             {

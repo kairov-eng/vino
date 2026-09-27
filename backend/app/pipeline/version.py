@@ -5,12 +5,21 @@
 """
 
 # x.x.x — текущая версия пайплайна сравнения / распознавания
-ALGORITHM_VERSION = "0.96.0"
+ALGORITHM_VERSION = "0.97.1"
 
 # ISO-8601 local timestamp последнего изменения алгоритма (обновлять вместе с VERSION)
-ALGORITHM_UPDATED_AT = "2026-09-27T21:25:00+03:00"
+ALGORITHM_UPDATED_AT = "2026-09-27T22:10:00+03:00"
 
 ALGORITHM_NOTES = (
+    "0.97.1: foreign_mask — main=selected crop; primary=bottle of selected "
+    "(not max-area); skip self-label and cuts >35% of crop (scan 2743 "
+    "blank fill); "
+    "0.97.0: bottle+label primary — prefer bottle with strongest body label "
+    "(conf≥0.55 and gap≥0.20 over area-primary's best); reject low-conf "
+    "full-height silhouette labels; weak largest label yields to smaller "
+    "high-conf next (scan 2729 Мезыбь); "
+    "0.96.1: empty_ocr_cosine_threshold default 0.75→0.86 — empty OCR match "
+    "only if max cos ≥ threshold (setting in scanner Gates); "
     "0.96.0: reuse candidate — XGB compares query OCR↔previous search OCR "
     "(not catalog label); card/popup show previous OCR + badge; "
     "0.95.0: reuse_previous_searches — nearest past search among those with "

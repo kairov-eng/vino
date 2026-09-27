@@ -1596,12 +1596,13 @@ export function ScanSettingsPopup({ open, onClose, onSettingsSaved }: Props) {
             </section>
 
             <section className="scan-settings__section">
-              <h3>Порог cosine (пустой OCR и dead-XGB)</h3>
+              <h3>Пустая этикетка: порог cosine</h3>
               <p className="scan-settings__hint">
-                Если OCR пустой — text match не запускается; final = кандидат с
-                max cos ≥ порога. Тот же порог для fallback при «мёртвом XGB»
-                (когда τ срабатывает и Soft TF‑IDF не дал match). Диапазон
-                0…0.99.
+                Если на искомой этикетке нет текста (OCR пустой) — вино
+                считается найденным только при max cos ≥ порога (источник
+                empty_ocr_cosine). Тот же порог для fallback при «мёртвом XGB»
+                (когда Soft TF‑IDF не дал match). Диапазон 0…0.99; по умолчанию
+                0.86.
               </p>
               <div className="scan-settings__thr scan-settings__thr--solo">
                 <span className="scan-settings__thr-lab">cos ≥</span>
@@ -1612,7 +1613,7 @@ export function ScanSettingsPopup({ open, onClose, onSettingsSaved }: Props) {
                     max={0.99}
                     step={0.01}
                     value={Number(
-                      settings.empty_ocr_cosine_threshold ?? 0.75,
+                      settings.empty_ocr_cosine_threshold ?? 0.86,
                     ).toFixed(2)}
                     onChange={(e) => {
                       const v = Number(e.target.value)
@@ -1631,7 +1632,7 @@ export function ScanSettingsPopup({ open, onClose, onSettingsSaved }: Props) {
                       aria-label="cos +0.01"
                       onClick={() => {
                         const cur = Number(
-                          settings.empty_ocr_cosine_threshold ?? 0.75,
+                          settings.empty_ocr_cosine_threshold ?? 0.86,
                         )
                         void persist({
                           empty_ocr_cosine_threshold: Math.max(
@@ -1648,7 +1649,7 @@ export function ScanSettingsPopup({ open, onClose, onSettingsSaved }: Props) {
                       aria-label="cos -0.01"
                       onClick={() => {
                         const cur = Number(
-                          settings.empty_ocr_cosine_threshold ?? 0.75,
+                          settings.empty_ocr_cosine_threshold ?? 0.86,
                         )
                         void persist({
                           empty_ocr_cosine_threshold: Math.max(
