@@ -28,7 +28,8 @@ npm run dev
 | Пайплайн findwine | [`docs/findwine-pipeline.md`](docs/findwine-pipeline.md) |
 | Конкурс / приёмка | [`docs/contest/`](docs/contest/) |
 | **Деплой на vino-svoe.online** | [`distrib/README.md`](distrib/README.md) |
-| **Подготовка данных** (crop / YOLO / XGBoost) | [`Подготовка данных/`](Подготовка%20данных/) |
+| **Подготовка данных YOLO / XGBoost** (скрипты + Colab) | [`Подготовка данных/`](Подготовка%20данных/) — [YOLO→Colab](Подготовка%20данных/README.md#2-yolo--подготовка-данных-и-обучение-в-colab), [XGBoost](Подготовка%20данных/README.md#3-xgboost--подготовка-данных-и-обучение) |
+| Установка / ключи / пароль демо (корень монорепо) | [`../УСТАНОВКА.md`](../УСТАНОВКА.md) |
 | Обучение SigLIP2 (Colab) / train-bundle XGBoost | [`training/`](training/) |
 
 ## Прод (кратко)
@@ -36,7 +37,7 @@ npm run dev
 - Контейнеры: `vino_postgres` (pgvector), `vino_backend`, `vino_frontend`
 - Media (`/media`, в т.ч. `crop/`) и веса YOLO/XGB: `/var/lib/vino-svoe/...` (volume)
 - Дамп каталога без истории сканов: `distrib/sql/vino_catalog.dump.*`
-- Подготовка данных: `Подготовка данных/` (crop каталога, YOLO-сет, обучение XGBoost)
+- Подготовка данных YOLO/XGB: [`Подготовка данных/`](Подготовка%20данных/) (разметка → датасет → Colab для YOLO; `prepare_dataset.py` → `train_xgboost.py`)
 - Обучение SigLIP2: `training/siglip2/` (Colab); готовый train-bundle XGBoost: `training/xgboost/xgboost_train_bundle.zip`
 - В git **нет** SigLIP2/Cross-Encoder весов (`*.safetensors`); XGBoost `model.json` — да
 
