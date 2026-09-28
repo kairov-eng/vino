@@ -82,7 +82,7 @@
   "hard_reject_ignore_xgb_min": 0.7,
   "compute_color_delta": false,
   "reuse_previous_searches": false,
-  "show_search_details": true,
+  "show_search_details": false,
   "final_ocr": "google_vision",
   "exclusive_use_translit": true,
   "exclusive_match_spaced": false

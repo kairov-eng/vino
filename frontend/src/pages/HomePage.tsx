@@ -5389,29 +5389,18 @@ function WinnerMatchPanel({
         {wine && rating != null && reviewsXx != null ? (
           <div className="scan-winner__simple">
             <div className="scan-winner__simple-info">
-              <h2 className="scan-winner__simple-title">
-                {href ? (
-                  <a href={href} target="_blank" rel="noopener noreferrer">
-                    Совпадение
-                  </a>
-                ) : (
-                  'Совпадение'
-                )}
-              </h2>
-              {wine.winery && wineryHref ? (
-                <p className="scan-winner__simple-winery">
-                  <a
-                    href={wineryHref}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                  >
-                    {wine.winery}
-                  </a>
-                </p>
-              ) : wine.winery ? (
-                <p className="scan-winner__simple-winery">{wine.winery}</p>
-              ) : null}
+              <h2 className="scan-winner__simple-title">Совпадение</h2>
               <div className="scan-winner__simple-fields">
+                <WinnerCatalogField
+                  label="Название"
+                  value={wine.name}
+                  valueHref={href}
+                />
+                <WinnerCatalogField
+                  label="Винодельня"
+                  value={wine.winery}
+                  valueHref={wineryHref}
+                />
                 <WinnerCatalogField
                   label="Регион"
                   value={wine.region}
