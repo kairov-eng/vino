@@ -55,8 +55,15 @@ export function Header() {
       .catch(() => {
         /* keep default true for admin */
       })
+    const onSettings = (e: Event) => {
+      const detail = (e as CustomEvent<{ show_search_details?: boolean }>).detail
+      if (!detail || typeof detail.show_search_details === 'undefined') return
+      setShowSearchDetailsSetting(detail.show_search_details !== false)
+    }
+    window.addEventListener('vino:pipeline-settings', onSettings)
     return () => {
       cancelled = true
+      window.removeEventListener('vino:pipeline-settings', onSettings)
     }
   }, [isAdmin])
 

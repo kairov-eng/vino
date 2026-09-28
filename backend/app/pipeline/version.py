@@ -5,12 +5,26 @@
 """
 
 # x.x.x — текущая версия пайплайна сравнения / распознавания
-ALGORITHM_VERSION = "0.97.1"
+ALGORITHM_VERSION = "0.101.1"
 
 # ISO-8601 local timestamp последнего изменения алгоритма (обновлять вместе с VERSION)
-ALGORITHM_UPDATED_AT = "2026-09-27T22:10:00+03:00"
+ALGORITHM_UPDATED_AT = "2026-09-28T15:10:00+03:00"
 
 ALGORITHM_NOTES = (
+    "0.101.1: findwine — search_photos.status только в памяти до финала "
+    "(или early abort); убраны промежуточные commit status + HF mid-run "
+    "DB merge; embeddings flush без отдельного commit; "
+    "0.101.0: hard_reject_ignore — если cos≥thr и xgb_score≥thr, снять "
+    "hard reject (HSV hard ∪ exclusive ∪ label-text); defaults 0.90 / 0.70; "
+    "настройки в сканере + status.steps.hard_reject_bypass; "
+    "0.100.0: openai_txt_match — JSON ответ {ocr: lines+поля вина, matches: "
+    "id→prob}; UI блок OpenAI сравнение внизу сканера (как Google Vision); "
+    "0.99.0: eval_mode=1 — тот же выбор победителя, что eval=0 (только match); "
+    "убран eval_top1 / принудительный top-1 с низким score; "
+    "0.98.1: cosine ANN always LIMIT = candidates_top_n (never N−1); "
+    "reuse_previous_searches appends past winner as extra hit (N or N+1); "
+    "0.98.0: candidates_top_n setting (10|20|30|40, default 40) — cosine "
+    "ANN LIMIT per SigLIP2/DINOv3 channel; scanner dropdown; "
     "0.97.1: foreign_mask — main=selected crop; primary=bottle of selected "
     "(not max-area); skip self-label and cuts >35% of crop (scan 2743 "
     "blank fill); "

@@ -13,6 +13,7 @@ import {
   fetchScanHistory,
   fetchScanHistoryReport,
   updateScanHistoryEval,
+  updateFindwineManualWine,
   type ScanHistoryItem,
   type ScanHistorySort,
   type ScanHistoryXgbTopItem,
@@ -211,14 +212,24 @@ function HistoryWineHoverPopup({
                 <span>cos</span>
                 <em>{formatScore01(wine.cosine)}</em>
               </li>
-              <li>
-                <span>XGB</span>
-                <em>{formatScore01(wine.xgb_score)}</em>
-              </li>
-              <li>
-                <span>XGB_fin</span>
-                <em>{formatScore01(wine.xgb_fin)}</em>
-              </li>
+              {wine.xgb_score != null && (
+                <li>
+                  <span>XGB</span>
+                  <em>{formatScore01(wine.xgb_score)}</em>
+                </li>
+              )}
+              {wine.xgb_fin != null && (
+                <li>
+                  <span>XGB_fin</span>
+                  <em>{formatScore01(wine.xgb_fin)}</em>
+                </li>
+              )}
+              {wine.fin2 != null && (
+                <li>
+                  <span>fin2</span>
+                  <em>{formatScore01(wine.fin2)}</em>
+                </li>
+              )}
             </ul>
           </div>
         </div>
@@ -232,10 +243,14 @@ function HistoryXgbTopCard({
   wine,
   ocrQueryText,
   onOpenWine,
+  isManualMatch = false,
+  onManualMatchChange,
 }: {
   wine: ScanHistoryXgbTopItem
   ocrQueryText?: string
   onOpenWine: (slug: string | null, id: number) => void
+  isManualMatch?: boolean
+  onManualMatchChange?: (wineId: number, checked: boolean) => void
 }) {
   const mediaRef = useRef<HTMLButtonElement>(null)
   const [hovered, setHovered] = useState(false)
@@ -286,9 +301,26 @@ function HistoryXgbTopCard({
     }
   }, [hovered, placePopup])
 
+  const scoreLabel =
+    wine.xgb_fin != null
+      ? 'XGB_fin'
+      : wine.fin2 != null
+        ? 'fin2'
+        : wine.cosine != null
+          ? 'cos'
+          : null
+  const scoreValue =
+    wine.xgb_fin != null
+      ? wine.xgb_fin
+      : wine.fin2 != null
+        ? wine.fin2
+        : wine.cosine
+
   return (
     <>
-      <div className="history-xgb-card">
+      <div
+        className={`history-xgb-card${isManualMatch ? ' is-manual' : ''}`}
+      >
         <button
           ref={mediaRef}
           type="button"
@@ -313,10 +345,28 @@ function HistoryXgbTopCard({
           )}
         </button>
         <div className="history-xgb-card__meta">
-          <p className="history-xgb-card__score">
-            XGB_fin <em>{formatScore01(wine.xgb_fin)}</em>
-          </p>
+          {scoreLabel != null && scoreValue != null && (
+            <p className="history-xgb-card__score">
+              {scoreLabel} <em>{formatScore01(scoreValue)}</em>
+            </p>
+          )}
           <p className="history-xgb-card__id">id {wine.id}</p>
+          {onManualMatchChange && (
+            <label
+              className="history-xgb-card__manual"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <input
+                type="checkbox"
+                checked={isManualMatch}
+                onChange={(e) => {
+                  e.stopPropagation()
+                  onManualMatchChange(wine.id, e.target.checked)
+                }}
+              />
+              Это вино
+            </label>
+          )}
         </div>
       </div>
       {hovered && popupPos && (
@@ -393,12 +443,25 @@ function HistoryScores({
       if (parts.length) lines.push(parts.join(' '))
     }
     if (typeof scores.channels_line === 'string' && scores.channels_line) {
-      lines.push(scores.channels_line)
+      // Уже собрано на бэке без нулевых Score V/Y/…
+      const cleaned = scores.channels_line
+        .split(/\s*·\s*/)
+        .filter((bit) => {
+          const m = bit.match(/^Score\s+[A-Z]\s+([\d.]+)$/i)
+          if (!m) return true
+          const n = Number(m[1])
+          return Number.isFinite(n) && Math.abs(n) > 1e-9
+        })
+        .join(' · ')
+      if (cleaned) lines.push(cleaned)
     } else {
       const ch: string[] = []
       for (const letter of ['V', 'Y', 'G', 'O', 'K', 'Q']) {
         const s = scores[`score_${letter}`]
-        if (s != null) ch.push(`Score ${letter} ${formatScore01(s)}`)
+        const n = typeof s === 'number' ? s : Number(s)
+        if (s != null && Number.isFinite(n) && Math.abs(n) > 1e-9) {
+          ch.push(`Score ${letter} ${formatScore01(n)}`)
+        }
       }
       if (ch.length) lines.push(ch.join(' '))
     }
@@ -702,6 +765,49 @@ export function ScanHistoryPage() {
     }
   }
 
+  const setManualWine = async (
+    scanId: number,
+    wineId: number,
+    checked: boolean,
+  ) => {
+    const nextId = checked ? wineId : null
+    const prevId =
+      items.find((it) => it.id === scanId)?.manual_wines_id ?? null
+    setItems((prev) =>
+      prev.map((it) =>
+        it.id === scanId ? { ...it, manual_wines_id: nextId } : it,
+      ),
+    )
+    try {
+      const saved = await updateFindwineManualWine(scanId, nextId)
+      setItems((prev) =>
+        prev.map((it) =>
+          it.id === scanId
+            ? {
+                ...it,
+                manual_wines_id: saved.manual_wines_id ?? null,
+                ...(checked
+                  ? {
+                      false_positive: saved.false_positive ? 1 : 0,
+                      false_negative: saved.false_negative ? 1 : 0,
+                    }
+                  : {}),
+              }
+            : it,
+        ),
+      )
+    } catch (e) {
+      setItems((prev) =>
+        prev.map((it) =>
+          it.id === scanId ? { ...it, manual_wines_id: prevId } : it,
+        ),
+      )
+      setError(
+        e instanceof Error ? e.message : 'Ошибка сохранения «Это вино»',
+      )
+    }
+  }
+
   const sortMark = (key: ScanHistorySort) =>
     sortState.sort === key ? (sortState.order === 'asc' ? ' ↑' : ' ↓') : ''
 
@@ -872,7 +978,10 @@ export function ScanHistoryPage() {
             </tr>
           </thead>
           <tbody>
-            {items.map((row) => (
+            {items.map((row) => {
+              const noMatch = row.matched_wine_id == null
+              const topCands = row.xgb_top || []
+              return (
               <tr
                 key={row.id}
                 data-scan-id={row.id}
@@ -888,44 +997,78 @@ export function ScanHistoryPage() {
                     <div className="history-thumb history-thumb--empty" />
                   )}
                 </td>
-                <td className="col-ocr" onClick={(e) => e.stopPropagation()}>
-                  <HistoryOcrCompare
-                    queryText={String(row.query_ocr_text || '').trim()}
-                    catalogText={String(row.matched_wine_label || '').trim()}
-                  />
-                </td>
-                <td className="col-photo col-found" onClick={(e) => e.stopPropagation()}>
-                  {row.matched_wine_photo_url ? (
-                    <button
-                      type="button"
-                      className="history-thumb-btn"
-                      title={row.matched_wine_name || undefined}
-                      onClick={(e) => {
-                        e.stopPropagation()
-                        openWine(row.matched_wine_slug, row.matched_wine_id)
-                      }}
-                    >
-                      <img
-                        src={row.matched_wine_photo_url}
-                        alt={row.matched_wine_name || ''}
-                        className="history-thumb"
-                      />
-                    </button>
-                  ) : row.xgb_top && row.xgb_top.length > 0 ? (
-                    <div className="history-xgb-top">
-                      {row.xgb_top.map((w) => (
-                        <HistoryXgbTopCard
-                          key={w.id}
-                          wine={w}
-                          ocrQueryText={row.query_ocr_text || undefined}
-                          onOpenWine={openWine}
-                        />
-                      ))}
+                {noMatch ? (
+                  <td
+                    className="col-nomatch"
+                    colSpan={2}
+                    onClick={(e) => e.stopPropagation()}
+                  >
+                    <div className="history-nomatch">
+                      <div className="history-nomatch__ocr">
+                        <strong>OCR искомого</strong>
+                        <pre>
+                          {String(row.query_ocr_text || '').trim() || '—'}
+                        </pre>
+                      </div>
+                      <div className="history-nomatch__cands">
+                        {topCands.length > 0 ? (
+                          <div className="history-xgb-top history-xgb-top--7">
+                            {topCands.map((w) => (
+                              <HistoryXgbTopCard
+                                key={w.id}
+                                wine={w}
+                                ocrQueryText={row.query_ocr_text || undefined}
+                                onOpenWine={openWine}
+                                isManualMatch={
+                                  row.manual_wines_id != null &&
+                                  row.manual_wines_id === w.id
+                                }
+                                onManualMatchChange={(wineId, checked) =>
+                                  void setManualWine(row.id, wineId, checked)
+                                }
+                              />
+                            ))}
+                          </div>
+                        ) : (
+                          <div className="history-thumb history-thumb--empty" />
+                        )}
+                      </div>
                     </div>
-                  ) : (
-                    <div className="history-thumb history-thumb--empty" />
-                  )}
-                </td>
+                  </td>
+                ) : (
+                  <>
+                    <td className="col-ocr" onClick={(e) => e.stopPropagation()}>
+                      <HistoryOcrCompare
+                        queryText={String(row.query_ocr_text || '').trim()}
+                        catalogText={String(row.matched_wine_label || '').trim()}
+                      />
+                    </td>
+                    <td
+                      className="col-photo col-found"
+                      onClick={(e) => e.stopPropagation()}
+                    >
+                      {row.matched_wine_photo_url ? (
+                        <button
+                          type="button"
+                          className="history-thumb-btn"
+                          title={row.matched_wine_name || undefined}
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            openWine(row.matched_wine_slug, row.matched_wine_id)
+                          }}
+                        >
+                          <img
+                            src={row.matched_wine_photo_url}
+                            alt={row.matched_wine_name || ''}
+                            className="history-thumb"
+                          />
+                        </button>
+                      ) : (
+                        <div className="history-thumb history-thumb--empty" />
+                      )}
+                    </td>
+                  </>
+                )}
                 <td
                   className="col-score"
                   onClick={(e) => e.stopPropagation()}
@@ -942,7 +1085,8 @@ export function ScanHistoryPage() {
                   />
                 </td>
               </tr>
-            ))}
+              )
+            })}
           </tbody>
         </table>
       </div>

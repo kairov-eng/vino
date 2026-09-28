@@ -5289,6 +5289,8 @@ function WinnerMatchPanel({
     : null
   const fp = falsePositive ? 1 : 0
   const fn = falseNegative ? 1 : 0
+  const [reviewsOpen, setReviewsOpen] = useState(false)
+  const [whereToBuyOpen, setWhereToBuyOpen] = useState(false)
 
   const mediaRef = useRef<HTMLDivElement>(null)
   const [hovered, setHovered] = useState(false)
@@ -5374,6 +5376,8 @@ function WinnerMatchPanel({
         ? catalogHrefColorWithParents(wine?.color, wine?.region, wine?.winery)
         : null
     const photoSrc = wine?.photo_url || wine?.label_url || null
+    const rating = wine ? folkRatingFromId(wine.id) : null
+    const reviewsXx = wine ? reviewCountFromId(wine.id) : null
 
     return (
       <aside
@@ -5382,16 +5386,16 @@ function WinnerMatchPanel({
         }`}
         aria-label="Результат поиска"
       >
-        {wine ? (
+        {wine && rating != null && reviewsXx != null ? (
           <div className="scan-winner__simple">
             <div className="scan-winner__simple-info">
-              <h2 className="scan-winner__simple-name">
+              <h2 className="scan-winner__simple-title">
                 {href ? (
                   <a href={href} target="_blank" rel="noopener noreferrer">
-                    {wine.name || '—'}
+                    Совпадение
                   </a>
                 ) : (
-                  wine.name || '—'
+                  'Совпадение'
                 )}
               </h2>
               {wine.winery && wineryHref ? (
@@ -5439,6 +5443,27 @@ function WinnerMatchPanel({
               ) : null}
             </div>
             <div className="scan-winner__simple-photo-wrap">
+              <div className="scan-winner__simple-rating-row">
+                <span className="folk-rating" title="Народный рейтинг">
+                  <img
+                    className="folk-rating__glass"
+                    src="/folk-rating-glass.png"
+                    alt=""
+                    width={22}
+                    height={24}
+                  />
+                  <em>{rating}</em>
+                </span>
+                <button
+                  type="button"
+                  className="scan-winner__simple-reviews"
+                  title={`${reviewsXx} отзывов`}
+                  aria-label={`${reviewsXx} отзывов`}
+                  onClick={() => setReviewsOpen(true)}
+                >
+                  отзывы
+                </button>
+              </div>
               {href ? (
                 <a
                   href={href}
@@ -5472,6 +5497,21 @@ function WinnerMatchPanel({
                   <span className="scan-winner__simple-badge">Найдено</span>
                 </div>
               )}
+              <button
+                type="button"
+                className="scan-winner__simple-buy"
+                title="Где купить"
+                aria-label="Где купить"
+                onClick={() => setWhereToBuyOpen(true)}
+              >
+                <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden>
+                  <path
+                    fill="currentColor"
+                    d="M7 18c-1.1 0-1.99.9-1.99 2S5.9 22 7 22s2-.9 2-2-.9-2-2-2zm10 0c-1.1 0-1.99.9-1.99 2S15.9 22 17 22s2-.9 2-2-.9-2-2-2zM7.16 14h9.45c.75 0 1.41-.41 1.75-1.03l3.58-6.49A1 1 0 0 0 21.08 5H5.21l-.94-2H1v2h2l3.6 7.59-1.35 2.44C4.52 15.37 5.48 17 7 17h12v-2H7.16z"
+                  />
+                </svg>
+                <span>где купить</span>
+              </button>
             </div>
           </div>
         ) : (
@@ -5479,6 +5519,12 @@ function WinnerMatchPanel({
             <strong>Совпадение не найдено</strong>
           </div>
         )}
+        {reviewsOpen ? (
+          <AnalogReviewsPopup onClose={() => setReviewsOpen(false)} />
+        ) : null}
+        {whereToBuyOpen ? (
+          <AnalogWhereToBuyPopup onClose={() => setWhereToBuyOpen(false)} />
+        ) : null}
       </aside>
     )
   }
@@ -6627,6 +6673,7 @@ export function HomePage() {
           result && !uiBusy ? ' scan-hero--with-winner' : ''
         }${showMobileLanding ? ' is-hidden-mobile' : ''}`}
       >
+      <div className="scan-hero__query-col">
       <div
         className={`dropzone ${dragging ? 'is-dragging' : ''} ${uiBusy ? 'is-busy' : ''} ${preview ? 'has-preview' : ''}${
           showDetails && result && !uiBusy && (result.crops_url || result.label_url)
@@ -6728,89 +6775,141 @@ export function HomePage() {
           </div>
         )}
       </div>
+      </div>
 
       {result && !uiBusy && (
-        <WinnerMatchPanel
-          wine={finalWinnerId != null ? wineById.get(finalWinnerId) ?? null : null}
-          ocrQueryText={ocrQueryText}
-          ocrScores={
-            finalWinnerId != null
-              ? ocrScoresByWine.get(finalWinnerId)
-              : undefined
-          }
-          ocrChannels={ocrChannels}
-          ocrMarks={
-            finalWinnerId != null
-              ? ocrMarksByWine.get(finalWinnerId) || []
-              : []
-          }
-          exclusiveLexicon={exclusiveLexicon}
-          hsvStep={hsvStep}
-          labelTextHr={labelTextHr}
-          cosSiglip2={
-            finalWinnerId != null
-              ? cosByWine.siglip2.get(finalWinnerId) ?? null
-              : null
-          }
-          cosDinov3={
-            finalWinnerId != null
-              ? cosByWine.dinov3.get(finalWinnerId) ?? null
-              : null
-          }
-          confidence={
-            result.matched_wine_confidence ??
-            (typeof result.status?.matched_wine_confidence === 'number'
-              ? result.status.matched_wine_confidence
-              : null)
-          }
-          falsePositive={evalFlags.fp}
-          falseNegative={evalFlags.fn}
-          onEvalChange={
-            (result.search_photos_id ??
-              (typeof result.status?.search_photos_id === 'number'
-                ? result.status.search_photos_id
-                : null)) != null
-              ? setScanEval
-              : undefined
-          }
-          xgbScore={
-            finalWinnerId != null
-              ? xgbScoresByWine.get(finalWinnerId)?.xgb ??
-                wineById.get(finalWinnerId)?.xgb_score ??
-                null
-              : null
-          }
-          xgbFin={
-            finalWinnerId != null
-              ? xgbScoresByWine.get(finalWinnerId)?.fin ??
-                wineById.get(finalWinnerId)?.xgb_fin ??
-                null
-              : null
-          }
-          isXgbWinner={
-            finalWinnerId != null &&
-            xgbWinnerId != null &&
-            finalWinnerId === xgbWinnerId
-          }
-          crencScore={
-            finalWinnerId != null
-              ? crencScoresByWine.get(finalWinnerId)?.score ??
-                wineById.get(finalWinnerId)?.crenc_score ??
-                null
-              : null
-          }
-          crencFin={
-            finalWinnerId != null
-              ? crencScoresByWine.get(finalWinnerId)?.fin ??
-                wineById.get(finalWinnerId)?.crenc_fin ??
-                null
-              : null
-          }
-          fin1Score={winnerFin1}
-          finalMethod={finalMethod}
-          finalOcrPrimary={finalOcrPrimary}
-          simpleMode={!showDetails}
-        />
+        <div className="scan-hero__winner-col">
+          <WinnerMatchPanel
+            wine={finalWinnerId != null ? wineById.get(finalWinnerId) ?? null : null}
+            ocrQueryText={ocrQueryText}
+            ocrScores={
+              finalWinnerId != null
+                ? ocrScoresByWine.get(finalWinnerId)
+                : undefined
+            }
+            ocrChannels={ocrChannels}
+            ocrMarks={
+              finalWinnerId != null
+                ? ocrMarksByWine.get(finalWinnerId) || []
+                : []
+            }
+            exclusiveLexicon={exclusiveLexicon}
+            hsvStep={hsvStep}
+            labelTextHr={labelTextHr}
+            cosSiglip2={
+              finalWinnerId != null
+                ? cosByWine.siglip2.get(finalWinnerId) ?? null
+                : null
+            }
+            cosDinov3={
+              finalWinnerId != null
+                ? cosByWine.dinov3.get(finalWinnerId) ?? null
+                : null
+            }
+            confidence={
+              result.matched_wine_confidence ??
+              (typeof result.status?.matched_wine_confidence === 'number'
+                ? result.status.matched_wine_confidence
+                : null)
+            }
+            falsePositive={evalFlags.fp}
+            falseNegative={evalFlags.fn}
+            onEvalChange={
+              (result.search_photos_id ??
+                (typeof result.status?.search_photos_id === 'number'
+                  ? result.status.search_photos_id
+                  : null)) != null
+                ? setScanEval
+                : undefined
+            }
+            xgbScore={
+              finalWinnerId != null
+                ? xgbScoresByWine.get(finalWinnerId)?.xgb ??
+                  wineById.get(finalWinnerId)?.xgb_score ??
+                  null
+                : null
+            }
+            xgbFin={
+              finalWinnerId != null
+                ? xgbScoresByWine.get(finalWinnerId)?.fin ??
+                  wineById.get(finalWinnerId)?.xgb_fin ??
+                  null
+                : null
+            }
+            isXgbWinner={
+              finalWinnerId != null &&
+              xgbWinnerId != null &&
+              finalWinnerId === xgbWinnerId
+            }
+            crencScore={
+              finalWinnerId != null
+                ? crencScoresByWine.get(finalWinnerId)?.score ??
+                  wineById.get(finalWinnerId)?.crenc_score ??
+                  null
+                : null
+            }
+            crencFin={
+              finalWinnerId != null
+                ? crencScoresByWine.get(finalWinnerId)?.fin ??
+                  wineById.get(finalWinnerId)?.crenc_fin ??
+                  null
+                : null
+            }
+            fin1Score={winnerFin1}
+            finalMethod={finalMethod}
+            finalOcrPrimary={finalOcrPrimary}
+            simpleMode={!showDetails}
+          />
+          {!isMobile && preview ? (
+            <div className="scan-hero__query-footer">
+              <p className="dropzone__change-hint">
+                Нажмите на фото, чтобы выбрать другое · вставьте (Ctrl+V) ·{' '}
+                <button
+                  type="button"
+                  className="linkish"
+                  onClick={() => openPicker('file')}
+                >
+                  выбрать файл
+                </button>
+              </p>
+              <div className="scan-actions">
+                <button
+                  type="button"
+                  className="scan-search-btn"
+                  disabled={uiBusy || !file}
+                  aria-label="Поиск"
+                  onClick={(e) => {
+                    e.stopPropagation()
+                    if (uiBusy) return
+                    void runSearch()
+                  }}
+                >
+                  <span className="scan-search-btn__desktop">
+                    {busy ? (
+                      <>
+                        <span
+                          className="search-spinner search-spinner--btn"
+                          aria-hidden
+                        />
+                        Поиск…
+                      </>
+                    ) : loadingScan ? (
+                      <>
+                        <span
+                          className="search-spinner search-spinner--btn"
+                          aria-hidden
+                        />
+                        Загрузка…
+                      </>
+                    ) : (
+                      'Поиск'
+                    )}
+                  </span>
+                </button>
+              </div>
+            </div>
+          ) : null}
+        </div>
       )}
       </div>
 
@@ -6818,7 +6917,7 @@ export function HomePage() {
         <AnalogsPanel analogs={analogs} />
       )}
 
-      {preview && (
+      {preview && !(result && !uiBusy && !isMobile) && (
         <p className="dropzone__change-hint">
           Нажмите на фото, чтобы выбрать другое · вставьте (Ctrl+V) ·{' '}
           <button type="button" className="linkish" onClick={() => openPicker('file')}>
@@ -6827,6 +6926,7 @@ export function HomePage() {
         </p>
       )}
 
+      {!(result && !uiBusy && !isMobile) && (
       <div className="scan-actions">
         <button
           type="button"
@@ -6872,6 +6972,27 @@ export function HomePage() {
           </span>
         </button>
       </div>
+      )}
+
+      {isMobile && preview && result && !uiBusy && (
+        <button
+          type="button"
+          className="scan-mobile-fab"
+          aria-label="Сфотографировать этикетку"
+          disabled={uiBusy}
+          onClick={() => {
+            if (uiBusy) return
+            openPicker('camera')
+          }}
+        >
+          <svg viewBox="0 0 24 24" width="26" height="26" aria-hidden focusable="false">
+            <path
+              fill="currentColor"
+              d="M9 2 7.17 4H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2h-3.17L15 2H9zm3 15c-2.76 0-5-2.24-5-5s2.24-5 5-5 5 2.24 5 5-2.24 5-5 5z"
+            />
+          </svg>
+        </button>
+      )}
 
       {showDetails && timings && (
         <div className="scan-results scan-results--triple">

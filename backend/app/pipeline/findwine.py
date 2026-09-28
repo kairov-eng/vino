@@ -16,7 +16,6 @@ import numpy as np
 from sqlalchemy import select, text
 from sqlalchemy.orm import Session
 
-from app.database import SessionLocal
 from app.db.config import EMBED_DIM, SEARCH_PHOTO_DIR, WORK_JPEG_MAX_BYTES
 from app.db import config as app_config
 from app.db.models import SearchPhoto, Wine, WineSitemap
@@ -192,7 +191,21 @@ def _json_safe(obj: Any) -> Any:
     return str(obj)
 
 
-def _save_status(db: Session, row: SearchPhoto, status: dict[str, Any]) -> None:
+def _save_status(
+    db: Session,
+    row: SearchPhoto,
+    status: dict[str, Any],
+    *,
+    commit: bool = False,
+) -> None:
+    """Persist status JSON to search_photos.
+
+    During the pipeline status lives in memory only (commit=False no-op).
+    Commit once on early abort or at the end of the run — avoids N round-trips
+    that used to cost ~100ms+ each.
+    """
+    if not commit:
+        return
     from app.scan_history_denorm import sync_search_photo_history_columns
 
     safe = _json_safe(status)
@@ -290,9 +303,11 @@ def _run_cosine_search(
     search_photos_id: int,
     emb_step: dict[str, Any],
     reuse_previous_searches: bool = False,
+    candidates_top_n: int = 40,
 ) -> dict[str, Any]:
     result: dict[str, Any] = {}
     reuse_meta: dict[str, Any] | None = None
+    top_n = int(candidates_top_n) if int(candidates_top_n) in {10, 20, 30, 40} else 40
     for etype in ("siglip2", "dinov3"):
         if not emb_step.get(etype, {}).get("ok"):
             result[etype] = {"ok": False, "ids": [], "items": [], "error": "no embedding"}
@@ -302,7 +317,7 @@ def _run_cosine_search(
                 db,
                 search_photos_id=search_photos_id,
                 embedding_type=etype,
-                limit=20,
+                limit=top_n,
                 reuse_previous_searches=bool(reuse_previous_searches)
                 and etype == "siglip2",
             )
@@ -352,7 +367,8 @@ def _insert_embedding(
         {"sid": search_photos_id, "etype": embedding_type, "emb": literal},
     )
     emb_id = int(result.scalar_one())
-    db.commit()
+    # Flush only — commit together with final search_photos.status.
+    db.flush()
     return emb_id
 
 
@@ -365,9 +381,11 @@ def run_findwine(
 ) -> dict[str, Any]:
     """Full synchronous pipeline. Returns status JSON (also stored in DB).
 
-    eval_mode=0 — обычный поиск (победитель только в полосе match).
-    eval_mode=1 — если полоса match пуста, matched_wine = top-1 по текущему
-    методу (для /v1/eval/predict).
+    Победитель в eval_mode=0 и eval_mode=1 выбирается одинаково (только полоса
+    match). Разница: eval_mode=1 (для /v1/eval/predict) не считает аналоги.
+
+    search_photos.status пишется в БД один раз в конце (или при раннем abort);
+    промежуточные шаги держат status только в памяти.
     """
     t_total = time.perf_counter()
     eval_flag = 1 if int(eval_mode) == 1 else 0
@@ -388,7 +406,7 @@ def run_findwine(
         "algorithm_updated_at": ALGORITHM_UPDATED_AT,
         "algorithm_notes": ALGORITHM_NOTES,
         # 0 — обычный findwine; 1 — запрос eval-скрипта. Не путать со status["eval"]
-        # (ручные флаги FP/FN в истории сканов).
+        # (ручные флаги FP/FN в истории сканов). Match-правила те же.
         "eval_mode": eval_flag,
     }
 
@@ -461,6 +479,9 @@ def run_findwine(
         "normalize_max_side": int(
             pipeline_settings.get("normalize_max_side") or 1024
         ),
+        "candidates_top_n": int(
+            pipeline_settings.get("candidates_top_n") or 40
+        ),
         "hf_start_timeout_sec": float(
             pipeline_settings.get("hf_start_timeout_sec") or 15
         ),
@@ -492,6 +513,15 @@ def run_findwine(
         ),
         "hsv_hard_reject_max": _clamp01(
             pipeline_settings.get("hsv_hard_reject_max"), 0.90
+        ),
+        "hard_reject_ignore_high_scores": bool(
+            pipeline_settings.get("hard_reject_ignore_high_scores", True)
+        ),
+        "hard_reject_ignore_cosine_min": _clamp099(
+            pipeline_settings.get("hard_reject_ignore_cosine_min"), 0.90
+        ),
+        "hard_reject_ignore_xgb_min": _clamp01(
+            pipeline_settings.get("hard_reject_ignore_xgb_min"), 0.70
         ),
         "compute_color_delta": bool(
             pipeline_settings.get("compute_color_delta", True)
@@ -551,12 +581,27 @@ def run_findwine(
     hsv_hard_reject_max = _clamp01(
         pipeline_settings.get("hsv_hard_reject_max"), 0.90
     )
+    hard_reject_ignore_high_scores = bool(
+        pipeline_settings.get("hard_reject_ignore_high_scores", True)
+    )
+    hard_reject_ignore_cosine_min = _clamp099(
+        pipeline_settings.get("hard_reject_ignore_cosine_min"), 0.90
+    )
+    hard_reject_ignore_xgb_min = _clamp01(
+        pipeline_settings.get("hard_reject_ignore_xgb_min"), 0.70
+    )
     compute_color_delta = bool(
         pipeline_settings.get("compute_color_delta", True)
     )
     reuse_previous_searches = bool(
         pipeline_settings.get("reuse_previous_searches", False)
     )
+    try:
+        candidates_top_n = int(pipeline_settings.get("candidates_top_n") or 40)
+    except (TypeError, ValueError):
+        candidates_top_n = 40
+    if candidates_top_n not in {10, 20, 30, 40}:
+        candidates_top_n = 40
     final_ocr_pref = str(pipeline_settings.get("final_ocr") or "auto")
     try:
         normalize_max_side = int(pipeline_settings.get("normalize_max_side") or 1024)
@@ -649,32 +694,13 @@ def run_findwine(
         start_ms: float | None,
         duration_ms: float | None,
     ) -> None:
-        """Фон: дописать HF step в status после ответа (своя Session)."""
-        try:
-            db2 = SessionLocal()
-            try:
-                row2 = db2.get(SearchPhoto, photo_id)
-                if row2 is None:
-                    return
-                st = dict(row2.status or {})
-                steps = dict(st.get("steps") or {})
-                steps[timing_key] = step
-                st["steps"] = steps
-                if duration_ms is not None and float(duration_ms) > 0:
-                    tms = dict(st.get("timings_ms") or {})
-                    tms[timing_key] = round(float(duration_ms), 1)
-                    st["timings_ms"] = tms
-                if start_ms is not None and float(start_ms) >= 0:
-                    tss = dict(st.get("timings_start_ms") or {})
-                    tss[timing_key] = round(float(start_ms), 1)
-                    st["timings_start_ms"] = tss
-                row2.status = _json_safe(st)  # type: ignore[assignment]
-                db2.add(row2)
-                db2.commit()
-            finally:
-                db2.close()
-        except Exception as exc:  # noqa: BLE001
-            _plog(f"WARN persist {timing_key}", error=str(exc)[:200])
+        """No-op: HF steps stay in-memory; final _save_status(commit=True) writes them.
+
+        Earlier this opened a second Session and merged into search_photos.status
+        mid-run — extra commits during the scan. Status is already updated under
+        _hf_kick_lock in _record_hf_start_step.
+        """
+        return
 
     def _record_hf_start_step(role: str, step: dict[str, Any], t0: float) -> None:
         nonlocal hf_sig_step, hf_dino_step, hf_qwen_step
@@ -959,7 +985,7 @@ def run_findwine(
         _plog("FAIL normalize failed", error=str(exc))
         _time_set("normalize", t0)
         _time_total()
-        _save_status(db, row, status)
+        _save_status(db, row, status, commit=True)
         return status
     _plog(
         "normalize size",
@@ -1141,7 +1167,7 @@ def run_findwine(
                     _plog("FAIL yolo: no selected box")
                     _time_set("yolo", t0)
                     _time_total()
-                    _save_status(db, row, status)
+                    _save_status(db, row, status, commit=True)
                     _shutdown_hf_start_pool(force=True)
                     return status
         except Exception as exc:  # noqa: BLE001
@@ -1151,7 +1177,7 @@ def run_findwine(
             _plog("FAIL yolo failed", error=str(exc))
             _time_set("yolo", t0)
             _time_total()
-            _save_status(db, row, status)
+            _save_status(db, row, status, commit=True)
             _shutdown_hf_start_pool(force=True)
             return status
         _plog(
@@ -1187,7 +1213,7 @@ def run_findwine(
                 )
                 _time_set("label_detect", t0)
                 _time_total()
-                _save_status(db, row, status)
+                _save_status(db, row, status, commit=True)
                 _shutdown_hf_start_pool(force=True)
                 return status
         else:
@@ -1333,7 +1359,7 @@ def run_findwine(
                         )
                         _plog("FAIL label_detect: no boxes", error=status["error"])
                         _time_total()
-                        _save_status(db, row, status)
+                        _save_status(db, row, status, commit=True)
                         _shutdown_hf_start_pool(force=True)
                         return status
             except Exception as exc:  # noqa: BLE001
@@ -1343,7 +1369,7 @@ def run_findwine(
                 _plog("FAIL label_detect failed", error=str(exc))
                 _time_set("label_detect", t0)
                 _time_total()
-                _save_status(db, row, status)
+                _save_status(db, row, status, commit=True)
                 _shutdown_hf_start_pool(force=True)
                 return status
             ld = status["steps"].get("label_detect") or {}
@@ -1780,7 +1806,7 @@ def run_findwine(
         _plog("FAIL label_crop failed", error=str(exc))
         _time_set("label_crop", t0)
         _time_total()
-        _save_status(db, row, status)
+        _save_status(db, row, status, commit=True)
         _shutdown_hf_start_pool(force=True)
         return status
     _plog(
@@ -2376,14 +2402,19 @@ def run_findwine(
         )
         _save_status(db, row, status)
 
-        # 3b) cosine top-20 — overlaps remaining OCR/Gemini work
-        _plog(">> candidates (cosine)", reuse=reuse_previous_searches)
+        # 3b) cosine top-N — overlaps remaining OCR/Gemini work
+        _plog(
+            ">> candidates (cosine)",
+            reuse=reuse_previous_searches,
+            top_n=candidates_top_n,
+        )
         t0 = time.perf_counter()
         candidates = _run_cosine_search(
             db,
             search_photos_id=photo_id,
             emb_step=emb_step,
             reuse_previous_searches=reuse_previous_searches,
+            candidates_top_n=candidates_top_n,
         )
         reuse_step = candidates.pop("reuse_previous_search", None)
         status["steps"]["candidates"] = candidates
@@ -3495,6 +3526,135 @@ def run_findwine(
         else:
             status["xgb_best_wine_id"] = None
             status["xgb_best_fin"] = None
+
+    # Bypass hard reject when cos ≥ thr AND xgb_score ≥ thr.
+    hard_reject_bypassed_ids: list[int] = []
+    if (
+        hard_reject_ignore_high_scores
+        and exclusive_reject_ids
+        and use_xgb
+        and isinstance(xgb_step, dict)
+        and xgb_step.get("ok")
+        and not xgb_score_error
+    ):
+        cos_thr = float(hard_reject_ignore_cosine_min)
+        xgb_thr = float(hard_reject_ignore_xgb_min)
+        by_id_hr = xgb_step.get("by_id") or {}
+        by_reuse_hr = xgb_step.get("by_reuse_sid") or {}
+        xgb_score_map: dict[int, float] = {}
+        if isinstance(by_id_hr, dict):
+            for k, v in by_id_hr.items():
+                if not isinstance(v, dict) or v.get("xgb_score") is None:
+                    continue
+                try:
+                    xgb_score_map[int(k)] = float(v.get("xgb_score"))
+                except (TypeError, ValueError):
+                    continue
+        if isinstance(by_reuse_hr, dict):
+            for rv in by_reuse_hr.values():
+                if not isinstance(rv, dict) or rv.get("id") is None:
+                    continue
+                if rv.get("xgb_score") is None:
+                    continue
+                try:
+                    wid_r = int(rv["id"])
+                    sc_r = float(rv.get("xgb_score"))
+                except (TypeError, ValueError, KeyError):
+                    continue
+                prev_sc = xgb_score_map.get(wid_r)
+                if prev_sc is None or sc_r > prev_sc:
+                    xgb_score_map[wid_r] = sc_r
+        for wid_hr in list(exclusive_reject_ids):
+            try:
+                raw_cos = cosine_by_id_xgb.get(int(wid_hr))
+                cos_v = float(raw_cos) if raw_cos is not None else None
+            except (TypeError, ValueError):
+                cos_v = None
+            xgb_v = xgb_score_map.get(int(wid_hr))
+            if (
+                cos_v is not None
+                and xgb_v is not None
+                and cos_v >= cos_thr
+                and xgb_v >= xgb_thr
+            ):
+                exclusive_reject_ids.discard(int(wid_hr))
+                exclusive_lexicon_reject_ids.discard(int(wid_hr))
+                hard_reject_bypassed_ids.append(int(wid_hr))
+        hard_reject_bypassed_ids = sorted(set(hard_reject_bypassed_ids))
+        if hard_reject_bypassed_ids:
+            # Mark candidates for UI / debug
+            for branch in ("siglip2", "dinov3"):
+                items = (candidates.get(branch) or {}).get("items") or []
+                for it in items:
+                    if not isinstance(it, dict):
+                        continue
+                    try:
+                        if int(it.get("id") or 0) in set(hard_reject_bypassed_ids):
+                            it["hard_reject_bypassed"] = True
+                            it["hsv_rejected"] = False
+                            it["hsv_suitable"] = True
+                            it["hsv_hard_rejected"] = False
+                    except (TypeError, ValueError):
+                        continue
+            # HSV status lists — drop bypassed from soft/hard reject sets
+            hsv_step_now = (status.get("steps") or {}).get("hsv") or {}
+            if isinstance(hsv_step_now, dict):
+                bypass_set = set(hard_reject_bypassed_ids)
+                for key in ("rejected_ids", "hard_rejected_ids"):
+                    raw_ids = hsv_step_now.get(key) or []
+                    if isinstance(raw_ids, list):
+                        hsv_step_now[key] = [
+                            int(x) for x in raw_ids if int(x) not in bypass_set
+                        ]
+                kept = list(hsv_step_now.get("kept_by_cosine_ids") or [])
+                for wid_b in hard_reject_bypassed_ids:
+                    if wid_b not in kept:
+                        kept.append(wid_b)
+                hsv_step_now["kept_by_cosine_ids"] = sorted(set(int(x) for x in kept))
+                hsv_step_now["hard_reject_bypassed_ids"] = hard_reject_bypassed_ids
+                status["steps"]["hsv"] = hsv_step_now
+                status["hsv_rejected_ids"] = list(hsv_step_now.get("rejected_ids") or [])
+            # Re-score XGB_fin without bypassed rejects
+            xgb_step = _attach_reuse_xgb(
+                _make_xgb_step(
+                    xgb_scored,
+                    exclusive_reject_ids,
+                    compute_ms=xgb_compute_ms,
+                    error=None,
+                )
+            )
+            status["steps"]["xgb_match"] = xgb_step
+            cand_step = status.get("steps", {}).get("candidates")
+            if isinstance(cand_step, dict):
+                attach_xgb_to_candidate_items(cand_step, xgb_step)
+                status["steps"]["candidates"] = cand_step
+                candidates = cand_step
+            if isinstance(xgb_step.get("best_xgb_fin"), dict):
+                status["xgb_best_wine_id"] = xgb_step["best_xgb_fin"].get("id")
+                status["xgb_best_fin"] = xgb_step["best_xgb_fin"].get("xgb_fin")
+            else:
+                status["xgb_best_wine_id"] = None
+                status["xgb_best_fin"] = None
+    status["steps"]["hard_reject_bypass"] = {
+        "enabled": bool(hard_reject_ignore_high_scores),
+        "cosine_min": float(hard_reject_ignore_cosine_min),
+        "xgb_min": float(hard_reject_ignore_xgb_min),
+        "bypassed_ids": hard_reject_bypassed_ids,
+        "n": len(hard_reject_bypassed_ids),
+        "rule": (
+            f"cos ≥ {float(hard_reject_ignore_cosine_min):.2f} and "
+            f"xgb_score ≥ {float(hard_reject_ignore_xgb_min):.2f} "
+            "→ ignore hard reject (HSV/exclusive/label-text)"
+        ),
+    }
+    if hard_reject_bypassed_ids:
+        _plog(
+            "hard_reject_bypass",
+            n=len(hard_reject_bypassed_ids),
+            ids=hard_reject_bypassed_ids,
+            cos_min=hard_reject_ignore_cosine_min,
+            xgb_min=hard_reject_ignore_xgb_min,
+        )
 
     if not use_crenc:
         crenc_step: dict[str, Any] = {
@@ -4642,48 +4802,6 @@ def run_findwine(
         decision["band"] = "none"
         decision["note"] = "final_score_method not in text_match_methods"
 
-    if eval_flag and status.get("matched_wine_id") is None:
-        # Организатору нужен slug top-1 даже ниже порога match.
-        # Ветка та же, что у обычного решения: пустой OCR → cosine, иначе метод.
-        top_id: int | None = None
-        top_score: float | None = None
-        top_source: str | None = None
-        use_text_scores = bool(ocr_text_present and method)
-        if use_text_scores:
-            for wid, sc in _scores_for_method(method):
-                if top_score is None or sc > top_score:
-                    top_id = int(wid)
-                    top_score = float(sc)
-            top_source = {
-                "fin1": "final_score",
-                "fin2": "final_score2",
-                "xgb": "xgb_fin",
-                "crenc": "crenc_fin",
-                "crenc_srv": "crenc_fin",
-            }.get(method, method)
-        if top_id is None:
-            best_cos = -1.0
-            for wid, cos in cosine_by_id.items():
-                if int(wid) in exclusive_reject_ids:
-                    continue
-                if float(cos) > best_cos:
-                    best_cos = float(cos)
-                    top_id = int(wid)
-                    top_score = best_cos
-                    top_source = "eval_cosine"
-        if top_id is not None:
-            _set_matched(
-                top_id,
-                top_score,
-                top_source or "eval_top1",
-                {
-                    "name": by_cos.get(top_id, {}).get("name"),
-                    "winery": by_cos.get(top_id, {}).get("winery"),
-                    "eval_top1": True,
-                },
-            )
-            decision["eval_top1"] = True
-
     status["steps"]["text_match_decision"] = decision
 
     _flush_hf_start_status()
@@ -4691,6 +4809,7 @@ def run_findwine(
     # Аналоги / похожие — для сайта, вне общего timeline (после total).
     # Match: критерии из каталожного winner → «похожие вина».
     # Нет match: критерии OCR искомого (как раньше).
+    # eval_mode=1: аналоги не считаем (тот же match, что eval=0).
     if not eval_flag:
         try:
             matched_id = status.get("matched_wine_id")
@@ -4722,5 +4841,5 @@ def run_findwine(
         similar_n=len(status.get("similar_wine_ids") or []),
         error=status.get("error"),
     )
-    _save_status(db, row, status)
+    _save_status(db, row, status, commit=True)
     return status

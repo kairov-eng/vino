@@ -114,6 +114,86 @@ def _normalize_scores(raw: dict[str, Any]) -> dict[int, float]:
     return {wid: round(p, 6) for wid, p in scores}
 
 
+_OCR_META_KEYS = {
+    "ocr",
+    "query_ocr",
+    "label_ocr",
+    "matches",
+    "scores",
+    "lines",
+    "producer",
+    "wine_name",
+    "color",
+    "type",
+    "cupage",
+    "coupage",
+    "vintage_year",
+    "foundation_year",
+    "region",
+    "alcohol",
+    "volume",
+    "other",
+    "full_text",
+    "label_text",
+}
+
+
+def _extract_matches_and_ocr(
+    parsed: dict[str, Any],
+) -> tuple[dict[str, Any], dict[str, Any] | None]:
+    """Split response into match map + optional structured OCR block.
+
+    Supports:
+    - new: ``{"ocr": {...}, "matches": {"123": 0.9, ...}}``
+    - legacy flat: ``{"123": 0.9, "456": 0.1}``
+    """
+    ocr_obj: dict[str, Any] | None = None
+    for key in ("ocr", "query_ocr", "label_ocr"):
+        raw = parsed.get(key)
+        if isinstance(raw, dict) and raw:
+            ocr_obj = raw
+            break
+
+    matches_raw: dict[str, Any]
+    nested = parsed.get("matches")
+    if isinstance(nested, dict):
+        matches_raw = nested
+    else:
+        # Flat id→prob; ignore OCR field names if mixed
+        matches_raw = {
+            k: v
+            for k, v in parsed.items()
+            if str(k) not in _OCR_META_KEYS
+        }
+        # If nested ocr missing but structured fields are top-level — collect them
+        if ocr_obj is None:
+            maybe = {
+                k: parsed[k]
+                for k in (
+                    "lines",
+                    "producer",
+                    "wine_name",
+                    "color",
+                    "type",
+                    "cupage",
+                    "coupage",
+                    "vintage_year",
+                    "foundation_year",
+                    "region",
+                    "alcohol",
+                    "volume",
+                    "other",
+                    "full_text",
+                    "label_text",
+                )
+                if k in parsed
+            }
+            if maybe:
+                ocr_obj = maybe
+
+    return matches_raw, ocr_obj
+
+
 def _call_openai_text(
     *,
     api_key: str,
@@ -131,10 +211,12 @@ def _call_openai_text(
             {
                 "role": "system",
                 "content": (
-                    "You compare wine label OCR texts. "
+                    "You compare wine label OCR texts and also structure the "
+                    "query OCR like OpenAI vision OCR. "
                     "Reply with a single JSON object only: "
-                    '{"<wine_id>": <probability 0..1>, ...} '
-                    "for EVERY candidate id in the list."
+                    '{"ocr": {"lines": [...], "producer": ..., ...}, '
+                    '"matches": {"<wine_id>": <probability 0..1>, ...}} '
+                    "with EVERY candidate id under matches."
                 ),
             },
             {"role": "user", "content": prompt},
@@ -182,6 +264,8 @@ def evaluate_openai_txt_match(
 
     ``wines`` must already exclude exclusive-lexicon rejects.
     """
+    from app.pipeline.label_detect_llm import text_from_ocr_fields
+
     t0 = time.perf_counter()
     text = str(ocr_text or "").strip()
     if not text:
@@ -228,7 +312,8 @@ def evaluate_openai_txt_match(
             model=model,
             timeout=timeout,
         )
-        by_id_scores = _normalize_scores(parsed)
+        matches_raw, ocr_obj = _extract_matches_and_ocr(parsed)
+        by_id_scores = _normalize_scores(matches_raw)
     except Exception as exc:  # noqa: BLE001
         logger.exception("openai_txt_match failed")
         return {
@@ -252,6 +337,22 @@ def evaluate_openai_txt_match(
         str(wid): {"id": wid, "llm_txt": prob}
         for wid, prob in by_id_scores.items()
     }
+
+    structured_text = ""
+    structured_lines: list[Any] = []
+    ocr_json: dict[str, Any] | None = None
+    if isinstance(ocr_obj, dict) and ocr_obj:
+        ocr_json = dict(ocr_obj)
+        try:
+            structured_text, structured_lines = text_from_ocr_fields(ocr_json)
+        except Exception:  # noqa: BLE001
+            structured_text = str(
+                ocr_json.get("full_text") or ocr_json.get("label_text") or ""
+            ).strip()
+            raw_lines = ocr_json.get("lines")
+            if isinstance(raw_lines, list):
+                structured_lines = raw_lines
+
     ms = round((time.perf_counter() - t0) * 1000, 1)
     return {
         "ok": True,
@@ -269,6 +370,10 @@ def evaluate_openai_txt_match(
             {"id": ranked[0][0], "llm_txt": ranked[0][1]} if ranked else None
         ),
         "model": meta.get("openai_model") or model,
+        # Structured OCR of query text (same schema as OpenAI vision OCR)
+        "text": structured_text or None,
+        "lines": structured_lines or None,
+        "json": ocr_json,
         "meta": {
             k: v
             for k, v in meta.items()
@@ -279,10 +384,12 @@ def evaluate_openai_txt_match(
             "method": "OpenAI сравнение текста",
             "prompt": str(_PROMPT_PATH.name),
             "input": "query OCR vs catalog label (survivors of exclusive lexicon)",
-            "output": "all candidates {id: probability 0..1}",
+            "output": (
+                "ocr{lines+wine fields} + matches{id: probability 0..1} "
+                "for all candidates"
+            ),
         },
     }
-
 
 def attach_openai_txt_to_candidate_items(
     candidates: dict[str, Any] | None,

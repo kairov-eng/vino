@@ -25,6 +25,50 @@ def history_eval_flags(status: dict) -> tuple[int, int]:
     return fp, fn
 
 
+def eval_flags_for_manual_match(
+    *,
+    manual_id: int | None,
+    matched_id: int | None,
+) -> tuple[int, int] | None:
+    """FP/FN from «Это вино» vs pipeline match.
+
+    - no match + manual → FN
+    - match ≠ manual → FP
+    - match == manual → clear both (TP)
+    - manual cleared → None (do not auto-change eval)
+    """
+    if manual_id is None:
+        return None
+    try:
+        man = int(manual_id)
+    except (TypeError, ValueError):
+        return None
+    if matched_id is None:
+        return 0, 1
+    try:
+        mid = int(matched_id)
+    except (TypeError, ValueError):
+        return 0, 1
+    if mid != man:
+        return 1, 0
+    return 0, 0
+
+
+def apply_status_eval_flags(
+    status: dict | None,
+    fp: int,
+    fn: int,
+) -> dict:
+    """Write mutually exclusive eval flags into status JSON."""
+    st = dict(status or {})
+    fp_i = 1 if int(fp or 0) else 0
+    fn_i = 1 if int(fn or 0) else 0
+    if fp_i and fn_i:
+        fn_i = 0
+    st["eval"] = {"false_positive": fp_i, "false_negative": fn_i}
+    return st
+
+
 OFFICIAL_MATCH_SOURCES = frozenset(
     {
         "final_score",

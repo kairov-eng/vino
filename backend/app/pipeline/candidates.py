@@ -26,7 +26,7 @@ def search_top_wines_by_cosine(
     *,
     search_photos_id: int,
     embedding_type: str,
-    limit: int = 20,
+    limit: int = 40,
     reuse_previous_searches: bool = False,
 ) -> dict[str, Any]:
     """Top-N wines by cosine similarity vs search_photo_embeddings row.
@@ -41,11 +41,12 @@ def search_top_wines_by_cosine(
       1) find nearest past search_photo (siglip2) that has a winner
          (manual_wines_id or matched/hist wine) and cosine ≥ 0.5;
       2) take that search's winner wine_id + Google Vision OCR text;
-      3) return catalog top-(limit-1) **without excluding** that wine
-         (same bottle may appear twice: catalog + search_photos), plus the
-         winner as an extra hit with ``search_photos_id=prev_sid``.
+      3) return catalog top-``limit`` (full N) **without excluding** that wine,
+         plus the winner as an **extra** hit (``search_photos_id=prev_sid``).
+         Same bottle may appear twice: catalog + past search. Total = N or N+1.
 
     Otherwise classic catalog ANN LIMIT ``limit`` (all ``search_photos_id=0``).
+    Catalog ANN is always full ``limit`` — never N−1 — whether reuse is on or off.
     """
     table = CATALOG_TABLES.get(embedding_type)
     if not table:
@@ -85,14 +86,13 @@ def search_top_wines_by_cosine(
             LIMIT :lim
             """
         )
-        rows = db.execute(sql, {"lim": limit}).mappings().all()
+        rows = db.execute(sql, {"lim": int(limit)}).mappings().all()
         return {
             "hits": [_hit_row(r) for r in rows],
             "reuse": None,
         }
 
-    # SigLIP2 + reuse: nearest past search that already has a winner
-    # (manual or matched), then catalog top 19 + that winner.
+    # SigLIP2 + reuse: full catalog top-N, plus previous-search winner (N+1).
     sql = text(
         f"""
         WITH q AS (
@@ -141,10 +141,7 @@ def search_top_wines_by_cosine(
                 NULL::text AS gv_ocr
             FROM {table} e
             ORDER BY e.embedding <=> (SELECT v FROM q)
-            LIMIT CASE
-                WHEN EXISTS (SELECT 1 FROM prev_hit) THEN GREATEST(:lim - 1, 1)
-                ELSE :lim
-            END
+            LIMIT :lim
         ),
         prev_as_cand AS (
             SELECT

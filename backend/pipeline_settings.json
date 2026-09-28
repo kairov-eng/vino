@@ -13,8 +13,8 @@
     "brand": 0.12
   },
   "final_weights": {
-    "text": 0.5,
-    "cosine": 0.55
+    "text": 0.65,
+    "cosine": 0.45
   },
   "use_dinov3": false,
   "geometry_siglip2": false,
@@ -33,9 +33,10 @@
   "bottle_orient_min_deg": 8.0,
   "label_detect_openai": false,
   "label_detect_gemini": true,
-  "embedding_device": "gpu",
+  "embedding_device": "cpu",
   "embed_cpu_use_cache": true,
   "normalize_max_side": 800,
+  "candidates_top_n": 10,
   "hf_start_timeout_sec": 15.0,
   "text_match_methods": [
     "xgb"
@@ -47,12 +48,12 @@
       "similar": 0.25
     },
     "fin2": {
-      "match": 0.55,
-      "similar": 0.25
+      "match": 0.65,
+      "similar": 0.5
     },
     "xgb": {
-      "match": 0.27,
-      "similar": 0.09
+      "match": 0.11,
+      "similar": 0.08
     },
     "crenc": {
       "match": 0.55,
@@ -64,11 +65,11 @@
     },
     "openai_txt": {
       "match": 0.03,
-      "similar": 0.03
+      "similar": 0.02
     }
   },
   "empty_ocr_cosine_threshold": 0.86,
-  "xgb_dead_max": 0.18,
+  "xgb_dead_max": 0.1,
   "compute_hsv": false,
   "use_hsv_filter": false,
   "hsv_bhattacharyya_max": 0.94,
@@ -76,10 +77,13 @@
   "hsv_ignore_cosine_min": 0.87,
   "use_hsv_hard_reject": false,
   "hsv_hard_reject_max": 0.94,
+  "hard_reject_ignore_high_scores": true,
+  "hard_reject_ignore_cosine_min": 0.9,
+  "hard_reject_ignore_xgb_min": 0.7,
   "compute_color_delta": false,
   "reuse_previous_searches": false,
   "show_search_details": true,
   "final_ocr": "google_vision",
-  "exclusive_use_translit": false,
+  "exclusive_use_translit": true,
   "exclusive_match_spaced": false
 }

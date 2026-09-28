@@ -176,6 +176,8 @@ export type FindWineCandidate = {
   grape_variety?: string | null
   description?: string | null
   wine_type?: string | null
+  region?: string | null
+  color?: string | null
   photo_url: string | null
   label_url: string | null
   geometry_ok?: boolean | null
@@ -369,6 +371,7 @@ export type ScanHistoryXgbTopItem = {
   xgb_score: number | null
   xgb_fin: number | null
   cosine: number | null
+  fin2?: number | null
 }
 
 export type ScanHistoryItem = {
@@ -385,8 +388,9 @@ export type ScanHistoryItem = {
   matched_wine_slug: string | null
   matched_wine_photo_url: string | null
   matched_wine_label?: string | null
-  /** Top-3 по XGB_fin, если финального вина нет */
+  /** Top-7 кандидатов, если финального вина нет */
   xgb_top?: ScanHistoryXgbTopItem[] | null
+  manual_wines_id?: number | null
   scores?: Record<string, number | string | null> | null
   algorithm_version: string | null
   false_positive?: number
@@ -422,6 +426,15 @@ export type ScanHistoryReportScoreDist = {
   median?: number | null
 }
 
+export type ScanHistoryReportTimingDist = {
+  n: number
+  mean_sec?: number | null
+  median_sec?: number | null
+  min_sec?: number | null
+  max_sec?: number | null
+  bins: Array<{ seconds: number; n: number; pct: number }>
+}
+
 export type ScanHistoryReportResponse = {
   id_from: number
   id_to: number
@@ -449,6 +462,7 @@ export type ScanHistoryReportResponse = {
   false_negatives: ScanHistoryReportErrorItem[]
   rules: string[]
   score_dists?: ScanHistoryReportScoreDist[]
+  timing_dist?: ScanHistoryReportTimingDist | null
 }
 
 export async function fetchScanHistory(params: {
@@ -523,7 +537,12 @@ export async function updateScanHistoryEval(
 export async function updateFindwineManualWine(
   scanId: number,
   wineId: number | null,
-): Promise<{ search_photos_id: number; manual_wines_id: number | null }> {
+): Promise<{
+  search_photos_id: number
+  manual_wines_id: number | null
+  false_positive?: number
+  false_negative?: number
+}> {
   const res = await fetch(
     `${API_BASE}/api/findwine/${scanId}/manual-wine`,
     {
@@ -590,6 +609,8 @@ export type PipelineSettings = {
   embed_cpu_use_cache: boolean
   normalize_max_side: number
   normalize_max_side_options: number[]
+  candidates_top_n: number
+  candidates_top_n_options: number[]
   hf_start_timeout_sec: number
   text_match_methods: string[]
   text_match_options: {
@@ -611,6 +632,9 @@ export type PipelineSettings = {
   hsv_ignore_cosine_min: number
   use_hsv_hard_reject: boolean
   hsv_hard_reject_max: number
+  hard_reject_ignore_high_scores: boolean
+  hard_reject_ignore_cosine_min: number
+  hard_reject_ignore_xgb_min: number
   compute_color_delta: boolean
   reuse_previous_searches: boolean
   show_search_details: boolean
@@ -651,6 +675,7 @@ export async function updatePipelineSettings(patch: {
   embedding_device?: 'cpu' | 'gpu'
   embed_cpu_use_cache?: boolean
   normalize_max_side?: number
+  candidates_top_n?: number
   hf_start_timeout_sec?: number
   text_match_methods?: string[]
   final_score_method?: string
@@ -664,6 +689,9 @@ export async function updatePipelineSettings(patch: {
   hsv_ignore_cosine_min?: number
   use_hsv_hard_reject?: boolean
   hsv_hard_reject_max?: number
+  hard_reject_ignore_high_scores?: boolean
+  hard_reject_ignore_cosine_min?: number
+  hard_reject_ignore_xgb_min?: number
   compute_color_delta?: boolean
   reuse_previous_searches?: boolean
   show_search_details?: boolean

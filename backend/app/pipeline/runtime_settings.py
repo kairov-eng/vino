@@ -149,6 +149,8 @@ def _defaults() -> dict[str, Any]:
         "normalize_max_side": _normalize_max_side(
             getattr(app_config, "NORMALIZE_MAX_SIDE", 1024)
         ),
+        # Cosine ANN: how many catalog wines per embedding channel.
+        "candidates_top_n": 40,
         "hf_start_timeout_sec": _normalize_hf_start_timeout(
             getattr(app_config, "HF_START_TIMEOUT_SEC", 15)
         ),
@@ -168,6 +170,11 @@ def _defaults() -> dict[str, Any]:
         "hsv_ignore_cosine_min": 0.85,
         "use_hsv_hard_reject": False,
         "hsv_hard_reject_max": 0.90,
+        # Bypass hard reject (HSV hard ∪ exclusive ∪ label-text) when both
+        # cosine and XGB TextScore are high enough.
+        "hard_reject_ignore_high_scores": True,
+        "hard_reject_ignore_cosine_min": 0.90,
+        "hard_reject_ignore_xgb_min": 0.70,
         # Dominant-color CIEDE2000 (ColorDelta) on candidate cards.
         "compute_color_delta": True,
         # Reuse past search: nearest siglip2 search_photo embedding ≥0.5
@@ -201,6 +208,7 @@ def _normalize_yolo_variant(value: Any) -> str:
 
 
 NORMALIZE_MAX_SIDE_OPTIONS = (1280, 1024, 800)
+CANDIDATES_TOP_N_OPTIONS = (10, 20, 30, 40)
 
 TEXT_MATCH_ALL = ("fin1", "fin2", "xgb", "crenc", "crenc_srv", "openai_txt")
 # openai_txt off by default (API cost); enable via settings checkbox
@@ -311,6 +319,14 @@ def _normalize_max_side(value: Any) -> int:
     except (TypeError, ValueError):
         return 1024
     return n if n in NORMALIZE_MAX_SIDE_OPTIONS else 1024
+
+
+def _normalize_candidates_top_n(value: Any) -> int:
+    try:
+        n = int(value)
+    except (TypeError, ValueError):
+        return 40
+    return n if n in CANDIDATES_TOP_N_OPTIONS else 40
 
 
 def _normalize_text_match_methods(value: Any) -> list[str]:
@@ -459,6 +475,10 @@ def _normalize(raw: dict[str, Any] | None) -> dict[str, Any]:
         base["normalize_max_side"] = _normalize_max_side(
             data["normalize_max_side"]
         )
+    if "candidates_top_n" in data:
+        base["candidates_top_n"] = _normalize_candidates_top_n(
+            data["candidates_top_n"]
+        )
     if "hf_start_timeout_sec" in data:
         base["hf_start_timeout_sec"] = _normalize_hf_start_timeout(
             data["hf_start_timeout_sec"]
@@ -517,6 +537,21 @@ def _normalize(raw: dict[str, Any] | None) -> dict[str, Any]:
         base["hsv_hard_reject_max"] = _clamp01(
             data["hsv_hard_reject_max"],
             base.get("hsv_hard_reject_max", 0.90),
+        )
+    if "hard_reject_ignore_high_scores" in data:
+        base["hard_reject_ignore_high_scores"] = _as_bool(
+            data["hard_reject_ignore_high_scores"],
+            base.get("hard_reject_ignore_high_scores", True),
+        )
+    if "hard_reject_ignore_cosine_min" in data:
+        base["hard_reject_ignore_cosine_min"] = _clamp099(
+            data["hard_reject_ignore_cosine_min"],
+            base.get("hard_reject_ignore_cosine_min", 0.90),
+        )
+    if "hard_reject_ignore_xgb_min" in data:
+        base["hard_reject_ignore_xgb_min"] = _clamp01(
+            data["hard_reject_ignore_xgb_min"],
+            base.get("hard_reject_ignore_xgb_min", 0.70),
         )
     if "compute_color_delta" in data:
         base["compute_color_delta"] = _as_bool(
@@ -673,6 +708,7 @@ def save_settings(patch: dict[str, Any]) -> dict[str, Any]:
             "embedding_device",
             "embed_cpu_use_cache",
             "normalize_max_side",
+            "candidates_top_n",
             "hf_start_timeout_sec",
             "text_match_methods",
             "final_score_method",
@@ -685,6 +721,9 @@ def save_settings(patch: dict[str, Any]) -> dict[str, Any]:
             "hsv_ignore_cosine_min",
             "use_hsv_hard_reject",
             "hsv_hard_reject_max",
+            "hard_reject_ignore_high_scores",
+            "hard_reject_ignore_cosine_min",
+            "hard_reject_ignore_xgb_min",
             "compute_color_delta",
             "reuse_previous_searches",
             "show_search_details",
@@ -786,6 +825,10 @@ def settings_public_view(data: dict[str, Any] | None = None) -> dict[str, Any]:
         "embed_cpu_use_cache": bool(s.get("embed_cpu_use_cache", False)),
         "normalize_max_side": _normalize_max_side(s["normalize_max_side"]),
         "normalize_max_side_options": list(NORMALIZE_MAX_SIDE_OPTIONS),
+        "candidates_top_n": _normalize_candidates_top_n(
+            s.get("candidates_top_n", 40)
+        ),
+        "candidates_top_n_options": list(CANDIDATES_TOP_N_OPTIONS),
         "hf_start_timeout_sec": _normalize_hf_start_timeout(
             s["hf_start_timeout_sec"]
         ),
@@ -821,6 +864,15 @@ def settings_public_view(data: dict[str, Any] | None = None) -> dict[str, Any]:
         ),
         "use_hsv_hard_reject": bool(s.get("use_hsv_hard_reject", False)),
         "hsv_hard_reject_max": _clamp01(s.get("hsv_hard_reject_max"), 0.90),
+        "hard_reject_ignore_high_scores": bool(
+            s.get("hard_reject_ignore_high_scores", True)
+        ),
+        "hard_reject_ignore_cosine_min": _clamp099(
+            s.get("hard_reject_ignore_cosine_min"), 0.90
+        ),
+        "hard_reject_ignore_xgb_min": _clamp01(
+            s.get("hard_reject_ignore_xgb_min"), 0.70
+        ),
         "compute_color_delta": bool(s.get("compute_color_delta", True)),
         "reuse_previous_searches": bool(s.get("reuse_previous_searches", False)),
         "show_search_details": bool(s.get("show_search_details", True)),

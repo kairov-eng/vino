@@ -139,10 +139,12 @@ class ManualWineUpdate(BaseModel):
 class ManualWineOut(BaseModel):
     search_photos_id: int
     manual_wines_id: int | None = None
+    false_positive: int = 0
+    false_negative: int = 0
 
 
 class ScanHistoryXgbTopItem(BaseModel):
-    """Top XGB_fin candidate when search found no final match."""
+    """Top candidate when search found no final match (XGB / fin2 / cosine)."""
 
     id: int
     name: str | None = None
@@ -154,6 +156,7 @@ class ScanHistoryXgbTopItem(BaseModel):
     xgb_score: float | None = None
     xgb_fin: float | None = None
     cosine: float | None = None
+    fin2: float | None = None
 
 
 class ScanHistoryItem(BaseModel):
@@ -171,8 +174,10 @@ class ScanHistoryItem(BaseModel):
     matched_wine_slug: str | None = None
     matched_wine_photo_url: str | None = None
     matched_wine_label: str | None = None
-    # Если финального вина нет — top-3 по XGB_fin (для колонки «Найденная этикетка»)
+    # Если финального вина нет — top-7 кандидатов (объединённая ячейка)
     xgb_top: list[ScanHistoryXgbTopItem] | None = None
+    # Ручная отметка «Это вино» (search_photos.manual_wines_id)
+    manual_wines_id: int | None = None
     # Скоры как на карточках результатов (0..1 где применимо)
     scores: dict[str, float | str | None] | None = None
     algorithm_version: str | None = None
@@ -257,6 +262,25 @@ class ScanHistoryReportScoreDist(BaseModel):
     median: float | None = None
 
 
+class ScanHistoryReportTimingBin(BaseModel):
+    """Один столбец: целое число секунд выполнения."""
+
+    seconds: int
+    n: int
+    pct: float
+
+
+class ScanHistoryReportTimingDist(BaseModel):
+    """Гистограмма времени поиска (сек): mean/median + bins."""
+
+    n: int
+    mean_sec: float | None = None
+    median_sec: float | None = None
+    min_sec: float | None = None
+    max_sec: float | None = None
+    bins: list[ScanHistoryReportTimingBin] = []
+
+
 class ScanHistoryReportResponse(BaseModel):
     id_from: int
     id_to: int
@@ -266,6 +290,7 @@ class ScanHistoryReportResponse(BaseModel):
     false_negatives: list[ScanHistoryReportErrorItem]
     rules: list[str]
     score_dists: list[ScanHistoryReportScoreDist] = []
+    timing_dist: ScanHistoryReportTimingDist | None = None
 
 
 class PipelineSettingsUpdate(BaseModel):
@@ -293,6 +318,7 @@ class PipelineSettingsUpdate(BaseModel):
     embedding_device: str | None = None
     embed_cpu_use_cache: bool | None = None
     normalize_max_side: int | None = None
+    candidates_top_n: int | None = None
     hf_start_timeout_sec: float | None = None
     text_match_methods: list[str] | None = None
     final_score_method: str | None = None
@@ -306,6 +332,9 @@ class PipelineSettingsUpdate(BaseModel):
     hsv_ignore_cosine_min: float | None = None
     use_hsv_hard_reject: bool | None = None
     hsv_hard_reject_max: float | None = None
+    hard_reject_ignore_high_scores: bool | None = None
+    hard_reject_ignore_cosine_min: float | None = None
+    hard_reject_ignore_xgb_min: float | None = None
     compute_color_delta: bool | None = None
     reuse_previous_searches: bool | None = None
     show_search_details: bool | None = None
@@ -344,6 +373,8 @@ class PipelineSettingsOut(BaseModel):
     embed_cpu_use_cache: bool = False
     normalize_max_side: int = 1024
     normalize_max_side_options: list[int] = [1280, 1024, 800]
+    candidates_top_n: int = 40
+    candidates_top_n_options: list[int] = [10, 20, 30, 40]
     hf_start_timeout_sec: float = 15.0
     text_match_methods: list[str] = ["fin1", "fin2", "xgb", "crenc"]
     text_match_options: list[dict] = []

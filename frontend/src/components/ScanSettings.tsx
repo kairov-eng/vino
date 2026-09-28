@@ -140,6 +140,7 @@ export function ScanSettingsPopup({ open, onClose, onSettingsSaved }: Props) {
     embedding_device?: 'cpu' | 'gpu'
     embed_cpu_use_cache?: boolean
     normalize_max_side?: number
+    candidates_top_n?: number
     hf_start_timeout_sec?: number
     text_match_methods?: string[]
     final_score_method?: string
@@ -153,6 +154,9 @@ export function ScanSettingsPopup({ open, onClose, onSettingsSaved }: Props) {
     hsv_ignore_cosine_min?: number
     use_hsv_hard_reject?: boolean
     hsv_hard_reject_max?: number
+    hard_reject_ignore_high_scores?: boolean
+    hard_reject_ignore_cosine_min?: number
+    hard_reject_ignore_xgb_min?: number
     compute_color_delta?: boolean
     reuse_previous_searches?: boolean
     show_search_details?: boolean
@@ -234,6 +238,9 @@ export function ScanSettingsPopup({ open, onClose, onSettingsSaved }: Props) {
         ...(next.final_weights || {}),
       })
       onSettingsSaved?.(next)
+      window.dispatchEvent(
+        new CustomEvent('vino:pipeline-settings', { detail: next }),
+      )
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Ошибка сохранения')
     } finally {
@@ -400,10 +407,38 @@ export function ScanSettingsPopup({ open, onClose, onSettingsSaved }: Props) {
                       Переиспользовать предыдущие поиски
                       <small>
                         Ближайший прошлый SigLIP2-поиск (cos ≥ 0.5) → его
-                        победитель в top‑19+1 и Google Vision OCR из того
-                        поиска
+                        победитель добавляется к полному top‑N (итого N+1) и
+                        Google Vision OCR из того поиска. Без галочки — ровно
+                        top‑N из каталога
                       </small>
                     </span>
+                  </label>
+                </li>
+                <li>
+                  <label className="scan-settings__select-row">
+                    <span>
+                      Число кандидатов (top‑N)
+                      <small>
+                        Сколько вин брать из БД по cosine для SigLIP2 /
+                        DINOv3
+                      </small>
+                    </span>
+                    <select
+                      value={Number(settings.candidates_top_n ?? 40)}
+                      onChange={(e) =>
+                        void persist({
+                          candidates_top_n: Number(e.target.value),
+                        })
+                      }
+                    >
+                      {(
+                        settings.candidates_top_n_options || [10, 20, 30, 40]
+                      ).map((n) => (
+                        <option key={n} value={n}>
+                          {n}
+                        </option>
+                      ))}
+                    </select>
                   </label>
                 </li>
               </ul>
@@ -543,7 +578,10 @@ export function ScanSettingsPopup({ open, onClose, onSettingsSaved }: Props) {
                     />
                     <span>
                       Геометрия для SigLIP2
-                      <small>после top-20 SigLIP2</small>
+                      <small>
+                        после top‑{Number(settings.candidates_top_n ?? 40)}{' '}
+                        SigLIP2
+                      </small>
                     </span>
                   </label>
                 </li>
@@ -561,7 +599,7 @@ export function ScanSettingsPopup({ open, onClose, onSettingsSaved }: Props) {
                       Геометрия для DINOv3
                       <small>
                         {settings.use_dinov3
-                          ? 'после top-20 DINOv3'
+                          ? `после top‑${Number(settings.candidates_top_n ?? 40)} DINOv3`
                           : 'нужен поиск DINOv3'}
                       </small>
                     </span>
@@ -991,7 +1029,12 @@ export function ScanSettingsPopup({ open, onClose, onSettingsSaved }: Props) {
                 </li>
                 <li>
                   HSV soft: d &gt; порога → отсев (кроме cos ≥ ignore). HSV hard:
-                  d &gt; hard → отсев всегда (байпас cos не действует).
+                  d &gt; hard → отсев (байпас только cos не действует).
+                </li>
+                <li>
+                  Hard reject (HSV hard / exclusive / label-text) игнорируется,
+                  если <strong>cos ≥</strong> и <strong>xgb ≥</strong> порогов
+                  ниже.
                 </li>
               </ol>
               <ul className="scan-settings__rules scan-settings__rules--mutex">
@@ -1030,7 +1073,12 @@ export function ScanSettingsPopup({ open, onClose, onSettingsSaved }: Props) {
                 {Number(settings.hsv_bhattacharyya_max ?? 0).toFixed(2)}
                 {settings.use_hsv_filter ? '' : ' (soft выкл)'} / hard=
                 {Number(settings.hsv_hard_reject_max ?? 0).toFixed(2)}
-                {settings.use_hsv_hard_reject ? '' : ' (hard выкл)'}; ColorDelta{' '}
+                {settings.use_hsv_hard_reject ? '' : ' (hard выкл)'}; bypass
+                hard{' '}
+                {settings.hard_reject_ignore_high_scores === false
+                  ? 'выкл'
+                  : `cos≥${Number(settings.hard_reject_ignore_cosine_min ?? 0.9).toFixed(2)}+xgb≥${Number(settings.hard_reject_ignore_xgb_min ?? 0.7).toFixed(2)}`}
+                ; ColorDelta{' '}
                 {settings.compute_color_delta === false ? 'выкл' : 'вкл'}.
               </p>
             </section>
@@ -1589,9 +1637,184 @@ export function ScanSettingsPopup({ open, onClose, onSettingsSaved }: Props) {
                 </div>
               </div>
               <p className="scan-settings__hint">
-                Абсолютный порог: HSV &gt; значения → unsuitable всегда, байпас
-                по cosine не действует. При обоих фильтрах soft ≤ hard
-                (иначе hard поднимается / soft опускается автоматически).
+                Абсолютный порог: HSV &gt; значения → unsuitable (байпас только
+                по cosine не действует). Снять hard reject можно правилом
+                cos+xgb ниже. При обоих фильтрах soft ≤ hard (иначе hard
+                поднимается / soft опускается автоматически).
+              </p>
+              <div className="scan-settings__hsv-row">
+                <label className="scan-settings__hsv-check">
+                  <input
+                    type="checkbox"
+                    checked={settings.hard_reject_ignore_high_scores !== false}
+                    onChange={(e) =>
+                      void persist({
+                        hard_reject_ignore_high_scores: e.target.checked,
+                      })
+                    }
+                  />
+                  <span>
+                    Игнорировать hard reject при высоком cos и XGB
+                  </span>
+                </label>
+              </div>
+              <div className="scan-settings__hsv-row">
+                <div className="scan-settings__thr scan-settings__thr--inline">
+                  <span className="scan-settings__thr-lab">cos ≥</span>
+                  <div className="scan-settings__stepper">
+                    <input
+                      type="number"
+                      min={0}
+                      max={0.99}
+                      step={0.01}
+                      disabled={
+                        settings.hard_reject_ignore_high_scores === false
+                      }
+                      value={Number(
+                        settings.hard_reject_ignore_cosine_min ?? 0.9,
+                      ).toFixed(2)}
+                      onChange={(e) => {
+                        const v = Number(e.target.value)
+                        if (!Number.isFinite(v)) return
+                        void persist({
+                          hard_reject_ignore_cosine_min: Math.max(
+                            0,
+                            Math.min(0.99, Math.round(v * 100) / 100),
+                          ),
+                        })
+                      }}
+                    />
+                    <div className="scan-settings__stepper-btns">
+                      <button
+                        type="button"
+                        aria-label="Hard-reject bypass cos +0.01"
+                        disabled={
+                          settings.hard_reject_ignore_high_scores === false
+                        }
+                        onClick={() => {
+                          const cur = Number(
+                            settings.hard_reject_ignore_cosine_min ?? 0.9,
+                          )
+                          void persist({
+                            hard_reject_ignore_cosine_min: Math.max(
+                              0,
+                              Math.min(
+                                0.99,
+                                Math.round((cur + 0.01) * 100) / 100,
+                              ),
+                            ),
+                          })
+                        }}
+                      >
+                        ▲
+                      </button>
+                      <button
+                        type="button"
+                        aria-label="Hard-reject bypass cos -0.01"
+                        disabled={
+                          settings.hard_reject_ignore_high_scores === false
+                        }
+                        onClick={() => {
+                          const cur = Number(
+                            settings.hard_reject_ignore_cosine_min ?? 0.9,
+                          )
+                          void persist({
+                            hard_reject_ignore_cosine_min: Math.max(
+                              0,
+                              Math.min(
+                                0.99,
+                                Math.round((cur - 0.01) * 100) / 100,
+                              ),
+                            ),
+                          })
+                        }}
+                      >
+                        ▼
+                      </button>
+                    </div>
+                  </div>
+                </div>
+                <div className="scan-settings__thr scan-settings__thr--inline">
+                  <span className="scan-settings__thr-lab">xgb ≥</span>
+                  <div className="scan-settings__stepper">
+                    <input
+                      type="number"
+                      min={0}
+                      max={1}
+                      step={0.01}
+                      disabled={
+                        settings.hard_reject_ignore_high_scores === false
+                      }
+                      value={Number(
+                        settings.hard_reject_ignore_xgb_min ?? 0.7,
+                      ).toFixed(2)}
+                      onChange={(e) => {
+                        const v = Number(e.target.value)
+                        if (!Number.isFinite(v)) return
+                        void persist({
+                          hard_reject_ignore_xgb_min: Math.max(
+                            0,
+                            Math.min(1, Math.round(v * 100) / 100),
+                          ),
+                        })
+                      }}
+                    />
+                    <div className="scan-settings__stepper-btns">
+                      <button
+                        type="button"
+                        aria-label="Hard-reject bypass xgb +0.01"
+                        disabled={
+                          settings.hard_reject_ignore_high_scores === false
+                        }
+                        onClick={() => {
+                          const cur = Number(
+                            settings.hard_reject_ignore_xgb_min ?? 0.7,
+                          )
+                          void persist({
+                            hard_reject_ignore_xgb_min: Math.max(
+                              0,
+                              Math.min(
+                                1,
+                                Math.round((cur + 0.01) * 100) / 100,
+                              ),
+                            ),
+                          })
+                        }}
+                      >
+                        ▲
+                      </button>
+                      <button
+                        type="button"
+                        aria-label="Hard-reject bypass xgb -0.01"
+                        disabled={
+                          settings.hard_reject_ignore_high_scores === false
+                        }
+                        onClick={() => {
+                          const cur = Number(
+                            settings.hard_reject_ignore_xgb_min ?? 0.7,
+                          )
+                          void persist({
+                            hard_reject_ignore_xgb_min: Math.max(
+                              0,
+                              Math.min(
+                                1,
+                                Math.round((cur - 0.01) * 100) / 100,
+                              ),
+                            ),
+                          })
+                        }}
+                      >
+                        ▼
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              <p className="scan-settings__hint">
+                Если у кандидата max cosine ≥ порога и xgb_score ≥ порога —
+                снимается hard reject (HSV hard, exclusive lexicon,
+                label-text). Нужен включённый XGB в методах сравнения.
+                По умолчанию cos ≥ 0.90 и xgb ≥ 0.70.
               </p>
             </section>
 

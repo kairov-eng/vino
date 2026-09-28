@@ -23,6 +23,8 @@ from app.pipeline.runtime_settings import (
 from app.pipeline.version import ALGORITHM_UPDATED_AT, ALGORITHM_VERSION
 from app.scan_history_denorm import (
     _is_official_match_source,
+    apply_status_eval_flags,
+    eval_flags_for_manual_match,
     history_resolve_matched_wine_id as _history_resolve_matched_wine_id,
     sync_search_photo_history_columns,
 )
@@ -43,6 +45,8 @@ from app.schemas import (
     ScanHistoryReportMetrics,
     ScanHistoryReportResponse,
     ScanHistoryReportScoreDist,
+    ScanHistoryReportTimingBin,
+    ScanHistoryReportTimingDist,
     ScanHistoryResponse,
     ScanHistoryXgbTopItem,
     ScanResponse,
@@ -657,7 +661,8 @@ def _history_scores(
                     best = vs
                     break
         fs = _f(best.get("final_score"))
-        if fs is None:
+        # 0.0 = канал не считал FinalScore (fin1 выкл) — не показываем Score V/Y/…
+        if fs is None or abs(float(fs)) < 1e-12:
             continue
         letter = {
             "google_vision": "V",
@@ -674,12 +679,13 @@ def _history_scores(
     return out
 
 
-def _history_xgb_top_raw(status: dict) -> list[dict]:
-    """Raw top-3 by xgb_fin from status.steps.xgb_match.by_id (no wine fields yet)."""
-    xgb_step = (status.get("steps") or {}).get("xgb_match") or {}
-    by_id = xgb_step.get("by_id") or {}
-    if not isinstance(by_id, dict) or not by_id:
-        return []
+def _history_xgb_top_raw(status: dict, *, limit: int = 7) -> list[dict]:
+    """Raw top-N candidates when search found no final match.
+
+    Prefer XGB_fin ranking; else Soft TF-IDF fin2; else cosine from
+    SigLIP2/DINOv3 candidate lists in status.
+    """
+    lim = max(1, min(int(limit), 20))
 
     def _f(v: object) -> float:
         try:
@@ -687,26 +693,123 @@ def _history_xgb_top_raw(status: dict) -> list[dict]:
         except (TypeError, ValueError):
             return -1.0
 
-    ranked: list[dict] = []
-    for wid_s, raw in by_id.items():
-        if not isinstance(raw, dict):
+    xgb_step = (status.get("steps") or {}).get("xgb_match") or {}
+    by_id = xgb_step.get("by_id") or {}
+    if isinstance(by_id, dict) and by_id:
+        ranked: list[dict] = []
+        for wid_s, raw in by_id.items():
+            if not isinstance(raw, dict):
+                continue
+            try:
+                wid = int(raw.get("id") if raw.get("id") is not None else wid_s)
+            except (TypeError, ValueError):
+                continue
+            ranked.append(
+                {
+                    "id": wid,
+                    "xgb_fin": _f(raw.get("xgb_fin")),
+                    "xgb_score": _f(raw.get("xgb_score")),
+                    "cosine": _f(raw.get("cosine")),
+                    "fin2": _f(raw.get("final_score2")),
+                }
+            )
+        ranked.sort(
+            key=lambda t: (
+                -t["xgb_fin"],
+                -t["xgb_score"],
+                -t["cosine"],
+                t["id"],
+            )
+        )
+        # Soft TF-IDF scores for the same wines (dead-XGB fallback display)
+        help_fin = (status.get("steps") or {}).get("ocr_wine_id") or {}
+        fin2_map: dict[int, float] = {}
+        for raw in help_fin.get("final_ranked2") or []:
+            if not isinstance(raw, dict) or raw.get("id") is None:
+                continue
+            try:
+                fw = int(raw["id"])
+                fv = _f(raw.get("final_score2"))
+            except (TypeError, ValueError):
+                continue
+            if fv >= 0:
+                fin2_map[fw] = fv
+        if not fin2_map:
+            for entry in (help_fin.get("per_variant") or {}).values():
+                if not isinstance(entry, dict):
+                    continue
+                for row in entry.get("visual_support") or []:
+                    if not isinstance(row, dict) or row.get("id") is None:
+                        continue
+                    try:
+                        fw = int(row["id"])
+                        fv = _f(row.get("final_score2"))
+                    except (TypeError, ValueError):
+                        continue
+                    if fv >= 0 and (fw not in fin2_map or fv > fin2_map[fw]):
+                        fin2_map[fw] = fv
+        for t in ranked:
+            if t["fin2"] < 0 and t["id"] in fin2_map:
+                t["fin2"] = fin2_map[t["id"]]
+        return ranked[:lim]
+
+    # Soft TF-IDF (fin2) from ocr_wine_id — used on dead-XGB fallback
+    help_ = (status.get("steps") or {}).get("ocr_wine_id") or {}
+    ranked2 = help_.get("final_ranked2") or []
+    if isinstance(ranked2, list) and ranked2:
+        out2: list[dict] = []
+        for raw in ranked2:
+            if not isinstance(raw, dict) or raw.get("id") is None:
+                continue
+            try:
+                wid = int(raw["id"])
+            except (TypeError, ValueError):
+                continue
+            out2.append(
+                {
+                    "id": wid,
+                    "xgb_fin": -1.0,
+                    "xgb_score": -1.0,
+                    "cosine": _f(raw.get("cosine")),
+                    "fin2": _f(raw.get("final_score2")),
+                }
+            )
+        out2.sort(key=lambda t: (-t["fin2"], -t["cosine"], t["id"]))
+        if out2:
+            return out2[:lim]
+
+    # Cosine from embedding candidate lists
+    cand = (status.get("steps") or {}).get("candidates") or {}
+    by_cos: dict[int, float] = {}
+    for key in ("siglip2", "dinov3"):
+        items = (cand.get(key) or {}).get("items") or []
+        if not isinstance(items, list):
             continue
-        try:
-            wid = int(raw.get("id") if raw.get("id") is not None else wid_s)
-        except (TypeError, ValueError):
-            continue
-        ranked.append(
+        for it in items:
+            if not isinstance(it, dict) or it.get("id") is None:
+                continue
+            try:
+                wid = int(it["id"])
+            except (TypeError, ValueError):
+                continue
+            cos = _f(it.get("cosine_similarity"))
+            prev = by_cos.get(wid)
+            if prev is None or cos > prev:
+                by_cos[wid] = cos
+    if by_cos:
+        ranked_cos = [
             {
                 "id": wid,
-                "xgb_fin": _f(raw.get("xgb_fin")),
-                "xgb_score": _f(raw.get("xgb_score")),
-                "cosine": _f(raw.get("cosine")),
+                "xgb_fin": -1.0,
+                "xgb_score": -1.0,
+                "cosine": cos,
+                "fin2": -1.0,
             }
-        )
-    ranked.sort(
-        key=lambda t: (-t["xgb_fin"], -t["xgb_score"], -t["cosine"], t["id"])
-    )
-    return ranked[:3]
+            for wid, cos in by_cos.items()
+        ]
+        ranked_cos.sort(key=lambda t: (-t["cosine"], t["id"]))
+        return ranked_cos[:lim]
+    return []
 
 
 def _history_build_xgb_top(
@@ -747,6 +850,11 @@ def _history_build_xgb_top(
                 xgb_score=round(xgb_score, 4) if xgb_score is not None and xgb_score >= 0 else None,
                 xgb_fin=round(xgb_fin, 4) if xgb_fin is not None and xgb_fin >= 0 else None,
                 cosine=round(cosine, 4) if cosine is not None and cosine >= 0 else None,
+                fin2=(
+                    round(float(t["fin2"]), 4)
+                    if t.get("fin2") is not None and float(t.get("fin2")) >= 0
+                    else None
+                ),
             )
         )
     return out
@@ -882,6 +990,9 @@ def _history_item_from_row(
         matched_wine_photo_url=matched_photo,
         matched_wine_label=matched_label,
         xgb_top=xgb_top if mid is None else None,
+        manual_wines_id=(
+            int(row.manual_wines_id) if row.manual_wines_id is not None else None
+        ),
         scores=_history_scores(status, matched_id=mid, confidence=conf_f),
         algorithm_version=status.get("algorithm_version"),
         false_positive=fp,
@@ -1044,6 +1155,51 @@ def _report_target_wine_id(
     return None
 
 
+def _timing_histogram(seconds_list: list[float]) -> ScanHistoryReportTimingDist:
+    """Гистограмма floor(sec): только секунды, которые встречались в выборке."""
+    from collections import Counter
+    from statistics import mean, median
+
+    if not seconds_list:
+        return ScanHistoryReportTimingDist(n=0, bins=[])
+
+    int_secs = [max(0, int(s)) for s in seconds_list]
+    counts: Counter[int] = Counter(int_secs)
+    n = len(int_secs)
+    bins: list[ScanHistoryReportTimingBin] = []
+    for sec in sorted(counts):
+        cnt = int(counts[sec])
+        bins.append(
+            ScanHistoryReportTimingBin(
+                seconds=sec,
+                n=cnt,
+                pct=round(100.0 * cnt / n, 2) if n else 0.0,
+            )
+        )
+    return ScanHistoryReportTimingDist(
+        n=n,
+        mean_sec=round(float(mean(seconds_list)), 3),
+        median_sec=round(float(median(seconds_list)), 3),
+        min_sec=round(float(min(seconds_list)), 3),
+        max_sec=round(float(max(seconds_list)), 3),
+        bins=bins,
+    )
+
+
+def _row_total_ms(row: SearchPhoto, status: dict) -> float | None:
+    ms = row.hist_total_ms
+    if ms is None:
+        timings = status.get("timings_ms") or {}
+        ms = timings.get("total") if isinstance(timings, dict) else None
+    try:
+        if ms is None:
+            return None
+        v = float(ms)
+        return v if v >= 0 and v == v else None
+    except (TypeError, ValueError):
+        return None
+
+
 def _score_histogram(
     values: list[float],
     *,
@@ -1126,12 +1282,16 @@ def scan_history_report(
     cos_minus: list[float] = []
     xgb_plus: list[float] = []
     xgb_minus: list[float] = []
+    duration_sec: list[float] = []
 
     for row in rows:
         sid = int(row.id)
         min_id = sid if min_id is None else min(min_id, sid)
         max_id = sid if max_id is None else max(max_id, sid)
         status = dict(row.status or {})
+        total_ms = _row_total_ms(row, status)
+        if total_ms is not None:
+            duration_sec.append(total_ms / 1000.0)
         matched = row.hist_wine_id
         if matched is None:
             matched = _history_resolve_matched_wine_id(status)
@@ -1216,6 +1376,7 @@ def scan_history_report(
         _score_histogram(xgb_plus, metric="xgb", polarity="plus"),
         _score_histogram(xgb_minus, metric="xgb", polarity="minus"),
     ]
+    timing_dist = _timing_histogram(duration_sec)
 
     return ScanHistoryReportResponse(
         id_from=lo,
@@ -1251,6 +1412,7 @@ def scan_history_report(
             "cos−/xgb−: остальные кандидаты пула (~20), в т.ч. ошибочный FP-финалист",
         ],
         score_dists=score_dists,
+        timing_dist=timing_dist,
     )
 
 
@@ -1463,7 +1625,13 @@ def update_findwine_manual_wine(
     body: ManualWineUpdate,
     db: Session = Depends(get_db),
 ) -> ManualWineOut:
-    """Сохранить ручную отметку «Соответствие» (одно вино на поиск; null = снять)."""
+    """Сохранить ручную отметку «Соответствие» (одно вино на поиск; null = снять).
+
+    При установке manual: FP если пайплайн нашёл другое вино, FN если ничего
+    не нашёл; при совпадении с matched — снять оба флага.
+    """
+    from sqlalchemy.orm.attributes import flag_modified
+
     row = db.get(SearchPhoto, search_photos_id)
     if row is None:
         raise HTTPException(status_code=404, detail="Поиск не найден")
@@ -1473,12 +1641,38 @@ def update_findwine_manual_wine(
         if db.get(Wine, wine_id) is None:
             raise HTTPException(status_code=404, detail="Вино не найдено")
     row.manual_wines_id = wine_id
+
+    status = dict(row.status or {})
+    matched_id = row.hist_wine_id
+    if matched_id is None:
+        matched_id = _history_resolve_matched_wine_id(status)
+    flags = eval_flags_for_manual_match(
+        manual_id=wine_id,
+        matched_id=matched_id,
+    )
+    if flags is not None:
+        fp, fn = flags
+        status = apply_status_eval_flags(status, fp, fn)
+        row.status = status
+        flag_modified(row, "status")
+        sync_search_photo_history_columns(row, status)
+
     db.add(row)
     db.commit()
     db.refresh(row)
+    st = dict(row.status or {})
+    fp = int(row.hist_fp or 0)
+    fn = int(row.hist_fn or 0)
+    if not fp and not fn:
+        # fallback if hist not synced
+        from app.scan_history_denorm import history_eval_flags
+
+        fp, fn = history_eval_flags(st)
     return ManualWineOut(
         search_photos_id=row.id,
         manual_wines_id=row.manual_wines_id,
+        false_positive=fp,
+        false_negative=fn,
     )
 
 
@@ -1550,6 +1744,14 @@ def put_pipeline_settings(body: PipelineSettingsUpdate) -> PipelineSettingsOut:
                 detail="normalize_max_side must be 1280, 1024, or 800",
             )
         patch["normalize_max_side"] = side
+    if body.candidates_top_n is not None:
+        top_n = int(body.candidates_top_n)
+        if top_n not in {10, 20, 30, 40}:
+            raise HTTPException(
+                status_code=400,
+                detail="candidates_top_n must be 10, 20, 30, or 40",
+            )
+        patch["candidates_top_n"] = top_n
     if body.hf_start_timeout_sec is not None:
         try:
             tsec = float(body.hf_start_timeout_sec)
@@ -1647,6 +1849,36 @@ def put_pipeline_settings(body: PipelineSettingsUpdate) -> PipelineSettingsOut:
                 detail="hsv_hard_reject_max must be between 0 and 1",
             )
         patch["hsv_hard_reject_max"] = hhard
+    if body.hard_reject_ignore_high_scores is not None:
+        patch["hard_reject_ignore_high_scores"] = body.hard_reject_ignore_high_scores
+    if body.hard_reject_ignore_cosine_min is not None:
+        try:
+            hr_cos = float(body.hard_reject_ignore_cosine_min)
+        except (TypeError, ValueError) as exc:
+            raise HTTPException(
+                status_code=400,
+                detail="hard_reject_ignore_cosine_min must be a number",
+            ) from exc
+        if hr_cos < 0 or hr_cos > 0.99:
+            raise HTTPException(
+                status_code=400,
+                detail="hard_reject_ignore_cosine_min must be between 0 and 0.99",
+            )
+        patch["hard_reject_ignore_cosine_min"] = hr_cos
+    if body.hard_reject_ignore_xgb_min is not None:
+        try:
+            hr_xgb = float(body.hard_reject_ignore_xgb_min)
+        except (TypeError, ValueError) as exc:
+            raise HTTPException(
+                status_code=400,
+                detail="hard_reject_ignore_xgb_min must be a number",
+            ) from exc
+        if hr_xgb < 0 or hr_xgb > 1:
+            raise HTTPException(
+                status_code=400,
+                detail="hard_reject_ignore_xgb_min must be between 0 and 1",
+            )
+        patch["hard_reject_ignore_xgb_min"] = hr_xgb
     if body.compute_color_delta is not None:
         patch["compute_color_delta"] = body.compute_color_delta
     if body.reuse_previous_searches is not None:

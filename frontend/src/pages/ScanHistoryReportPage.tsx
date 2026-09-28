@@ -1,3 +1,4 @@
+import type { CSSProperties } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import {
   deleteSavedReport,
@@ -103,6 +104,67 @@ function ScoreDistTables({
         ))}
       </div>
     </section>
+  )
+}
+
+function fmtSec(v: number | null | undefined): string {
+  if (v == null || !Number.isFinite(v)) return '—'
+  return `${v.toFixed(2)} с`
+}
+
+function TimingHistogram({
+  dist,
+}: {
+  dist: NonNullable<SavedScanEvalReport['data']['timing_dist']>
+}) {
+  if (!dist.n || !dist.bins.length) {
+    return <p className="eval-report__empty">Нет данных о времени</p>
+  }
+  const bins = dist.bins.filter((b) => b.n > 0)
+  if (!bins.length) {
+    return <p className="eval-report__empty">Нет данных о времени</p>
+  }
+  const maxN = Math.max(1, ...bins.map((b) => b.n))
+  return (
+    <>
+      <p className="eval-report__timing-summary">
+        среднее {fmtSec(dist.mean_sec)} · медиана {fmtSec(dist.median_sec)}
+        <span className="eval-report__dist-n"> · n={dist.n}</span>
+      </p>
+      <div
+        className="eval-report__timing-chart"
+        role="img"
+        aria-label="Гистограмма времени выполнения запросов"
+      >
+        <div
+          className="eval-report__timing-bars"
+          style={
+            { ['--timing-cols']: String(bins.length) } as CSSProperties
+          }
+        >
+          {bins.map((b) => (
+            <div key={b.seconds} className="eval-report__timing-col">
+              <div className="eval-report__timing-top">
+                <span className="eval-report__timing-n">{b.n}</span>
+                <span className="eval-report__timing-pct">
+                  {b.pct.toFixed(1)}%
+                </span>
+              </div>
+              <div className="eval-report__timing-track">
+                <div
+                  className="eval-report__timing-fill"
+                  style={{ height: `${(b.n / maxN) * 100}%` }}
+                />
+              </div>
+              <span className="eval-report__timing-x">{b.seconds}</span>
+            </div>
+          ))}
+        </div>
+        <div className="eval-report__timing-axis">
+          <span>сек</span>
+        </div>
+      </div>
+    </>
   )
 }
 
@@ -384,14 +446,28 @@ export function ScanHistoryReportPage() {
         </section>
       </div>
 
-      <section className="eval-report__card eval-report__rules">
-        <h2>Правила класса</h2>
-        <ol>
-          {(data.rules || []).map((r) => (
-            <li key={r}>{r}</li>
-          ))}
-        </ol>
-      </section>
+      <div className="eval-report__grid eval-report__grid--timing">
+        <section className="eval-report__card">
+          <h2>Время выполнения</h2>
+          {data.timing_dist ? (
+            <TimingHistogram dist={data.timing_dist} />
+          ) : (
+            <p className="eval-report__empty">
+              В этом отчёте нет статистики времени — постройте отчёт заново
+              кнопкой «Отчёт» в истории.
+            </p>
+          )}
+        </section>
+
+        <section className="eval-report__card eval-report__rules">
+          <h2>Правила класса</h2>
+          <ol>
+            {(data.rules || []).map((r) => (
+              <li key={r}>{r}</li>
+            ))}
+          </ol>
+        </section>
+      </div>
 
       {data.score_dists && data.score_dists.length > 0 ? (
         <ScoreDistTables dists={data.score_dists} />
@@ -399,8 +475,8 @@ export function ScanHistoryReportPage() {
         <section className="eval-report__section">
           <h2>Распределения Cos / XGB</h2>
           <p className="eval-report__empty">
-            В этом сохранённом отчёте нет score_dists — постройте отчёт заново
-            кнопкой «Отчёт» в истории.
+            В этом отчёте нет score_dists — постройте отчёт заново кнопкой
+            «Отчёт» в истории.
           </p>
         </section>
       )}
