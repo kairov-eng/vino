@@ -1,6 +1,7 @@
 # Vino Svoe — production stack for vino-svoe.online
-# Containers: vino_backend, vino_frontend
-# PostgreSQL: use host/server instance (not in this compose). Enable extension vector.
+# Containers: vino_postgres (pgvector), vino_backend, vino_frontend
+# Embeddings on the same host: distrib/docker-compose.embeddings.yml
+#   (siglip2-embed :8090, dinov3-embed :8091 → nginx /api_siglip2 /api_dinov3)
 #
 # Build & run (from vino-svoe/):
 #   docker compose -f distrib/docker-compose.yml --env-file distrib/.env up -d --build

@@ -41,7 +41,9 @@ flowchart LR
 
 На **dev**: Vite `:8091` проксирует `/api` и `/media` на backend `:8092`; медиа с `MEDIA_ROOT` (обычно `…/media/uploads`).
 
-На **проде**: `distrib/docker-compose.yml` поднимает `vino_postgres`, `vino_backend`, `vino_frontend` в сети `aidispatcher_aidnet`. Уже существующие ML-контейнеры (SigLIP / DINOv3 / CE / Gemini proxy) **не** входят в этот compose — nginx их проксирует по `/api_siglip2`, `/api_dinov3`, `/api_cross_encoder_matcher`, `/v1/` (Gemini).
+На **проде**: `distrib/docker-compose.yml` поднимает **`vino_postgres`** (pgvector), `vino_backend`, `vino_frontend` в сети `aidispatcher_aidnet`.  
+Эмбеддинги **на том же сервере**: `distrib/docker-compose.embeddings.yml` → контейнеры `siglip2-embed` / `dinov3-embed`; nginx проксирует `/api_siglip2`, `/api_dinov3`.  
+Cross-Encoder / Gemini proxy — отдельные контейнеры (`/api_cross_encoder_matcher`, `/v1/`).
 
 ## 2. Пайплайн распознавания (`POST /api/findwine`)
 
@@ -160,10 +162,13 @@ xgb_exclude_photos                 — исключения из обучени�
 См. `distrib/README.md`. Кратко:
 
 ```bash
-# на сервере
+# на сервере — приложение + Postgres в Docker
 docker compose -f distrib/docker-compose.yml --env-file distrib/.env up -d --build
+# embeddings SigLIP2 / DINOv3 на том же хосте
+docker compose -f distrib/docker-compose.embeddings.yml --env-file distrib/embeddings.env up -d --build
 # media: /var/lib/vino-svoe/media (+ crop/)
 # models: /var/lib/vino-svoe/models/{yolo,yolo_bottle_label,xgboost_text_matcher_abs_v14}
+# pgdata: /var/lib/vino-svoe/postgres
 ```
 
 Прод-медиа: nginx `vino_frontend` отдаёт `/media` с `Cache-Control: immutable` (не через FastAPI).

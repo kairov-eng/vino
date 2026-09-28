@@ -41,9 +41,9 @@
 
 | Переменная | Зачем |
 |------------|--------|
-| `DATABASE_URL` | Postgres + расширение **pgvector** (каталог вин и embeddings) |
+| `DATABASE_URL` | Postgres **в контейнере** `vino_postgres` (pgvector); в compose: `…@vino_postgres:5432/vino` |
 | `MEDIA_ROOT` | Папка фото каталога (локально часто `C:\dev\Vino2026\media\uploads`) |
-| `SIGLIP2_ENDPOINT` | HTTP-сервис эмбеддингов SigLIP2 (прод: `https://vino-svoe.online/api_siglip2`) |
+| `SIGLIP2_ENDPOINT` | HTTP SigLIP2 — прод: `https://vino-svoe.online/api_siglip2` (контейнер `siglip2-embed`) |
 | Веса YOLO | пути `YOLO_MODEL_PATH` / `YOLO_BOTTLE_LABEL_MODEL_PATH` к `.pt` |
 | `XGB_MODEL_DIR` | каталог с `model.json` текстового матчера |
 
@@ -88,16 +88,16 @@
 
 На проде пароль оценки: `password_user=lct2026_user` (см. выше).
 
-### Endpoint’ы ML на проде (уже за nginx)
+### Endpoint’ы ML на проде (тот же сервер, контейнеры)
 
-| Путь | Сервис |
-|------|--------|
-| `/api_siglip2` | SigLIP2 embed |
-| `/api_dinov3` | DINOv3 embed |
-| `/api_cross_encoder_matcher` | Cross-Encoder |
-| `/v1/` (через proxy) | Gemini vision proxy |
+| Путь | Контейнер | Compose |
+|------|-----------|---------|
+| `/api_siglip2` | `siglip2-embed` (:8090) | `distrib/docker-compose.embeddings.yml` |
+| `/api_dinov3` | `dinov3-embed` (:8091) | то же |
+| `/api_cross_encoder_matcher` | Cross-Encoder | `services/cross-encoder-server/` |
+| `/v1/` (proxy) | Gemini vision proxy | отдельно |
 
-Локально в `.env` можно указать те же URL `vino-svoe.online` **или** поднять свои контейнеры из `vino-svoe/services/`.
+Локально в `.env` можно указать URL `vino-svoe.online` **или** `http://127.0.0.1:8090` / `:8091` после подъёма embeddings compose.
 
 ---
 
@@ -106,8 +106,8 @@
 ### 1. Код и окружение
 
 1. Клонировать / открыть репозиторий продукта: папка `vino-svoe/` (GitHub: `kairov-eng/vino`).
-2. Установить **Python 3.11+**, **Node.js 20+**, **PostgreSQL** с расширением **pgvector**.
-3. Создать БД и пользователя (пример в `vino-svoe/distrib/README.md`).
+2. Установить **Python 3.11+**, **Node.js 20+**, **Docker** (для прод-стека; локально Postgres можно также через `vino_postgres` из compose).
+3. Прод/сервер: поднять `vino_postgres` из `distrib/docker-compose.yml` (образ `pgvector/pgvector:pg17`) — **не** хостовый Postgres aidispatcher.
 
 ### 2. Backend
 
@@ -167,10 +167,10 @@ password_admin=...
 
 Полная инструкция: [`vino-svoe/distrib/README.md`](vino-svoe/distrib/README.md).
 
-1. На сервере: Docker Compose `vino_postgres` / `vino_backend` / `vino_frontend`.
-2. Media и модели — volume `/var/lib/vino-svoe/...`.
-3. Уже работающие SigLIP / DINOv3 / CE / Gemini proxy подключаются через nginx.
-4. В `.env` backend прописать те же ключи HF / Google Vision / Gemini / site passwords.
+1. На сервере: Docker Compose **`vino_postgres`** + `vino_backend` + `vino_frontend` (`distrib/docker-compose.yml`).
+2. Эмбеддинги на том же хосте: `distrib/docker-compose.embeddings.yml` (`siglip2-embed`, `dinov3-embed`).
+3. Media и модели — volume `/var/lib/vino-svoe/...`.
+4. В `.env` / `embeddings.env` — ключи HF / Google Vision / Gemini / `EMBED_API_KEY` / site passwords.
 5. Демо для оценки: https://vino-svoe.online · пароль **`lct2026_user`**.
 
 ---
