@@ -6217,7 +6217,6 @@ export function HomePage() {
     () => collectFin2ScoresByWine(result),
     [result],
   )
-  const showFin1 = useMemo(() => usedFin1Display(result), [result])
   const showFin2 = useMemo(() => usedFin2Display(result), [result])
   const ocrQueryText = useMemo(() => collectQueryOcrText(result), [result])
   const exclusiveLexicon = useMemo((): ExclusiveLexiconStep | null => {
