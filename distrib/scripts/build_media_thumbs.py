@@ -43,14 +43,34 @@ def iter_images(root: Path):
         yield p
 
 
-def make_thumb(src: Path, dst: Path, max_side: int, quality: int) -> str:
+def _prepare_for_thumb(im: Image.Image) -> Image.Image:
+    """Keep alpha when present so bottle cutouts stay transparent on beige cards."""
+    if im.mode in ("RGBA", "LA"):
+        return im.convert("RGBA") if im.mode == "LA" else im
+    if im.mode == "P":
+        # palette may carry transparency
+        if "transparency" in im.info:
+            return im.convert("RGBA")
+        return im.convert("RGB")
+    if im.mode == "L":
+        return im
+    if im.mode == "RGB":
+        return im
+    # CMYK / other → RGB (no alpha in source)
+    return im.convert("RGB")
+
+
+def make_thumb(src: Path, dst: Path, max_side: int, quality: int, force: bool) -> str:
     """Returns 'built' | 'skipped'."""
     dst.parent.mkdir(parents=True, exist_ok=True)
-    if dst.is_file() and dst.stat().st_mtime >= src.stat().st_mtime:
+    if (
+        not force
+        and dst.is_file()
+        and dst.stat().st_mtime >= src.stat().st_mtime
+    ):
         return "skipped"
     with Image.open(src) as im:
-        if im.mode not in ("RGB", "L"):
-            im = im.convert("RGB")
+        im = _prepare_for_thumb(im)
         w, h = im.size
         scale = max_side / max(w, h)
         if scale < 1.0:
@@ -58,7 +78,14 @@ def make_thumb(src: Path, dst: Path, max_side: int, quality: int) -> str:
                 (max(1, int(w * scale)), max(1, int(h * scale))),
                 Image.Resampling.LANCZOS,
             )
-        im.save(dst, format="WEBP", quality=quality, method=4)
+        save_kw: dict = {"format": "WEBP", "method": 4}
+        if im.mode in ("RGBA", "LA"):
+            # lossless-ish alpha; quality still applies to RGB channels
+            save_kw["quality"] = quality
+            save_kw["exact"] = True
+        else:
+            save_kw["quality"] = quality
+        im.save(dst, **save_kw)
     return "built"
 
 
@@ -69,6 +96,11 @@ def main() -> None:
     ap.add_argument("--max-side", type=int, default=400)
     ap.add_argument("--quality", type=int, default=72)
     ap.add_argument("--limit", type=int, default=0)
+    ap.add_argument(
+        "--force",
+        action="store_true",
+        help="Rebuild even if thumb is newer than source",
+    )
     args = ap.parse_args()
 
     src_root: Path = args.src.resolve()
@@ -84,7 +116,7 @@ def main() -> None:
         rel = src.relative_to(src_root)
         dst = (dst_root / rel).with_suffix(".webp")
         try:
-            status = make_thumb(src, dst, args.max_side, args.quality)
+            status = make_thumb(src, dst, args.max_side, args.quality, args.force)
             if status == "built":
                 built += 1
             else:
