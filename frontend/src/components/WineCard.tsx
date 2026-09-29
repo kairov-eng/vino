@@ -9,6 +9,23 @@ function escapeRegExp(value: string): string {
   return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
 }
 
+/**
+ * Catalog grid: prefer server thumbs at /media/t/... (webp).
+ * Full-size stays at /media/... for detail pages / fallback.
+ */
+export function catalogThumbUrl(url: string | null | undefined): string | null {
+  if (!url) return null
+  if (!url.startsWith('/media/')) return url
+  if (url.startsWith('/media/t/')) return url
+  const rest = url.slice('/media/'.length)
+  const q = rest.indexOf('?')
+  const path = q >= 0 ? rest.slice(0, q) : rest
+  const qs = q >= 0 ? rest.slice(q) : ''
+  const dot = path.lastIndexOf('.')
+  const stem = dot > 0 ? path.slice(0, dot) : path
+  return `/media/t/${stem}.webp${qs}`
+}
+
 /** Bold matches only at word starts (same rule as backend). */
 export function highlightWordStarts(text: string, query: string): ReactNode {
   const q = query.trim()
@@ -46,6 +63,34 @@ function fieldMatches(text: string | null | undefined, query: string): boolean {
   return re.test(text)
 }
 
+function CatalogImg({
+  fullUrl,
+  alt,
+  onBroken,
+}: {
+  fullUrl: string
+  alt: string
+  onBroken: () => void
+}) {
+  const thumb = catalogThumbUrl(fullUrl)
+  const [src, setSrc] = useState(thumb || fullUrl)
+  return (
+    <img
+      src={src}
+      alt={alt}
+      loading="lazy"
+      decoding="async"
+      onError={() => {
+        if (src !== fullUrl) {
+          setSrc(fullUrl)
+          return
+        }
+        onBroken()
+      }}
+    />
+  )
+}
+
 export function WineCard({ wine, highlightQuery = '' }: Props) {
   const slug = wine.slug || String(wine.id)
   const [hovered, setHovered] = useState(false)
@@ -74,11 +119,11 @@ export function WineCard({ wine, highlightQuery = '' }: Props) {
       <div className="wine-card__media">
         <div className="wine-card__half wine-card__half--bottle">
           {showBottle ? (
-            <img
-              src={wine.photo_url!}
+            <CatalogImg
+              key={`b-${wine.photo_url}`}
+              fullUrl={wine.photo_url!}
               alt={wine.name}
-              loading="lazy"
-              onError={() => setBottleBroken(true)}
+              onBroken={() => setBottleBroken(true)}
             />
           ) : (
             <div className="wine-card__placeholder wine-card__placeholder--bottle" />
@@ -86,11 +131,11 @@ export function WineCard({ wine, highlightQuery = '' }: Props) {
         </div>
         <div className="wine-card__half wine-card__half--label">
           {showLabel ? (
-            <img
-              src={wine.label_url!}
+            <CatalogImg
+              key={`l-${wine.label_url}`}
+              fullUrl={wine.label_url!}
               alt={`Этикетка: ${wine.name}`}
-              loading="lazy"
-              onError={() => setLabelBroken(true)}
+              onBroken={() => setLabelBroken(true)}
             />
           ) : (
             <div className="wine-card__placeholder wine-card__placeholder--label" />

@@ -138,8 +138,33 @@ server {
         proxy_pass $vino_be;
     }
 
-    # Catalog photos: nginx → vino_frontend (static alias), not FastAPI
+    # Catalog thumbs (grid): host bind /var/lib/vino-svoe/media_thumbs
+    # → /var/www/vino-thumbs in aidispatcher-nginx (see docker-compose volume).
+    location /media/t/ {
+        alias /var/www/vino-thumbs/;
+        access_log off;
+        expires 30d;
+        add_header Cache-Control "public, max-age=2592000, immutable";
+        add_header X-Content-Type-Options nosniff;
+        add_header X-Media-Source "edge-thumb" always;
+    }
+
+    # Full catalog photos: serve from host disk (no proxy hop).
+    # Mount: /var/lib/vino-svoe/media → /var/www/vino-media
+    # Fallback to vino_frontend if edge volume missing (named location).
     location /media/ {
+        alias /var/www/vino-media/;
+        access_log off;
+        expires 30d;
+        add_header Cache-Control "public, max-age=2592000, immutable";
+        add_header X-Content-Type-Options nosniff;
+        add_header X-Media-Source "edge-static" always;
+        # If file missing on edge mount, fall through to SPA/frontend (rare).
+        error_page 404 = @media_via_frontend;
+    }
+
+    location @media_via_frontend {
+        internal;
         resolver 127.0.0.11 valid=30s ipv6=off;
         set $vino_fe http://vino_frontend:80;
         proxy_http_version 1.1;
@@ -149,7 +174,8 @@ server {
         proxy_set_header X-Forwarded-Proto https;
         proxy_set_header Connection "";
         proxy_read_timeout 60s;
-        proxy_pass $vino_fe;
+        # Re-request original URI (/media/...)
+        proxy_pass $vino_fe$request_uri;
     }
 
     # SPA (container vino_frontend)

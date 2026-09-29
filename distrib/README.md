@@ -16,7 +16,10 @@
 | Gemini Vision Proxy | **`/opt/gemini-vision-proxy`** (зеркало: `distrib/gemini-vision-proxy/`) | `vino-gemini-vision-proxy` | `8093` |
 | Cross-Encoder | `/opt/vino-svoe/services/cross-encoder-server` | `cross-encoder-matcher` | `127.0.0.1:8094` |
 | Публичный nginx TLS | `/opt/aidispatcher/distrib/nginx/` | `aidispatcher-nginx` | 80/443 |
-| Медиа / модели / секреты | `/var/lib/vino-svoe/{media,models,secrets,search_photos,hf-cache}` | volume mounts | — |
+| Медиа / модели / секреты | `/var/lib/vino-svoe/{media,media_thumbs,models,secrets,search_photos,hf-cache}` | volume mounts | — |
+
+`/media/` на публичном nginx отдаётся **напрямую с диска** (`/var/www/vino-media`), без прокси в FastAPI.  
+Превью сетки: `/media/t/...` → `/var/lib/vino-svoe/media_thumbs` (скрипт `distrib/scripts/build_media_thumbs.py`).
 
 Сеть Docker для nginx↔контейнеры: **`aidispatcher_aidnet`**.  
 Сеть приложения: **`vino_net`** (postgres ↔ backend).

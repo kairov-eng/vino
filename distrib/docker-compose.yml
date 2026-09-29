@@ -98,6 +98,8 @@ services:
     volumes:
       # Same catalog photos as backend — nginx serves /media/ directly (fast)
       - ${VINO_MEDIA_HOST:-/var/lib/vino-svoe/media}:/data/media:ro
+      # Optional catalog thumbs for grid (/media/t/...)
+      - ${VINO_MEDIA_THUMBS_HOST:-/var/lib/vino-svoe/media_thumbs}:/data/media_thumbs:ro
     ports:
       # 8091 is taken by dinov3-embed on aidispatcher — use 8088 for local probe
       - "${VINO_FRONTEND_PORT:-127.0.0.1:8088}:80"
