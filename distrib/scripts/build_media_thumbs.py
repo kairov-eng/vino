@@ -40,6 +40,13 @@ def iter_images(root: Path):
             continue
         if p.suffix.lower() not in _EXTS:
             continue
+        # skip nested thumb trees (local MEDIA_ROOT/t/...)
+        try:
+            rel_parts = p.relative_to(root).parts
+        except ValueError:
+            continue
+        if rel_parts and rel_parts[0].lower() in {"t", ".thumbs", "_thumbs"}:
+            continue
         yield p
 
 

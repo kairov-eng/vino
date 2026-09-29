@@ -1,29 +1,13 @@
 import { Fragment, type ReactNode, useState } from 'react'
 import { Link } from 'react-router-dom'
 import type { Wine } from '../api/client'
+import { MediaThumbImg } from '../mediaThumb'
 import './WineCard.css'
 
 type Props = { wine: Wine; highlightQuery?: string }
 
 function escapeRegExp(value: string): string {
   return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
-}
-
-/**
- * Catalog grid: prefer server thumbs at /media/t/... (webp).
- * Full-size stays at /media/... for detail pages / fallback.
- * `v=2` busts browser cache after alpha-preserving thumb rebuild.
- */
-export function catalogThumbUrl(url: string | null | undefined): string | null {
-  if (!url) return null
-  if (!url.startsWith('/media/')) return url
-  if (url.startsWith('/media/t/')) return url
-  const rest = url.slice('/media/'.length)
-  const q = rest.indexOf('?')
-  const path = q >= 0 ? rest.slice(0, q) : rest
-  const stemDot = path.lastIndexOf('.')
-  const stem = stemDot > 0 ? path.slice(0, stemDot) : path
-  return `/media/t/${stem}.webp?v=2`
 }
 
 /** Bold matches only at word starts (same rule as backend). */
@@ -63,34 +47,6 @@ function fieldMatches(text: string | null | undefined, query: string): boolean {
   return re.test(text)
 }
 
-function CatalogImg({
-  fullUrl,
-  alt,
-  onBroken,
-}: {
-  fullUrl: string
-  alt: string
-  onBroken: () => void
-}) {
-  const thumb = catalogThumbUrl(fullUrl)
-  const [src, setSrc] = useState(thumb || fullUrl)
-  return (
-    <img
-      src={src}
-      alt={alt}
-      loading="lazy"
-      decoding="async"
-      onError={() => {
-        if (src !== fullUrl) {
-          setSrc(fullUrl)
-          return
-        }
-        onBroken()
-      }}
-    />
-  )
-}
-
 export function WineCard({ wine, highlightQuery = '' }: Props) {
   const slug = wine.slug || String(wine.id)
   const [hovered, setHovered] = useState(false)
@@ -119,7 +75,7 @@ export function WineCard({ wine, highlightQuery = '' }: Props) {
       <div className="wine-card__media">
         <div className="wine-card__half wine-card__half--bottle">
           {showBottle ? (
-            <CatalogImg
+            <MediaThumbImg
               key={`b-${wine.photo_url}`}
               fullUrl={wine.photo_url!}
               alt={wine.name}
@@ -131,7 +87,7 @@ export function WineCard({ wine, highlightQuery = '' }: Props) {
         </div>
         <div className="wine-card__half wine-card__half--label">
           {showLabel ? (
-            <CatalogImg
+            <MediaThumbImg
               key={`l-${wine.label_url}`}
               fullUrl={wine.label_url!}
               alt={`Этикетка: ${wine.name}`}
@@ -160,3 +116,6 @@ export function WineCard({ wine, highlightQuery = '' }: Props) {
     </Link>
   )
 }
+
+// Re-export for callers that imported catalogThumbUrl from WineCard
+export { catalogThumbUrl } from '../mediaThumb'

@@ -25,6 +25,7 @@ import {
   catalogHrefRegionWithWinery,
   catalogHrefWinery,
 } from '../catalogFilters'
+import { MediaThumbImg } from '../mediaThumb'
 import {
   readShowSearchDetailsCookie,
   setShowSearchDetailsPreference,
@@ -1697,10 +1698,11 @@ function WineHoverPopup({
             <div className="cand-popup__photo">
               <span>Бутылка</span>
               {wine.photo_url && !bottleBroken ? (
-                <img
-                  src={wine.photo_url}
+                <MediaThumbImg
+                  key={`cp-b-${wine.photo_url}`}
+                  fullUrl={wine.photo_url}
                   alt="Бутылка"
-                  onError={() => setBottleBroken(true)}
+                  onBroken={() => setBottleBroken(true)}
                 />
               ) : (
                 <div className="cand-card__placeholder" />
@@ -1709,10 +1711,11 @@ function WineHoverPopup({
             <div className="cand-popup__photo">
               <span>Этикетка</span>
               {wine.label_url && !labelBroken ? (
-                <img
-                  src={wine.label_url}
+                <MediaThumbImg
+                  key={`cp-l-${wine.label_url}`}
+                  fullUrl={wine.label_url}
                   alt="Этикетка"
-                  onError={() => setLabelBroken(true)}
+                  onBroken={() => setLabelBroken(true)}
                 />
               ) : (
                 <div className="cand-card__placeholder" />
@@ -3004,11 +3007,11 @@ function CandidateCard({
           </span>
         )}
         {wine.label_url && !labelBroken ? (
-          <img
-            src={wine.label_url}
+          <MediaThumbImg
+            key={`cc-${wine.label_url}`}
+            fullUrl={wine.label_url}
             alt={wine.name || `wine ${wine.id}`}
-            loading="lazy"
-            onError={() => setLabelBroken(true)}
+            onBroken={() => setLabelBroken(true)}
           />
         ) : (
           <div className="cand-card__placeholder" />
@@ -5034,10 +5037,10 @@ function AnalogCard({
         >
           <div className="cand-card__media">
             {item.label_url ? (
-              <img
-                src={item.label_url}
+              <MediaThumbImg
+                key={`an-${item.label_url}`}
+                fullUrl={item.label_url}
                 alt={item.name || `wine ${item.id}`}
-                loading="lazy"
               />
             ) : (
               <div className="cand-card__placeholder" />
@@ -5504,10 +5507,10 @@ function WinnerMatchPanel({
                   title="Открыть вино в каталоге"
                 >
                   {photoSrc ? (
-                    <img
-                      src={photoSrc}
+                    <MediaThumbImg
+                      key={`ws-a-${photoSrc}`}
+                      fullUrl={photoSrc}
                       alt={wine.name || `wine ${wine.id}`}
-                      loading="lazy"
                     />
                   ) : (
                     <div className="cand-card__placeholder" />
@@ -5517,10 +5520,10 @@ function WinnerMatchPanel({
               ) : (
                 <div className="scan-winner__simple-photo">
                   {photoSrc ? (
-                    <img
-                      src={photoSrc}
+                    <MediaThumbImg
+                      key={`ws-b-${photoSrc}`}
+                      fullUrl={photoSrc}
                       alt={wine.name || `wine ${wine.id}`}
-                      loading="lazy"
                     />
                   ) : (
                     <div className="cand-card__placeholder" />
@@ -5588,10 +5591,10 @@ function WinnerMatchPanel({
                     onMouseLeave={closeHoverSoon}
                   >
                     {wine.label_url ? (
-                      <img
-                        src={wine.label_url}
+                      <MediaThumbImg
+                        key={`wd-a-${wine.label_url}`}
+                        fullUrl={wine.label_url}
                         alt={wine.name || `wine ${wine.id}`}
-                        loading="lazy"
                       />
                     ) : (
                       <div className="cand-card__placeholder" />
@@ -5606,10 +5609,10 @@ function WinnerMatchPanel({
                   onMouseLeave={closeHoverSoon}
                 >
                   {wine.label_url ? (
-                    <img
-                      src={wine.label_url}
+                    <MediaThumbImg
+                      key={`wd-b-${wine.label_url}`}
+                      fullUrl={wine.label_url}
                       alt={wine.name || `wine ${wine.id}`}
-                      loading="lazy"
                     />
                   ) : (
                     <div className="cand-card__placeholder" />

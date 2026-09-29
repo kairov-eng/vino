@@ -22,6 +22,7 @@ import {
   listSavedReports,
   saveReport,
 } from './scanEvalReportStorage'
+import { MediaThumbImg } from '../mediaThumb'
 import './ScanHistoryPage.css'
 
 type SortState = { sort: ScanHistorySort; order: 'asc' | 'desc' }
@@ -160,10 +161,11 @@ function HistoryWineHoverPopup({
             <div className="history-cand-popup__photo">
               <span>Бутылка</span>
               {wine.photo_url && !bottleBroken ? (
-                <img
-                  src={wine.photo_url}
+                <MediaThumbImg
+                  key={`hcp-b-${wine.photo_url}`}
+                  fullUrl={wine.photo_url}
                   alt="Бутылка"
-                  onError={() => setBottleBroken(true)}
+                  onBroken={() => setBottleBroken(true)}
                 />
               ) : (
                 <div className="history-cand-popup__placeholder" />
@@ -172,10 +174,11 @@ function HistoryWineHoverPopup({
             <div className="history-cand-popup__photo">
               <span>Этикетка</span>
               {wine.label_url && !labelBroken ? (
-                <img
-                  src={wine.label_url}
+                <MediaThumbImg
+                  key={`hcp-l-${wine.label_url}`}
+                  fullUrl={wine.label_url}
                   alt="Этикетка"
-                  onError={() => setLabelBroken(true)}
+                  onBroken={() => setLabelBroken(true)}
                 />
               ) : (
                 <div className="history-cand-popup__placeholder" />
@@ -334,11 +337,11 @@ function HistoryXgbTopCard({
           }}
         >
           {thumb && !imgBroken ? (
-            <img
-              src={thumb}
+            <MediaThumbImg
+              key={`hxc-${thumb}`}
+              fullUrl={thumb}
               alt={wine.name || ''}
-              loading="lazy"
-              onError={() => setImgBroken(true)}
+              onBroken={() => setImgBroken(true)}
             />
           ) : (
             <div className="history-xgb-card__placeholder" />
@@ -1066,8 +1069,9 @@ export function ScanHistoryPage() {
                             openWine(row.matched_wine_slug, row.matched_wine_id)
                           }}
                         >
-                          <img
-                            src={row.matched_wine_photo_url}
+                          <MediaThumbImg
+                            key={`hm-${row.matched_wine_photo_url}`}
+                            fullUrl={row.matched_wine_photo_url}
                             alt={row.matched_wine_name || ''}
                             className="history-thumb"
                           />
