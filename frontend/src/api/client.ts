@@ -50,19 +50,15 @@ const API_BASE = import.meta.env.VITE_API_URL || ''
 export type SiteAuthResponse = {
   ok: boolean
   role: 'admin' | 'user' | null
+  /** True when password_admin is configured (edits require unlock). */
   enabled: boolean
 }
 
-export async function checkSiteAuth(
-  password?: string | null,
-): Promise<SiteAuthResponse> {
-  const headers: Record<string, string> = {}
-  const p = String(password || '').trim()
-  if (p) headers['X-Site-Password'] = p
-  const res = await fetch(`${API_BASE}/api/site-auth`, {
+/** Whether admin password is required to change pipeline settings. */
+export async function checkAdminAuth(): Promise<SiteAuthResponse> {
+  const res = await fetch(`${API_BASE}/api/admin-auth`, {
     method: 'GET',
     credentials: 'include',
-    headers,
   })
   if (!res.ok) {
     return { ok: false, role: null, enabled: true }
@@ -70,8 +66,11 @@ export async function checkSiteAuth(
   return res.json()
 }
 
-export async function loginSiteAuth(password: string): Promise<SiteAuthResponse> {
-  const res = await fetch(`${API_BASE}/api/site-auth`, {
+/** Validate admin password; client stores it in cookie on success. */
+export async function verifyAdminPassword(
+  password: string,
+): Promise<SiteAuthResponse> {
+  const res = await fetch(`${API_BASE}/api/admin-auth`, {
     method: 'POST',
     credentials: 'include',
     headers: { 'Content-Type': 'application/json' },
@@ -642,6 +641,7 @@ export type PipelineSettings = {
   final_ocr_options: { id: string; label: string }[]
   exclusive_use_translit: boolean
   exclusive_match_spaced: boolean
+  fast_text_match: boolean
 }
 
 export async function fetchPipelineSettings(): Promise<PipelineSettings> {
@@ -698,15 +698,40 @@ export async function updatePipelineSettings(patch: {
   final_ocr?: string
   exclusive_use_translit?: boolean
   exclusive_match_spaced?: boolean
+  fast_text_match?: boolean
+  admin_password?: string | null
 }): Promise<PipelineSettings> {
+  const admin_password =
+    (patch.admin_password != null && String(patch.admin_password).trim()
+      ? String(patch.admin_password).trim()
+      : readAdminPasswordCookieValue()) || undefined
+  const body = { ...patch, admin_password }
   const res = await fetch(`${API_BASE}/api/settings`, {
     method: 'PUT',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(patch),
+    body: JSON.stringify(body),
   })
   if (!res.ok) {
     const detail = await res.text()
     throw new Error(detail || 'Не удалось сохранить настройки')
   }
   return res.json()
+}
+
+function readAdminPasswordCookieValue(): string {
+  if (typeof document === 'undefined') return ''
+  for (const name of ['vino_admin_password', 'vino_site_password']) {
+    const parts = document.cookie.split(';')
+    for (const part of parts) {
+      const idx = part.indexOf('=')
+      if (idx < 0) continue
+      if (part.slice(0, idx).trim() !== name) continue
+      try {
+        return decodeURIComponent(part.slice(idx + 1).trim())
+      } catch {
+        return part.slice(idx + 1).trim()
+      }
+    }
+  }
+  return ''
 }

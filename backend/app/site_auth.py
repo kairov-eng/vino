@@ -1,16 +1,10 @@
-"""Site password gate: password_admin / password_user from .env."""
+"""Admin password for pipeline settings writes (password_admin from .env)."""
 
 from __future__ import annotations
 
 import hmac
-from typing import Literal
 
-from starlette.requests import Request
-
-from app.db.config import PASSWORD_ADMIN, PASSWORD_USER, SITE_ACCESS_ENABLED
-
-SITE_PASSWORD_COOKIE = "vino_site_password"
-SiteRole = Literal["admin", "user"]
+from app.db.config import PASSWORD_ADMIN
 
 
 def _eq(a: str, b: str) -> bool:
@@ -25,35 +19,13 @@ def _eq(a: str, b: str) -> bool:
     return hmac.compare_digest(ab, bb)
 
 
-def resolve_site_role(password: str | None) -> SiteRole | None:
-    """Return role if password matches admin or user; else None."""
-    raw = (password or "").strip()
-    if not raw or not SITE_ACCESS_ENABLED:
-        return None
-    if PASSWORD_ADMIN and _eq(raw, PASSWORD_ADMIN):
-        return "admin"
-    if PASSWORD_USER and _eq(raw, PASSWORD_USER):
-        return "user"
-    return None
+def admin_password_required() -> bool:
+    """True when password_admin is configured in .env."""
+    return bool(PASSWORD_ADMIN)
 
 
-def password_from_request(request: Request) -> str | None:
-    """Cookie first, then X-Site-Password header."""
-    cookie = (request.cookies.get(SITE_PASSWORD_COOKIE) or "").strip()
-    if cookie:
-        return cookie
-    header = (request.headers.get("x-site-password") or "").strip()
-    return header or None
-
-
-def is_site_auth_exempt(path: str, method: str) -> bool:
-    if method.upper() == "OPTIONS":
+def is_admin_password(password: str | None) -> bool:
+    """True if password matches admin, or no admin password is configured."""
+    if not PASSWORD_ADMIN:
         return True
-    p = path.rstrip("/") or "/"
-    if p in {"/api/health", "/api/site-auth"}:
-        return True
-    # Catalog photos are not secret; skip gate so CDN/nginx can cache freely.
-    # (Prod serves /media from vino_frontend nginx, which does not check cookies.)
-    if p.startswith("/media/") or p == "/media":
-        return True
-    return False
+    return _eq((password or "").strip(), PASSWORD_ADMIN)

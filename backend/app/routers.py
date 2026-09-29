@@ -10,7 +10,8 @@ from sqlalchemy import Select, and_, func, or_, select
 from sqlalchemy.orm import Session
 
 from app.database import SessionLocal, get_db
-from app.db.config import SEARCH_PHOTO_DIR
+from app.db.config import IS_DEV, SEARCH_PHOTO_DIR
+from app.site_auth import is_admin_password
 from app.db.models import SearchPhoto, Wine, WineSitemap
 from app.media import label_url, photo_url
 from app.pipeline.findwine import run_findwine
@@ -403,14 +404,34 @@ async def findwine(
     return _findwine_response_from_status(status, manual_wines_id=manual_id)
 
 
-@eval_router.post("/v1/eval/predict", response_model=EvalPredictResponse)
-async def eval_predict(
+@eval_router.post(
+    "/v1/eval/predict_public",
+    response_model=EvalPredictResponse,
+    include_in_schema=IS_DEV,
+)
+async def eval_predict_public(
     image: UploadFile = File(...),
     db: Session = Depends(get_db),
 ) -> EvalPredictResponse:
-    """Контракт participant_test.sh: multipart-поле image → {\"slug\": \"...\"}."""
+    """Публичный alias: multipart image → {\"slug\": \"...\"} (dev + prod)."""
     result = await findwine(file=image, eval=1)
     return EvalPredictResponse(slug=_winner_slug(result, db))
+
+
+if IS_DEV:
+
+    @eval_router.post(
+        "/v1/eval/predict",
+        response_model=EvalPredictResponse,
+        include_in_schema=True,
+    )
+    async def eval_predict(
+        image: UploadFile = File(...),
+        db: Session = Depends(get_db),
+    ) -> EvalPredictResponse:
+        """Контракт participant_test.sh (только dev): multipart image → {\"slug\"}."""
+        result = await findwine(file=image, eval=1)
+        return EvalPredictResponse(slug=_winner_slug(result, db))
 
 
 def _browser_image_filename(*candidates: str | None) -> str | None:
@@ -1683,6 +1704,11 @@ def get_pipeline_settings() -> PipelineSettingsOut:
 
 @router.put("/settings", response_model=PipelineSettingsOut)
 def put_pipeline_settings(body: PipelineSettingsUpdate) -> PipelineSettingsOut:
+    if not is_admin_password(body.admin_password):
+        raise HTTPException(
+            status_code=403,
+            detail="admin password required to change settings",
+        )
     patch: dict = {}
     if body.ocr_preprocess is not None:
         patch["ocr_preprocess"] = body.ocr_preprocess
@@ -1891,6 +1917,8 @@ def put_pipeline_settings(body: PipelineSettingsUpdate) -> PipelineSettingsOut:
         patch["exclusive_use_translit"] = body.exclusive_use_translit
     if body.exclusive_match_spaced is not None:
         patch["exclusive_match_spaced"] = body.exclusive_match_spaced
+    if body.fast_text_match is not None:
+        patch["fast_text_match"] = body.fast_text_match
     if not patch:
         return PipelineSettingsOut(**settings_public_view(get_settings()))
     saved = save_settings(patch)

@@ -341,6 +341,9 @@ class PipelineSettingsUpdate(BaseModel):
     final_ocr: str | None = None
     exclusive_use_translit: bool | None = None
     exclusive_match_spaced: bool | None = None
+    fast_text_match: bool | None = None
+    # Required for writes when password_admin is set in .env.
+    admin_password: str | None = None
 
 
 class PipelineSettingsOut(BaseModel):
@@ -397,3 +400,4 @@ class PipelineSettingsOut(BaseModel):
     final_ocr_options: list[dict] = []
     exclusive_use_translit: bool = True
     exclusive_match_spaced: bool = True
+    fast_text_match: bool = True

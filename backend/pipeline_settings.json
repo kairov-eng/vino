@@ -33,7 +33,7 @@
   "bottle_orient_min_deg": 8.0,
   "label_detect_openai": false,
   "label_detect_gemini": true,
-  "embedding_device": "cpu",
+  "embedding_device": "gpu",
   "embed_cpu_use_cache": true,
   "normalize_max_side": 800,
   "candidates_top_n": 10,
@@ -85,5 +85,6 @@
   "show_search_details": false,
   "final_ocr": "google_vision",
   "exclusive_use_translit": true,
-  "exclusive_match_spaced": false
+  "exclusive_match_spaced": false,
+  "fast_text_match": true
 }

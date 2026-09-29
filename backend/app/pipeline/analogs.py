@@ -3,6 +3,9 @@
 Без match — критерии из OCR искомого; с match — те же веса по полям
 найденного каталожного вина (исключая сам winner). Category/type — каноны
 exclusive_lexicon.json (rouge == red). Каталог в памяти при старте backend.
+
+Если по критериям 0 хитов — fallback: top-5 кандидатов embedding с cos>0.7
+без hard reject, по убыванию cosine.
 """
 
 from __future__ import annotations
@@ -46,6 +49,10 @@ WEIGHTS: dict[str, float] = {
 # Известный, но другой цвет (красное вместо белого) — штраф поверх нуля по критерию.
 COLOR_CONFLICT_FACTOR = 0.75
 TOP_N = 10
+# Fallback, если по тексту этикетки / критериям нет ни одного аналога:
+# top-K кандидатов embedding с cos > порога, без hard reject.
+COSINE_FALLBACK_TOP_N = 5
+COSINE_FALLBACK_MIN = 0.70
 
 CATEGORY_LABELS = {
     "white": "белое",
@@ -399,18 +406,24 @@ def _item_from_catalog(
 def _items_by_embedding_cosine(
     cosine_by_id: dict[int, float],
     *,
-    top_n: int = TOP_N,
+    top_n: int = COSINE_FALLBACK_TOP_N,
+    min_cos: float = COSINE_FALLBACK_MIN,
+    exclude_ids: set[int] | frozenset[int] | None = None,
 ) -> list[dict[str, Any]]:
-    """Top-N среди кандидатов embedding по cos (когда OCR-критерии пусты)."""
+    """Top-N среди кандидатов embedding: cos > min_cos, без exclude/hard-reject."""
     by_id = _catalog_by_id()
+    skip = {int(x) for x in (exclude_ids or set())}
     ranked: list[tuple[int, float]] = []
+    thr = float(min_cos)
     for wid_raw, cos_raw in (cosine_by_id or {}).items():
         try:
             wid = int(wid_raw)
             cos = float(cos_raw)
         except (TypeError, ValueError):
             continue
-        if wid not in by_id:
+        if wid in skip or wid not in by_id:
+            continue
+        if cos <= thr:
             continue
         ranked.append((wid, cos))
     ranked.sort(key=lambda t: (-t[1], t[0]))
@@ -435,13 +448,15 @@ def _rank_analogs(
     cosine_by_id: dict[int, float] | None = None,
     top_n: int = TOP_N,
     exclude_ids: set[int] | None = None,
+    hard_reject_ids: set[int] | frozenset[int] | None = None,
     source: str = "criteria",
     seed_wine_id: int | None = None,
 ) -> dict[str, Any]:
     """Rank catalog wines by OCR/catalog criteria; cosine fallback if empty."""
     t0 = time.perf_counter()
     cos = cosine_by_id or {}
-    skip = exclude_ids or set()
+    skip = set(exclude_ids or set())
+    hard = {int(x) for x in (hard_reject_ids or set())}
     found = [k for k in WEIGHTS if crit.get(k)]
     available = sum(WEIGHTS[k] for k in found)
     base: dict[str, Any] = {
@@ -450,6 +465,8 @@ def _rank_analogs(
         "criteria_found": found,
         "weights": dict(WEIGHTS),
         "catalog": dict(_LOAD_INFO),
+        "cosine_fallback_min": COSINE_FALLBACK_MIN,
+        "cosine_fallback_top_n": COSINE_FALLBACK_TOP_N,
     }
     if seed_wine_id is not None:
         base["seed_wine_id"] = int(seed_wine_id)
@@ -459,20 +476,26 @@ def _rank_analogs(
         return base
 
     def _cosine_fallback(reason: str) -> dict[str, Any]:
-        items = [
-            it
-            for it in _items_by_embedding_cosine(cos, top_n=top_n + len(skip))
-            if int(it["id"]) not in skip
-        ][:top_n]
+        items = _items_by_embedding_cosine(
+            cos,
+            top_n=COSINE_FALLBACK_TOP_N,
+            min_cos=COSINE_FALLBACK_MIN,
+            exclude_ids=skip | hard,
+        )
         base.update(
             items=items,
             pool=len(items),
             reason=reason,
             source="embedding_cosine",
             skipped=False,
+            hard_reject_excluded=len(hard),
         )
         if not items:
             base["skipped"] = True
+            base["note"] = (
+                f"no candidates with cos>{COSINE_FALLBACK_MIN:.2f} "
+                "after hard-reject filter"
+            )
         base["ms"] = round((time.perf_counter() - t0) * 1000, 1)
         return base
 
@@ -572,16 +595,18 @@ def find_analogs(
     query_text: str,
     *,
     cosine_by_id: dict[int, float] | None = None,
+    hard_reject_ids: set[int] | frozenset[int] | None = None,
     top_n: int = TOP_N,
 ) -> dict[str, Any]:
     """Top-N вин каталога по совпадению критериев OCR искомого.
 
     Если критерии из текста не извлечены или подходящих вин нет —
-    top-N по cos среди кандидатов embedding.
+    top-5 кандидатов с cos>0.7 без hard reject (по убыванию cos).
     """
     return _rank_analogs(
         extract_analog_criteria(query_text),
         cosine_by_id=cosine_by_id,
+        hard_reject_ids=hard_reject_ids,
         top_n=top_n,
         source="criteria",
     )
@@ -591,6 +616,7 @@ def find_analogs_from_wine(
     wine_id: int,
     *,
     cosine_by_id: dict[int, float] | None = None,
+    hard_reject_ids: set[int] | frozenset[int] | None = None,
     top_n: int = TOP_N,
 ) -> dict[str, Any]:
     """Похожие вина по полям найденного каталожного вина (без самого winner)."""
@@ -622,6 +648,7 @@ def find_analogs_from_wine(
         cosine_by_id=cosine_by_id,
         top_n=top_n,
         exclude_ids={seed.id},
+        hard_reject_ids=hard_reject_ids,
         source="matched_wine_catalog",
         seed_wine_id=seed.id,
     )

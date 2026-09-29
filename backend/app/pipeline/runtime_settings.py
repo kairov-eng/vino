@@ -181,12 +181,15 @@ def _defaults() -> dict[str, Any]:
         # → inject winner (search_photos_id=prev) + catalog top-19 (id=0);
         # use that search's GV OCR (skip live GV when text present).
         "reuse_previous_searches": False,
-        # Admin UI: show technical search details (candidates, OCR, scores).
-        # Non-admins always see the simplified scanner regardless of this flag.
+        # UI: show technical search details (candidates, OCR, scores).
+        # Editable by any authenticated user; other pipeline settings need admin.
         "show_search_details": True,
         "final_ocr": "auto",
         "exclusive_use_translit": True,
         "exclusive_match_spaced": True,
+        # Fast text path: exclusive token-index + cand query-forms only;
+        # Soft IDF warmup / no CMS name; producers cache. Off → legacy.
+        "fast_text_match": True,
     }
 
 
@@ -585,6 +588,11 @@ def _normalize(raw: dict[str, Any] | None) -> dict[str, Any]:
             data["exclusive_match_spaced"],
             base.get("exclusive_match_spaced", True),
         )
+    if "fast_text_match" in data:
+        base["fast_text_match"] = _as_bool(
+            data["fast_text_match"],
+            base.get("fast_text_match", True),
+        )
     # Mutual exclusions (score gates):
     # - HSV soft threshold ≤ hard reject (hard is stricter absolute cut)
     # - xgb_dead_max ≤ XGB match (dead must be below match band)
@@ -730,6 +738,7 @@ def save_settings(patch: dict[str, Any]) -> dict[str, Any]:
             "final_ocr",
             "exclusive_use_translit",
             "exclusive_match_spaced",
+            "fast_text_match",
         ):
             if key in patch:
                 merged[key] = patch[key]
@@ -882,4 +891,5 @@ def settings_public_view(data: dict[str, Any] | None = None) -> dict[str, Any]:
         ],
         "exclusive_use_translit": bool(s.get("exclusive_use_translit", True)),
         "exclusive_match_spaced": bool(s.get("exclusive_match_spaced", True)),
+        "fast_text_match": bool(s.get("fast_text_match", True)),
     }

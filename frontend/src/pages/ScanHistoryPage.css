@@ -729,3 +729,85 @@
     grid-template-columns: 1fr;
   }
 }
+
+@media (max-width: 720px) {
+  .history-table thead {
+    display: none;
+  }
+
+  .history-table,
+  .history-table tbody {
+    display: block;
+    width: 100%;
+  }
+
+  .history-row {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    gap: 8px 10px;
+    padding: 12px 10px;
+    border-bottom: 1px solid rgba(80, 48, 40, 0.08);
+    align-items: start;
+  }
+
+  .history-table th,
+  .history-table td {
+    border: none;
+    padding: 0;
+  }
+
+  /* 1-я колонка — искомая, 2-я — найденная */
+  .history-row > .col-photo:not(.col-found) {
+    grid-column: 1;
+    grid-row: 1;
+    width: auto;
+  }
+
+  .history-row > .col-found {
+    grid-column: 2;
+    grid-row: 1;
+    width: auto;
+    min-width: 0;
+  }
+
+  .history-row > .col-ocr {
+    grid-column: 1 / -1;
+    grid-row: 2;
+    min-width: 0;
+    max-width: none;
+  }
+
+  .history-row > .col-nomatch {
+    grid-column: 1 / -1;
+    grid-row: 2;
+    width: auto;
+    min-width: 0;
+  }
+
+  .history-row > .col-score {
+    grid-column: 1 / -1;
+    grid-row: 3;
+    min-width: 0;
+    max-width: none;
+  }
+
+  .history-thumb,
+  .history-thumb-btn .history-thumb,
+  .history-thumb--empty {
+    width: 100%;
+    max-width: 160px;
+    height: auto;
+    aspect-ratio: 108 / 140;
+    margin: 0 auto;
+  }
+
+  .history-nomatch {
+    flex-direction: column;
+  }
+
+  .history-nomatch__ocr {
+    flex: none;
+    width: 100%;
+    max-width: none;
+  }
+}

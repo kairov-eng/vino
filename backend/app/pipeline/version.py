@@ -5,12 +5,27 @@
 """
 
 # x.x.x — текущая версия пайплайна сравнения / распознавания
-ALGORITHM_VERSION = "0.101.1"
+ALGORITHM_VERSION = "0.104.0"
 
 # ISO-8601 local timestamp последнего изменения алгоритма (обновлять вместе с VERSION)
-ALGORITHM_UPDATED_AT = "2026-09-28T15:10:00+03:00"
+ALGORITHM_UPDATED_AT = "2026-09-29T11:40:00+03:00"
 
 ALGORITHM_NOTES = (
+    "0.104.0: exclusive grape/winery — phrase-by-head: сначала формы с "
+    "большим числом слов (Каберне Совиньон до Каберне), затем частота; "
+    "у кандидата проверяется полная форма (не first-word); убран дамп "
+    "всех форм справочника в консоль при загрузке; "
+    "0.103.0: fast_text_match (настройка, default on; выкл.=legacy) — "
+    "exclusive: token→dict на query + проверка только query-форм на "
+    "кандидате (без полного scan лексикона); match_spaced auto если OCR "
+    "не «разрезан»; Soft IDF warmup при старте + кеш producers/regions; "
+    "Soft R/IDF без CMS name (скоринг всё ещё только visual top-N; IDF — "
+    "веса редкости, не сравнение со всем каталогом); "
+    "0.102.0: analogs fallback — если по тексту/критериям 0 аналогов: "
+    "top-5 кандидатов cos>0.7 без hard reject, sort cos↓; "
+    "0.101.2: exclusive winery — exclusive_winery_brand_tokens.json protect "
+    "list (бренды не стоп-слова: uppa/loco/abrau/массандра/…); "
+    "из STOP убраны совпавшие brand-токены (domaine/family/завод/…); "
     "0.101.1: findwine — search_photos.status только в памяти до финала "
     "(или early abort); убраны промежуточные commit status + HF mid-run "
     "DB merge; embeddings flush без отдельного commit; "

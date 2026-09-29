@@ -25,8 +25,16 @@ import {
   catalogHrefRegionWithWinery,
   catalogHrefWinery,
 } from '../catalogFilters'
-import { useSiteAuth } from '../auth/SiteAuthContext'
-import { ScanSettingsGear, ScanSettingsPopup } from '../components/ScanSettings'
+import {
+  readShowSearchDetailsCookie,
+  setShowSearchDetailsPreference,
+  SHOW_SEARCH_DETAILS_EVENT,
+} from '../showSearchDetails'
+import {
+  readScanSessionCache,
+  writeScanSessionCache,
+  clearScanSessionCache,
+} from '../scanSessionCache'
 import './HomePage.css'
 
 const TIMING_LABELS: Record<string, string> = {
@@ -268,7 +276,7 @@ type OcrVariantBestDisplay = {
   name?: string
   score: number
   /** Какой скор показываем: fin1 / Soft fin2 / сырой TextScore */
-  label: 'FinalScore' | 'FinalScore2' | 'TextScore'
+  label: 'Final score' | 'Final score 2' | 'TextScore'
 }
 
 type OcrVariantBestRow = {
@@ -287,7 +295,7 @@ type OcrVariantBestRow = {
 }
 
 /**
- * UI-скор для «FinalScore winner» на карточке OCR.
+ * UI-скор для «Final score winner» на карточке OCR.
  * Когда fin1 выключен в text_match_methods, backend ставит final_score=0
  * (skipped) — тогда берём final_score2 (Soft) или восстанавливаем смесь
  * из final.text_score_01×w + cosine×w.
@@ -298,11 +306,11 @@ function scoreFromOcrBestRow(
   if (!row) return null
   const fs = Number(row.final_score)
   if (Number.isFinite(fs) && fs > 1e-9) {
-    return { score: fs, label: 'FinalScore' }
+    return { score: fs, label: 'Final score' }
   }
   const fs2 = Number(row.final_score2)
   if (Number.isFinite(fs2) && fs2 > 1e-9) {
-    return { score: fs2, label: 'FinalScore2' }
+    return { score: fs2, label: 'Final score 2' }
   }
   const fin = row.final
   if (fin?.skipped) {
@@ -311,7 +319,7 @@ function scoreFromOcrBestRow(
     const ts = Number(fin.text_score_01)
     const cos = Number(fin.cosine)
     if ([wt, wc, ts, cos].every((x) => Number.isFinite(x))) {
-      return { score: wt * ts + wc * cos, label: 'FinalScore' }
+      return { score: wt * ts + wc * cos, label: 'Final score' }
     }
   }
   const s01 = Number(row.score_01)
@@ -569,8 +577,7 @@ function collectOcrScoresByWine(
     const cur = map.get(wid) || {}
     const prev = cur[channel]
     const v = to01(sc)
-    // Нулевой fin без реального расчёта не показываем как Score V/…
-    if (Math.abs(v) < 1e-9) return
+    // 0 тоже показываем (hard reject / below band) — Final score по OCR
     if (prev == null || v > prev) cur[channel] = v
     map.set(wid, cur)
   }
@@ -824,61 +831,29 @@ function finalOcrPrimaryChannel(
   return ocrChannelFromEngineKey(primary)
 }
 
-/** Подпись ряда Fin на карточке / сортировке. */
-function finalByOcrRowLabel(method: string): string {
-  if (method === 'xgb') return 'XGB_fin'
-  if (method === 'crenc' || method === 'crenc_srv') return 'CrEnc_fin'
-  if (method === 'openai_txt') return 'LLM txt'
-  if (method === 'fin2') return 'Fin2'
-  return 'Fin'
+/** Подпись финального скора (значение = fin выбранного метода: XGB_fin / fin1 / …). */
+function finalByOcrRowLabel(_method?: string): string {
+  return 'Final score'
 }
 
 function finalByOcrSortLabel(ch: OcrScoreChannel, method: string): string {
   return `${finalByOcrRowLabel(method)} ${ocrChannelLetter(ch)}`
 }
 
-/** Основной fin на карточке для выбранного text method (для сравнения с per-OCR). */
-function mainFinScoreForMethod(
-  wine: FindWineCandidate,
-  method: string,
-): number | null {
-  const num = (v: unknown): number | null => {
-    if (v == null) return null
-    const n = Number(v)
-    return Number.isFinite(n) ? n : null
-  }
-  if (method === 'xgb') return num(wine.xgb_fin)
-  if (method === 'crenc' || method === 'crenc_srv') return num(wine.crenc_fin)
-  if (method === 'openai_txt') return num(wine.llm_txt)
-  return null
-}
-
-function scoresMatch00(a: number, b: number): boolean {
-  const scale = (n: number) => (Math.abs(n) > 1.5 ? n / 100 : n)
-  return Math.abs(scale(a) - scale(b)) < 0.005
-}
-
 /**
- * Каналы Final-по-OCR для отображения.
- * Если единственный канал и его score = основному XGB_fin/CrEnc_fin/… — скрыть
- * (иначе дубль «XGB_fin» и «XGB_fin V»).
+ * Каналы OCR, для которых есть Final score (включая 0 — hard reject / below band).
+ * Показываем все доступные OCR, без скрытия «дубля» основного fin.
  */
 function visibleOcrFinChannels(
-  wine: FindWineCandidate,
-  method: string,
+  _wine: FindWineCandidate,
+  _method: string,
   channels: OcrScoreChannel[],
   scores?: Partial<Record<OcrScoreChannel, number>> | null,
 ): OcrScoreChannel[] {
-  const scored = channels.filter((ch) => {
+  return channels.filter((ch) => {
     const v = scores?.[ch]
-    return v != null && Number.isFinite(Number(v)) && Math.abs(Number(v)) > 1e-9
+    return v != null && Number.isFinite(Number(v))
   })
-  if (scored.length !== 1) return scored.length > 0 ? scored : []
-  const main = mainFinScoreForMethod(wine, method)
-  if (main == null) return scored
-  const only = Number(scores?.[scored[0]])
-  if (Number.isFinite(only) && scoresMatch00(only, main)) return []
-  return scored
 }
 
 /** Текст OCR запроса (искомое фото) — лучший канал по FinalScore, иначе любой доступный. */
@@ -1894,8 +1869,16 @@ function WineHoverPopup({
                 </li>
               )}
               {wine.xgb_fin != null && (
-                <li>
-                  <span>XGB_fin</span>
+                <li
+                  title={
+                    finalMethod === 'xgb'
+                      ? 'Final score = XGB_fin'
+                      : 'XGB_fin'
+                  }
+                >
+                  <span>
+                    {finalMethod === 'xgb' ? 'Final score' : 'XGB_fin'}
+                  </span>
                   <em>{formatScore00(wine.xgb_fin)}</em>
                   {(wine.exclusive_rejected || wine.label_text_hard_reject) &&
                     wine.xgb_fin_pre_reject != null && (
@@ -1914,8 +1897,14 @@ function WineHoverPopup({
           <div className="cand-popup__scores">
             <strong>Soft TF-IDF (fin2)</strong>
             <ul>
-              <li>
-                <span>fin2</span>
+              <li
+                title={
+                  finalMethod === 'fin2'
+                    ? 'Final score = Soft TF-IDF fin2'
+                    : 'fin2'
+                }
+              >
+                <span>{finalMethod === 'fin2' ? 'Final score' : 'fin2'}</span>
                 <em>{formatScore00(fin2Score)}</em>
               </li>
             </ul>
@@ -1933,8 +1922,18 @@ function WineHoverPopup({
                 </li>
               )}
               {wine.crenc_fin != null && (
-                <li>
-                  <span>CrEnc_fin</span>
+                <li
+                  title={
+                    finalMethod === 'crenc' || finalMethod === 'crenc_srv'
+                      ? 'Final score = CrEnc_fin'
+                      : 'CrEnc_fin'
+                  }
+                >
+                  <span>
+                    {finalMethod === 'crenc' || finalMethod === 'crenc_srv'
+                      ? 'Final score'
+                      : 'CrEnc_fin'}
+                  </span>
                   <em>{formatScore00(wine.crenc_fin)}</em>
                 </li>
               )}
@@ -1946,8 +1945,16 @@ function WineHoverPopup({
           <div className="cand-popup__scores">
             <strong>OpenAI сравнение текста</strong>
             <ul>
-              <li>
-                <span>LLM txt</span>
+              <li
+                title={
+                  finalMethod === 'openai_txt'
+                    ? 'Final score = LLM txt'
+                    : 'LLM txt'
+                }
+              >
+                <span>
+                  {finalMethod === 'openai_txt' ? 'Final score' : 'LLM txt'}
+                </span>
                 <em>{formatScore00(wine.llm_txt)}</em>
               </li>
             </ul>
@@ -1964,7 +1971,7 @@ function WineHoverPopup({
             if (!finCh.length) return null
             return (
               <div className="cand-popup__scores">
-                <strong>OCR · Final (метод сравнения текстов)</strong>
+                <strong>OCR · Final score</strong>
                 <ul>
                   {finCh.map((ch) => (
                     <li key={`s-${ch}`} className={`is-ocr-${ch}`}>
@@ -2953,8 +2960,8 @@ function CandidateCard({
       className={`cand-card ${overlap ? 'is-overlap' : ''} ${hovered ? 'is-hovered' : ''} ${isFinalWinner ? 'is-final-winner' : ''} ${isXgbWinner ? 'is-xgb-winner' : ''} ${isSimilarBand && !isFinalWinner ? 'is-similar-band' : ''} ${isManualMatch ? 'is-manual-match' : ''} ${wine.from_previous_search ? 'is-from-previous-search' : ''}`.trim()}
       title={
         [
-          isFinalWinner ? 'Победитель FinalScore' : '',
-          isXgbWinner ? 'Победитель XGB_fin' : '',
+          isFinalWinner ? 'Победитель Final score' : '',
+          isXgbWinner ? 'Победитель Final score (XGB)' : '',
           isSimilarBand && !isFinalWinner ? 'Similar (между similar и match)' : '',
           isManualMatch ? 'Это вино!' : '',
           wine.from_previous_search
@@ -3044,11 +3051,11 @@ function CandidateCard({
                 className={sortMetricClass(sortBy, 'xgb_fin').trim() || undefined}
                 title={
                   wine.xgb_fin_reason
-                    ? `hard reject → XGB_fin=0; без reject было бы ${formatScore00(wine.xgb_fin_pre_reject ?? wine.xgb_fin)} (${wine.xgb_fin_reason})`
-                    : 'hard reject → XGB_fin=0; серым — значение без reject'
+                    ? `hard reject → Final score=0; без reject было бы ${formatScore00(wine.xgb_fin_pre_reject ?? wine.xgb_fin)} (${wine.xgb_fin_reason})`
+                    : 'hard reject → Final score=0; серым — значение без reject'
                 }
               >
-                XGB_fin <em>0</em>
+                {finalMethod === 'xgb' ? 'Final score' : 'XGB_fin'} <em>0</em>
                 {wine.xgb_fin_pre_reject != null && (
                   <span className="cand-card__xgb-fin-ghost">
                     {' '}
@@ -3059,8 +3066,14 @@ function CandidateCard({
             ) : (
               <span
                 className={sortMetricClass(sortBy, 'xgb_fin').trim() || undefined}
+                title={
+                  finalMethod === 'xgb'
+                    ? 'Final score = XGB_fin (выбранный метод финального скоринга)'
+                    : 'XGB_fin = w_ocr×XGB + w_emb×Cosine'
+                }
               >
-                XGB_fin <em>{formatScore00(wine.xgb_fin)}</em>
+                {finalMethod === 'xgb' ? 'Final score' : 'XGB_fin'}{' '}
+                <em>{formatScore00(wine.xgb_fin)}</em>
               </span>
             )}
           </p>
@@ -3068,9 +3081,14 @@ function CandidateCard({
         {showFin2 && fin2Score != null && (
           <p
             className="cand-card__fin2"
-            title="Soft TF-IDF FinalScore2 (fin2); при мёртвом XGB — fallback сходства OCR"
+            title={
+              finalMethod === 'fin2'
+                ? 'Final score = Soft TF-IDF FinalScore2'
+                : 'Soft TF-IDF FinalScore2 (fin2); при мёртвом XGB — fallback сходства OCR'
+            }
           >
-            fin2 <em>{formatScore00(fin2Score)}</em>
+            {finalMethod === 'fin2' ? 'Final score' : 'fin2'}{' '}
+            <em>{formatScore00(fin2Score)}</em>
           </p>
         )}
         {(wine.crenc_score != null || wine.crenc_fin != null) && (
@@ -3083,17 +3101,30 @@ function CandidateCard({
             </span>
             <span
               className={sortMetricClass(sortBy, 'crenc_fin').trim() || undefined}
+              title={
+                finalMethod === 'crenc' || finalMethod === 'crenc_srv'
+                  ? 'Final score = CrEnc_fin (выбранный метод финального скоринга)'
+                  : 'CrEnc_fin = w_ocr×CrEnc + w_emb×Cosine'
+              }
             >
-              CrEnc_fin <em>{formatScore00(wine.crenc_fin)}</em>
+              {finalMethod === 'crenc' || finalMethod === 'crenc_srv'
+                ? 'Final score'
+                : 'CrEnc_fin'}{' '}
+              <em>{formatScore00(wine.crenc_fin)}</em>
             </span>
           </p>
         )}
         {wine.llm_txt != null && (
           <p
             className={`cand-card__llm-txt${sortMetricClass(sortBy, 'llm_txt')}`}
-            title="OpenAI сравнение текста — вероятность совпадения 0…1"
+            title={
+              finalMethod === 'openai_txt'
+                ? 'Final score = LLM txt (OpenAI сравнение текста)'
+                : 'OpenAI сравнение текста — вероятность совпадения 0…1'
+            }
           >
-            LLM txt <em>{formatScore00(wine.llm_txt)}</em>
+            {finalMethod === 'openai_txt' ? 'Final score' : 'LLM txt'}{' '}
+            <em>{formatScore00(wine.llm_txt)}</em>
           </p>
         )}
         {(wine.geometry_score != null || wine.geometry_inliers != null) && (
@@ -3536,7 +3567,7 @@ function OcrVariantsBlock({
         {showOpenaiTxtMatch ? ' · OpenAI txt' : ''}
       </h2>
       <p className="ocr-legend">
-        Цветная рамка = победитель FinalScore (embedding+OCR) по каналу:{' '}
+        Цветная рамка = победитель Final score по каналу:{' '}
         {showClassicGroups &&
           OCR_LETTERS.map((l) => (
             <span key={l} className={`ocr-legend__item is-ocr-${l}`}>
@@ -3701,7 +3732,7 @@ function OcrVariantsBlock({
       </div>
       {help?.best_final && (
         <p className="ocr-block__best">
-          Итог FinalScore:{' '}
+          Итог Final score:{' '}
           <strong>id {String((help.best_final as { id?: number }).id)}</strong>
           {(help.best_final as { final_score?: number }).final_score != null &&
             ` · ${(help.best_final as { final_score?: number }).final_score!.toFixed(4)}`}
@@ -3709,14 +3740,6 @@ function OcrVariantsBlock({
             ` · Text ${(help.best_final as { score?: number }).score}`}
           {(help.best_final as { cosine?: number }).cosine != null &&
             ` · cos ${(help.best_final as { cosine?: number }).cosine!.toFixed(4)}`}
-        </p>
-      )}
-      {help?.best_variant_for_visual_support && (
-        <p className="ocr-block__best">
-          Лучше всего поддерживает visual-кандидатов:{' '}
-          <strong>{help.best_variant_for_visual_support}</strong>
-          {help.best_visual_support_score != null &&
-            ` (TextScore ${help.best_visual_support_score})`}
         </p>
       )}
       {showClassicGroups && (
@@ -3733,7 +3756,7 @@ function OcrVariantsBlock({
               Вариант {group.letter} · {group.title}
               {group.bestKey && (
                 <span className={`ocr-variant-group__best is-ocr-${group.letter}`}>
-                  лучший: {ocrVariantTitle(group.bestKey)} · FinalScore{' '}
+                  лучший: {ocrVariantTitle(group.bestKey)} · Final score{' '}
                   {group.bestScore != null ? group.bestScore.toFixed(4) : '—'}
                   {group.wineId != null && (
                     <>
@@ -4564,46 +4587,6 @@ function OcrVariantsBlock({
           </div>
         </section>
       )}
-
-      {help?.ensemble?.best_visual && (
-        <p className="ocr-block__ensemble">
-          Ensemble OCR: id{' '}
-          <WineIdHover
-            wineId={help.ensemble.best_visual.id}
-            wineById={wineById}
-            cosByWine={cosByWine}
-            ocrScoresByWine={ocrScoresByWine}
-                        ocrQueryText={ocrQueryText}
-                        exclusiveLexicon={exclusiveLexicon}
-                        hsvStep={hsvStep}
-                        labelTextHr={labelTextHr}
-          />{' '}
-          · TextScore {help.ensemble.best_visual.score}
-          {help.ensemble.best_visual.name
-            ? ` · ${help.ensemble.best_visual.name}`
-            : ''}
-          {help.ensemble.top_wine_ids?.length ? (
-            <>
-              {' · top: '}
-              {help.ensemble.top_wine_ids.slice(0, 8).map((id, i) => (
-                <span key={id}>
-                  {i > 0 ? ', ' : ''}
-                  <WineIdHover
-                    wineId={id}
-                    wineById={wineById}
-                    cosByWine={cosByWine}
-                    ocrScoresByWine={ocrScoresByWine}
-                        ocrQueryText={ocrQueryText}
-                        exclusiveLexicon={exclusiveLexicon}
-                        hsvStep={hsvStep}
-                        labelTextHr={labelTextHr}
-                  />
-                </span>
-              ))}
-            </>
-          ) : null}
-        </p>
-      )}
     </section>
   )
 }
@@ -4672,6 +4655,18 @@ function CandidatesBlock({
       const ch = channelFromSortKey(o.key)
       if (ch) {
         return { key: o.key, label: finalByOcrSortLabel(ch, finalMethod) }
+      }
+      if (o.key === 'xgb_fin' && finalMethod === 'xgb') {
+        return { key: o.key, label: 'Final score' }
+      }
+      if (
+        o.key === 'crenc_fin' &&
+        (finalMethod === 'crenc' || finalMethod === 'crenc_srv')
+      ) {
+        return { key: o.key, label: 'Final score' }
+      }
+      if (o.key === 'llm_txt' && finalMethod === 'openai_txt') {
+        return { key: o.key, label: 'Final score' }
       }
       return o
     })
@@ -5284,6 +5279,42 @@ function WinnerMatchPanel({
         : [],
     [wine, exclusiveLexicon, hsvStep, labelTextHr],
   )
+
+  /** Final score выбранного метода — подпись Confidence у «Совпадение». */
+  const displayFinalScore = useMemo((): number | null => {
+    const num = (v: unknown): number | null => {
+      if (v == null) return null
+      const n = Number(v)
+      return Number.isFinite(n) ? n : null
+    }
+    if (finalMethod === 'xgb') return num(xgbFin)
+    if (finalMethod === 'crenc' || finalMethod === 'crenc_srv') return num(crencFin)
+    if (finalMethod === 'fin2') return num(fin2Score)
+    if (finalMethod === 'openai_txt') return num(wine?.llm_txt)
+    if (finalMethod === 'fin1') return num(fin1Score) ?? num(confidence)
+    if (finalOcrPrimary != null) {
+      const fromOcr = num(ocrScores?.[finalOcrPrimary])
+      if (fromOcr != null) return fromOcr
+    }
+    return (
+      num(confidence) ??
+      num(xgbFin) ??
+      num(crencFin) ??
+      num(fin1Score) ??
+      num(fin2Score)
+    )
+  }, [
+    finalMethod,
+    xgbFin,
+    crencFin,
+    fin2Score,
+    fin1Score,
+    confidence,
+    wine?.llm_txt,
+    finalOcrPrimary,
+    ocrScores,
+  ])
+
   const href = wine
     ? `/wines/${encodeURIComponent(wine.slug || String(wine.id))}`
     : null
@@ -5389,7 +5420,18 @@ function WinnerMatchPanel({
         {wine && rating != null && reviewsXx != null ? (
           <div className="scan-winner__simple">
             <div className="scan-winner__simple-info">
-              <h2 className="scan-winner__simple-title">Совпадение</h2>
+              <h2 className="scan-winner__simple-title">
+                Совпадение
+                {displayFinalScore != null && (
+                  <span
+                    className="scan-winner__confidence"
+                    title="Final score"
+                  >
+                    {' '}
+                    (Confidence {formatScore00(displayFinalScore)})
+                  </span>
+                )}
+              </h2>
               <div className="scan-winner__simple-fields">
                 <WinnerCatalogField
                   label="Название"
@@ -5583,7 +5625,7 @@ function WinnerMatchPanel({
           ) : (
             <div className="scan-winner__empty">
               <strong>Совпадение не найдено</strong>
-              <span>FinalScore / выбранный метод не выбрали вино</span>
+              <span>Final score / выбранный метод не выбрали вино</span>
             </div>
           )}
           {onEvalChange && (
@@ -5684,20 +5726,24 @@ function WinnerMatchPanel({
           {showFin1 && (
             <p
               title={
-                'fin1 = w_ocr×TextScore + w_emb×Cosine; hard mismatch / exclusive → 0'
+                finalMethod === 'fin1'
+                  ? 'Final score = fin1 = w_ocr×TextScore + w_emb×Cosine'
+                  : 'fin1 = w_ocr×TextScore + w_emb×Cosine; hard mismatch / exclusive → 0'
               }
             >
-              <span>fin1</span>
+              <span>{finalMethod === 'fin1' ? 'Final score' : 'fin1'}</span>
               <em>{formatScore00(fin1Score ?? confidence)}</em>
             </p>
           )}
           {showFin2 && fin2Score != null && (
             <p
               title={
-                'fin2 = Soft TF-IDF FinalScore2; dead-XGB fallback сходства OCR'
+                finalMethod === 'fin2'
+                  ? 'Final score = Soft TF-IDF fin2'
+                  : 'fin2 = Soft TF-IDF FinalScore2; dead-XGB fallback сходства OCR'
               }
             >
-              <span>fin2</span>
+              <span>{finalMethod === 'fin2' ? 'Final score' : 'fin2'}</span>
               <em>{formatScore00(fin2Score)}</em>
             </p>
           )}
@@ -5710,9 +5756,13 @@ function WinnerMatchPanel({
           {xgbFin != null && (
               <p
                 className="scan-winner__xgb"
-                title="XGB_fin = w_ocr×XGB + w_emb×Cosine (match/similar); иначе 0"
+                title={
+                  finalMethod === 'xgb'
+                    ? 'Final score = XGB_fin = w_ocr×XGB + w_emb×Cosine'
+                    : 'XGB_fin = w_ocr×XGB + w_emb×Cosine (match/similar); иначе 0'
+                }
               >
-                <span>XGB_fin</span>
+                <span>{finalMethod === 'xgb' ? 'Final score' : 'XGB_fin'}</span>
                 <em>{formatScore00(xgbFin)}</em>
               </p>
           )}
@@ -5725,46 +5775,20 @@ function WinnerMatchPanel({
           {crencFin != null && (
               <p
                 className="scan-winner__crenc"
-                title="CrEnc_fin = w_ocr×CrEnc + w_emb×Cosine (match/similar); иначе 0"
+                title={
+                  finalMethod === 'crenc' || finalMethod === 'crenc_srv'
+                    ? 'Final score = CrEnc_fin'
+                    : 'CrEnc_fin = w_ocr×CrEnc + w_emb×Cosine (match/similar); иначе 0'
+                }
               >
-                <span>CrEnc_fin</span>
+                <span>
+                  {finalMethod === 'crenc' || finalMethod === 'crenc_srv'
+                    ? 'Final score'
+                    : 'CrEnc_fin'}
+                </span>
                 <em>{formatScore00(crencFin)}</em>
               </p>
           )}
-          {wine &&
-            visibleOcrFinChannels(
-              wine,
-              finalMethod,
-              ocrChannels,
-              ocrScores,
-            )
-              .filter((ch) => ocrScores?.[ch] != null)
-              .map((ch) => (
-            <p
-              key={`ws-${ch}`}
-              className={finalOcrPrimary === ch ? 'is-final-ocr' : undefined}
-              title={
-                finalOcrPrimary === ch
-                  ? 'Final OCR — канал решения matched_wine'
-                  : `${finalByOcrRowLabel(finalMethod)} для OCR ${ocrChannelLetter(ch)}`
-              }
-            >
-              <span>
-                <em
-                  className={
-                    ocrMarks.includes(ch) || finalOcrPrimary === ch
-                      ? `scan-winner__ch is-ocr-${ch} is-best-channel`
-                      : `scan-winner__ch is-ocr-${ch}`
-                  }
-                >
-                  {ocrChannelLetter(ch)}
-                </em>{' '}
-                {finalByOcrRowLabel(finalMethod)}
-                {finalOcrPrimary === ch ? ' ★' : ''}
-              </span>
-              <em>{formatScore00(ocrScores?.[ch])}</em>
-            </p>
-          ))}
         </div>
       </div>
       <div className="scan-winner__texts">
@@ -5802,7 +5826,6 @@ function WinnerMatchPanel({
 }
 
 export function HomePage() {
-  const { isAdmin } = useSiteAuth()
   const inputRef = useRef<HTMLInputElement>(null)
   const [searchParams, setSearchParams] = useSearchParams()
   const [dragging, setDragging] = useState(false)
@@ -5814,8 +5837,7 @@ export function HomePage() {
   const [result, setResult] = useState<FindWineResult | null>(null)
   const [busy, setBusy] = useState(false)
   const [loadingScan, setLoadingScan] = useState(false)
-  const [settingsOpen, setSettingsOpen] = useState(false)
-  const [showSearchDetailsSetting, setShowSearchDetailsSetting] = useState(true)
+  const [showDetails, setShowDetails] = useState(readShowSearchDetailsCookie)
   const [embeddingDevice, setEmbeddingDevice] = useState<'cpu' | 'gpu'>('cpu')
   const [candSortBy, setCandSortBy] = useState<CandSortKey>('cos')
   const [isMobile, setIsMobile] = useState(false)
@@ -5828,11 +5850,55 @@ export function HomePage() {
   /** Blocks ?scanid= hydrate while POST /api/findwine is in flight. */
   const searchingRef = useRef(false)
 
-  const showDetails = isAdmin && showSearchDetailsSetting
-
   useEffect(() => {
     setCandSortBy(readCandSortCookie())
   }, [])
+
+  useEffect(() => {
+    const onPref = (e: Event) => {
+      const detail = (e as CustomEvent<{ show?: boolean }>).detail
+      if (!detail || typeof detail.show !== 'boolean') return
+      setShowDetails(detail.show)
+    }
+    window.addEventListener(SHOW_SEARCH_DETAILS_EVENT, onPref)
+    return () => {
+      window.removeEventListener(SHOW_SEARCH_DETAILS_EVENT, onPref)
+    }
+  }, [])
+
+  const resetToCleanScanner = useCallback(() => {
+    if (autoSearchTimerRef.current) {
+      clearTimeout(autoSearchTimerRef.current)
+      autoSearchTimerRef.current = null
+    }
+    viewingScanRef.current = false
+    searchingRef.current = false
+    searchGenRef.current += 1
+    loadGenRef.current += 1
+    loadedIdRef.current = null
+    setLoadingScan(false)
+    setBusy(false)
+    setDragging(false)
+    setScanSourceOpen(false)
+    setFile(null)
+    setFileName(null)
+    setStatus(null)
+    setResult(null)
+    clearScanSessionCache()
+    setPreview((prev) => {
+      if (prev && prev.startsWith('blob:')) URL.revokeObjectURL(prev)
+      return null
+    })
+    setSearchParams({}, { replace: true })
+  }, [setSearchParams])
+
+  useEffect(() => {
+    const onReset = () => resetToCleanScanner()
+    window.addEventListener('vino:reset-scanner', onReset)
+    return () => {
+      window.removeEventListener('vino:reset-scanner', onReset)
+    }
+  }, [resetToCleanScanner])
 
   useEffect(() => {
     let cancelled = false
@@ -5840,20 +5906,21 @@ export function HomePage() {
       .then((s) => {
         if (cancelled) return
         setEmbeddingDevice(s.embedding_device === 'gpu' ? 'gpu' : 'cpu')
-        if (isAdmin) {
-          setShowSearchDetailsSetting(s.show_search_details !== false)
-        } else {
-          setShowSearchDetailsSetting(false)
-        }
       })
       .catch(() => {
-        if (!isAdmin) setShowSearchDetailsSetting(false)
         /* keep defaults */
       })
+    const onSettings = (e: Event) => {
+      const detail = (e as CustomEvent<{ embedding_device?: string }>).detail
+      if (!detail || typeof detail.embedding_device === 'undefined') return
+      setEmbeddingDevice(detail.embedding_device === 'gpu' ? 'gpu' : 'cpu')
+    }
+    window.addEventListener('vino:pipeline-settings', onSettings)
     return () => {
       cancelled = true
+      window.removeEventListener('vino:pipeline-settings', onSettings)
     }
-  }, [isAdmin])
+  }, [])
 
   useEffect(() => {
     const mq = window.matchMedia('(max-width: 720px)')
@@ -5923,6 +5990,18 @@ export function HomePage() {
       viewingScanRef.current = true
       // Mark before URL push so ?scanid= effect does not refetch / cancel search
       loadedIdRef.current = data.search_photos_id
+      writeScanSessionCache({
+        id: data.search_photos_id,
+        result: data,
+        status:
+          data.status?.ok
+            ? data.status?.steps?.ocr?.text
+              ? `Готово. OCR: ${String(data.status.steps.ocr.text).slice(0, 120)}`
+              : 'Готово. Обработка завершена.'
+            : data.status?.error || 'Обработка завершилась с ошибкой',
+        fileName: `search #${data.search_photos_id}`,
+        savedAt: Date.now(),
+      })
       // push — Back/Forward листает предыдущие сканы по ?scanid=
       setSearchParams({ scanid: String(data.search_photos_id) })
     }
@@ -5950,6 +6029,53 @@ export function HomePage() {
     // Сбросить in-flight POST /api/findwine, если был
     searchGenRef.current += 1
 
+    const cached = readScanSessionCache(id)
+    if (cached) {
+      loadedIdRef.current = id
+      setResult(cached.result)
+      setFileName(cached.fileName ?? `search #${id}`)
+      setStatus(cached.status ?? 'Результат загружен по ссылке')
+      syncPreviewFromResult(cached.result)
+      setLoadingScan(false)
+      setBusy(false)
+      void fileFromFindWineResult(cached.result)
+        .then((hydrated) => {
+          if (loadedIdRef.current === id && !searchingRef.current && hydrated) {
+            setFile(hydrated)
+          }
+        })
+        .catch(() => {
+          /* кнопка останется disabled — нужен новый файл */
+        })
+      // Тихо обновить в фоне без спиннера «Загрузка…»
+      let cancelled = false
+      const gen = ++loadGenRef.current
+      void fetchFindWineResult(id)
+        .then((data) => {
+          if (cancelled || loadGenRef.current !== gen) return
+          if (searchingRef.current) return
+          if (loadedIdRef.current !== id) return
+          loadedIdRef.current = id
+          setResult(data)
+          writeScanSessionCache({
+            id,
+            result: data,
+            status: data.status?.ok
+              ? 'Результат загружен по ссылке'
+              : data.status?.error || 'Результат загружен (с ошибками)',
+            fileName: `search #${id}`,
+            savedAt: Date.now(),
+          })
+          syncPreviewFromResult(data)
+        })
+        .catch(() => {
+          /* оставляем кеш */
+        })
+      return () => {
+        cancelled = true
+      }
+    }
+
     let cancelled = false
     const gen = ++loadGenRef.current
     setLoadingScan(true)
@@ -5963,6 +6089,15 @@ export function HomePage() {
         viewingScanRef.current = true
         setResult(data)
         setFileName(`search #${id}`)
+        writeScanSessionCache({
+          id,
+          result: data,
+          status: data.status?.ok
+            ? 'Результат загружен по ссылке'
+            : data.status?.error || 'Результат загружен (с ошибками)',
+          fileName: `search #${id}`,
+          savedAt: Date.now(),
+        })
         // Показать UI сразу — File для «Поиск» догружаем в фоне
         setLoadingScan(false)
         // Дропзона: исходный work JPEG, не _crops с рамками
@@ -6015,7 +6150,7 @@ export function HomePage() {
     return () => {
       cancelled = true
     }
-  }, [searchParams])
+  }, [searchParams, syncPreviewFromResult])
 
   const pickFile = useCallback(async (next: File | null) => {
     if (!next) return
@@ -6036,6 +6171,7 @@ export function HomePage() {
     setStatus(null)
     setResult(null)
     loadedIdRef.current = null
+    clearScanSessionCache()
     setSearchParams({}, { replace: true })
     setPreview((prev) => {
       if (prev && prev.startsWith('blob:')) URL.revokeObjectURL(prev)
@@ -6492,20 +6628,6 @@ export function HomePage() {
         showMobileLanding ? ' home-page--mobile-landing' : ''
       }`}
     >
-      {isAdmin && (
-        <>
-          <ScanSettingsGear onClick={() => setSettingsOpen(true)} />
-          <ScanSettingsPopup
-            open={settingsOpen}
-            onClose={() => setSettingsOpen(false)}
-            onSettingsSaved={(s) => {
-              setShowSearchDetailsSetting(s.show_search_details !== false)
-              setEmbeddingDevice(s.embedding_device === 'gpu' ? 'gpu' : 'cpu')
-            }}
-          />
-        </>
-      )}
-
       {!isMobile && (
         <div className="page__intro">
           <h1>Сканер вина</h1>
@@ -6515,13 +6637,18 @@ export function HomePage() {
         </div>
       )}
 
-      {showMobileLanding && (
-        <section className="mobile-scan-landing">
+      {isMobile && (
+        <div className="mobile-scan-intro">
           <h1 className="mobile-scan-landing__title">Свои вина</h1>
           <p className="mobile-scan-landing__lead">
             Сфотографируйте этикетку Российского вина или загрузите фото, чтобы найти
             его
           </p>
+        </div>
+      )}
+
+      {showMobileLanding && (
+        <section className="mobile-scan-landing">
           <div className="mobile-scan-card">
             <div className="mobile-scan-card__art" aria-hidden>
               <img
@@ -6763,6 +6890,20 @@ export function HomePage() {
           </div>
         )}
       </div>
+      {isMobile && result && !uiBusy ? (
+        <label className="scan-show-details scan-show-details--under-query">
+          <input
+            type="checkbox"
+            checked={showDetails}
+            onChange={(e) => {
+              const on = e.target.checked
+              setShowDetails(on)
+              setShowSearchDetailsPreference(on)
+            }}
+          />
+          <span>Показывать детали поиска</span>
+        </label>
+      ) : null}
       </div>
 
       {result && !uiBusy && (
@@ -6844,22 +6985,42 @@ export function HomePage() {
                 : null
             }
             fin1Score={winnerFin1}
+            fin2Score={
+              finalWinnerId != null
+                ? fin2ScoresByWine.get(finalWinnerId) ?? null
+                : null
+            }
+            showFin2={showFin2}
             finalMethod={finalMethod}
             finalOcrPrimary={finalOcrPrimary}
             simpleMode={!showDetails}
           />
           {!isMobile && preview ? (
             <div className="scan-hero__query-footer">
-              <p className="dropzone__change-hint">
-                Нажмите на фото, чтобы выбрать другое · вставьте (Ctrl+V) ·{' '}
-                <button
-                  type="button"
-                  className="linkish"
-                  onClick={() => openPicker('file')}
-                >
-                  выбрать файл
-                </button>
-              </p>
+              <div className="scan-hero__query-hint-row">
+                <p className="dropzone__change-hint">
+                  Нажмите на фото, чтобы выбрать другое · вставьте (Ctrl+V) ·{' '}
+                  <button
+                    type="button"
+                    className="linkish"
+                    onClick={() => openPicker('file')}
+                  >
+                    выбрать файл
+                  </button>
+                </p>
+                <label className="scan-show-details">
+                  <input
+                    type="checkbox"
+                    checked={showDetails}
+                    onChange={(e) => {
+                      const on = e.target.checked
+                      setShowDetails(on)
+                      setShowSearchDetailsPreference(on)
+                    }}
+                  />
+                  <span>Показывать детали поиска</span>
+                </label>
+              </div>
               <div className="scan-actions">
                 <button
                   type="button"
@@ -6920,12 +7081,14 @@ export function HomePage() {
           type="button"
           className="scan-search-btn"
           disabled={uiBusy || (!isMobile && !file)}
-          aria-label={isMobile ? 'Сфотографировать этикетку' : 'Поиск'}
+          aria-label={isMobile ? 'Сфотографировать или загрузить этикетку' : 'Поиск'}
+          aria-haspopup={isMobile ? 'dialog' : undefined}
+          aria-expanded={isMobile ? scanSourceOpen : undefined}
           onClick={(e) => {
             e.stopPropagation()
             if (uiBusy) return
             if (isMobile) {
-              openPicker('camera')
+              setScanSourceOpen(true)
               return
             }
             void runSearch()
@@ -6966,11 +7129,13 @@ export function HomePage() {
         <button
           type="button"
           className="scan-mobile-fab"
-          aria-label="Сфотографировать этикетку"
+          aria-label="Сфотографировать или загрузить этикетку"
+          aria-haspopup="dialog"
+          aria-expanded={scanSourceOpen}
           disabled={uiBusy}
           onClick={() => {
             if (uiBusy) return
-            openPicker('camera')
+            setScanSourceOpen(true)
           }}
         >
           <svg viewBox="0 0 24 24" width="26" height="26" aria-hidden focusable="false">

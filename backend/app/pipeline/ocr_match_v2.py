@@ -112,7 +112,14 @@ _FOLD_MAP = {
 
 # Spaced letter collapse handled per-line in _collapse_spaced_letters
 
-_IDF_CACHE: dict[str, Any] = {"n_docs": -1, "idf": {}, "built_ms": 0.0}
+# mode: "legacy" (incl. name) | "fast_no_name" (winery/grape/category/type/label)
+_IDF_CACHE: dict[str, Any] = {
+    "n_docs": -1,
+    "mode": None,
+    "idf": {},
+    "default_idf": 0.0,
+    "built_ms": 0.0,
+}
 
 # Soft TF-IDF blend into TextScore2
 # cover_R intentionally weak / unused in main blend: shorter catalog labels
@@ -274,47 +281,89 @@ def char_ngram_dice(a: str, b: str, n: int = 3) -> float:
     return (2.0 * inter) / (sum(ca.values()) + sum(cb.values()))
 
 
-def wine_reference_text(wine: Wine) -> str:
-    parts = [
-        wine.winery or "",
-        wine.name or "",
-        wine.label or "",
-        wine.grape_variety or "",
-        wine.region or "",
-        wine.category or "",
-        wine.color or "",
-    ]
+def wine_reference_text(wine: Wine, *, exclude_name: bool = False) -> str:
+    """Текст R для Soft TF-IDF.
+
+    exclude_name=True (fast_text_match): без CMS name — название часто
+    искажается OCR; оставляем winery / label / grape / category / color
+    (type сахаристости обычно в label). Region тоже не берём — не в
+    exclusive-сравнении.
+    """
+    if exclude_name:
+        parts = [
+            wine.winery or "",
+            wine.label or "",
+            wine.grape_variety or "",
+            wine.category or "",
+            wine.color or "",
+        ]
+    else:
+        parts = [
+            wine.winery or "",
+            wine.name or "",
+            wine.label or "",
+            wine.grape_variety or "",
+            wine.region or "",
+            wine.category or "",
+            wine.color or "",
+        ]
     return "\n".join(p for p in parts if str(p).strip())
 
 
-def build_catalog_idf(db: Session) -> tuple[dict[str, float], float, dict[str, Any]]:
-    """IDF over all wines (name+winery+label…). Cached by document count."""
+def build_catalog_idf(
+    db: Session,
+    *,
+    exclude_name: bool = False,
+) -> tuple[dict[str, float], float, dict[str, Any]]:
+    """IDF по каталогу для Soft TF-IDF. Кеш по (n_docs, mode).
+
+    Важно: это не сравнение со всеми винами — только веса редкости токенов.
+    Скоринг Soft идёт только по visual-кандидатам (top-N).
+    """
     global _IDF_CACHE
+    mode = "fast_no_name" if exclude_name else "legacy"
     n_docs = int(db.scalar(select(func.count()).select_from(Wine)) or 0)
     if (
         _IDF_CACHE.get("n_docs") == n_docs
+        and _IDF_CACHE.get("mode") == mode
         and isinstance(_IDF_CACHE.get("idf"), dict)
         and _IDF_CACHE["idf"]
     ):
         return (
             _IDF_CACHE["idf"],
             float(_IDF_CACHE.get("default_idf") or math.log(max(n_docs, 2))),
-            {"cached": True, "n_docs": n_docs, "ms": _IDF_CACHE.get("built_ms", 0)},
+            {
+                "cached": True,
+                "n_docs": n_docs,
+                "mode": mode,
+                "ms": _IDF_CACHE.get("built_ms", 0),
+            },
         )
 
     t0 = time.perf_counter()
     df: Counter[str] = Counter()
-    rows = db.execute(
-        select(
-            Wine.winery,
-            Wine.name,
-            Wine.label,
-            Wine.grape_variety,
-            Wine.region,
-            Wine.category,
-            Wine.color,
-        )
-    ).all()
+    if exclude_name:
+        rows = db.execute(
+            select(
+                Wine.winery,
+                Wine.label,
+                Wine.grape_variety,
+                Wine.category,
+                Wine.color,
+            )
+        ).all()
+    else:
+        rows = db.execute(
+            select(
+                Wine.winery,
+                Wine.name,
+                Wine.label,
+                Wine.grape_variety,
+                Wine.region,
+                Wine.category,
+                Wine.color,
+            )
+        ).all()
     for row in rows:
         blob = "\n".join(str(x or "") for x in row)
         toks = set(soft_tokenize(blob))
@@ -329,11 +378,16 @@ def build_catalog_idf(db: Session) -> tuple[dict[str, float], float, dict[str, A
     ms = (time.perf_counter() - t0) * 1000.0
     _IDF_CACHE = {
         "n_docs": n_docs,
+        "mode": mode,
         "idf": idf,
         "default_idf": default_idf,
         "built_ms": round(ms, 1),
     }
-    return idf, default_idf, {"cached": False, "n_docs": n_docs, "ms": round(ms, 1)}
+    return (
+        idf,
+        default_idf,
+        {"cached": False, "n_docs": n_docs, "mode": mode, "ms": round(ms, 1)},
+    )
 
 
 def score_soft_tfidf(
@@ -417,6 +471,7 @@ def score_channel_soft(
     default_idf: float,
     fweights: dict[str, float] | None = None,
     exclusive_reject_ids: set[int] | frozenset[int] | None = None,
+    exclude_name: bool = False,
 ) -> list[dict[str, Any]]:
     """Score all visual candidates; return rows with score2 / final_score2."""
     # Late import to avoid circular dependency with ocr_match
@@ -427,7 +482,7 @@ def score_channel_soft(
     ref_toks: dict[int, list[str]] = {}
     refs: dict[int, str] = {}
     for w in wines:
-        ref = wine_reference_text(w)
+        ref = wine_reference_text(w, exclude_name=exclude_name)
         refs[int(w.id)] = ref
         ref_toks[int(w.id)] = soft_tokenize(ref)
     uniq = pool_unique_tokens(ref_toks)

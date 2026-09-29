@@ -57,6 +57,7 @@ services:
       YOLO_DEVICE: ${YOLO_DEVICE:-cpu}
       YOLO_HALF: ${YOLO_HALF:-0}
       CORS_ORIGINS: ${CORS_ORIGINS:-https://vino-svoe.online,http://vino-svoe.online}
+      APP_ENV: ${APP_ENV:-prod}
       GOOGLE_APPLICATION_CREDENTIALS: ${GOOGLE_APPLICATION_CREDENTIALS:-}
     volumes:
       - ${VINO_MEDIA_HOST:-/var/lib/vino-svoe/media}:/data/media

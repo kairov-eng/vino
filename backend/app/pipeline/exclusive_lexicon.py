@@ -9,14 +9,15 @@
 При поиске формы на этикетке также учитывается транслитерация RU↔LAT
 (ДЕНИСОВ ↔ DENISOV и наоборот).
 
-grape/winery на запросе: проверка по убыванию частоты в каталоге; после
-первого хита остальные каноны не ищутся. Многословные формы grape/winery
-в проверке сводятся к первому слову.
+grape/winery на запросе: сначала многословные формы (больше слов →
+раньше), затем более короткие; среди равной длины — по частоте в каталоге.
+Найденная форма проверяется у кандидата целиком (не только первое слово).
 
 grape/winery: допускаются OCR-опечатки (±1 буква и/или 1 замена в токене).
 
 Статические справочники category/type — exclusive_lexicon.json рядом с модулем.
 Сорт и винодельня — из БД при старте (с частотами по числу вин).
+Брендовые токены виноделен (не стоп-слова) — exclusive_winery_brand_tokens.json.
 """
 
 from __future__ import annotations
@@ -48,6 +49,9 @@ def _console_print(msg: str) -> None:
         print(msg.encode(enc, errors="replace").decode(enc, errors="replace"), flush=True)
 
 _LEXICON_JSON = Path(__file__).with_name("exclusive_lexicon.json")
+_WINERY_BRAND_TOKENS_JSON = Path(__file__).with_name(
+    "exclusive_winery_brand_tokens.json"
+)
 
 # (canon, surface forms) — порядок из JSON; длинные формы раньше коротких
 _CATEGORY_GROUPS: list[tuple[str, tuple[str, ...]]] = []
@@ -68,8 +72,109 @@ _FORM_RES: dict[str, list[tuple[str, list[tuple[str, re.Pattern[str]]]]]] = {}
 # Кеш regex форм (в т.ч. транслит-варианты в _form_matches_hay).
 _COMPILE_FORM_CACHE: dict[str, re.Pattern[str]] = {}
 
+# token → [(n_words, freq, form_len, form, canon), ...] — any token of form
+_TOKEN_INDEX: dict[str, dict[str, list[tuple[int, int, int, str, str]]]] = {}
+
+# head (1-е слово формы) → фразы, sorted: больше слов → выше частота
+# «каберне» → [Каберне Совиньон (2), Каберне Фран (2), Каберне (1), …]
+_PHRASE_BY_HEAD: dict[str, dict[str, list[tuple[int, int, int, str, str]]]] = {}
+
 # Все справочники: форма из OCR обязана быть у кандидата.
 _ALL_LEXICONS = ("category", "type", "grape", "winery")
+
+# «к а б е р н е» / много односимвольных токенов → нужен match_spaced
+_SPACED_OCR_RE = re.compile(
+    r"(?:^|[\s])(?:[^\W\d_])(?:[\s\-][^\W\d_]){3,}(?:$|[\s])",
+    re.UNICODE,
+)
+
+
+def ocr_looks_spaced(text: str) -> bool:
+    """True, если в OCR буквы разнесены пробелами (имеет смысл match_spaced)."""
+    raw = str(text or "")
+    if not raw.strip():
+        return False
+    if _SPACED_OCR_RE.search(raw):
+        return True
+    toks = [t for t in normalize_ocr_text(raw).split() if t]
+    if len(toks) < 4:
+        return False
+    short = sum(1 for t in toks if len(t) == 1)
+    return (short / len(toks)) >= 0.35
+
+
+def _form_word_count(form: str) -> int:
+    key = normalize_ocr_text(form).strip()
+    if not key:
+        return 0
+    return len([w for w in re.split(r"[\s\-]+", key) if w])
+
+
+def rebuild_token_index(lexicon: str) -> None:
+    """Инвертированный индекс + phrase-by-head (longest-first) для grape/winery."""
+    freq = _LEXICON_FREQ.get(lexicon) or {}
+    tok_idx: dict[str, list[tuple[int, int, int, str, str]]] = {}
+    phrase_idx: dict[str, list[tuple[int, int, int, str, str]]] = {}
+    for canon, form_res in _FORM_RES.get(lexicon) or []:
+        fcanon = int(freq.get(canon, 0))
+        for form, _cre in form_res:
+            key = normalize_ocr_text(form).strip()
+            if not key:
+                continue
+            n_words = _form_word_count(form)
+            if n_words <= 0:
+                continue
+            entry = (n_words, fcanon, len(key), form, canon)
+            variants = _form_script_variants(form, use_translit=True) or [key]
+            for v in variants:
+                vwords = [w for w in re.split(r"[\s\-]+", v) if w]
+                if not vwords:
+                    continue
+                # phrase index — только по первому слову (head)
+                head = vwords[0]
+                if len(head) >= 2:
+                    pb = phrase_idx.setdefault(head, [])
+                    if entry not in pb:
+                        pb.append(entry)
+                # token index — все слова формы (для fallback scan)
+                for tok in vwords:
+                    if len(tok) < 2:
+                        continue
+                    bucket = tok_idx.setdefault(tok, [])
+                    if entry not in bucket:
+                        bucket.append(entry)
+    sort_key = lambda t: (-t[0], -t[1], -t[2], t[3].lower(), t[4])
+    for bucket in tok_idx.values():
+        bucket.sort(key=sort_key)
+    for bucket in phrase_idx.values():
+        bucket.sort(key=sort_key)
+    _TOKEN_INDEX[lexicon] = tok_idx
+    _PHRASE_BY_HEAD[lexicon] = phrase_idx
+
+
+def rebuild_all_token_indexes() -> None:
+    for lex in _ALL_LEXICONS:
+        if _FORM_RES.get(lex):
+            rebuild_token_index(lex)
+
+
+def phrase_index_meta(lexicon: str) -> dict[str, Any]:
+    """Краткая мета индекса фраз (без дампа всех форм)."""
+    idx = _PHRASE_BY_HEAD.get(lexicon) or {}
+    n_multi = 0
+    max_words = 0
+    for bucket in idx.values():
+        for n_words, *_rest in bucket:
+            if n_words >= 2:
+                n_multi += 1
+            if n_words > max_words:
+                max_words = n_words
+    return {
+        "n_heads": len(idx),
+        "n_multi_word_forms": n_multi,
+        "max_words": max_words,
+        "query_order": "n_words_desc_then_freq",
+    }
 
 
 def _compile_form(form: str, *, spaced: bool = True) -> re.Pattern[str]:
@@ -326,6 +431,7 @@ def find_lexicon_canons(
     match_spaced: bool = True,
     first_hit_only: bool = False,
     longest_only: bool | None = None,
+    use_token_index: bool = False,
 ) -> dict[str, list[str]]:
     """Return {canon: [matched_forms...]} for hits in text.
 
@@ -333,12 +439,13 @@ def find_lexicon_canons(
     match_spaced задаются из настроек сканера. Для category/type вызывающий
     код обязан передать False/False (без транслита и spaced).
 
-    first_hit_only=True (grape/winery на запросе): формы по убыванию частоты
-    в каталоге (tie-break — длина), после первого совпадения остальные
-    каноны не проверяются.
+    first_hit_only=True (grape/winery на запросе): сначала формы с большим
+    числом слов (Каберне Совиньон до Каберне), затем по частоте в каталоге;
+    после первого хита остальные каноны не проверяются. В результат
+    попадает полная найденная форма (не первое слово).
 
-    grape/winery: в результат попадает только первое слово найденной формы
-    («Цитронный Магарача» → «Цитронный») — им же проверяют кандидата.
+    use_token_index=True: phrase-by-head / token index; при промахе —
+    fallback на линейный scan (нужен для spaced OCR).
 
     longest_only — устаревший алиас first_hit_only.
     """
@@ -352,25 +459,118 @@ def find_lexicon_canons(
     gw = lexicon in ("grape", "winery")
 
     def _pack(canon: str, forms: list[str]) -> dict[str, list[str]]:
-        use_forms = _forms_first_word_only(forms) if gw else forms
-        if not use_forms:
+        # Полная форма: «Каберне Совиньон», не схлопывать до «Каберне».
+        out_forms: list[str] = []
+        seen: set[str] = set()
+        for f in forms:
+            key = normalize_ocr_text(f).strip()
+            if not key or key in seen:
+                continue
+            seen.add(key)
+            out_forms.append(f)
+        if not out_forms:
             return {}
-        return {canon: use_forms}
+        return {canon: out_forms}
+
+    def _sort_flat(
+        flat: list[tuple[int, int, int, str, str]],
+    ) -> list[tuple[int, int, int, str, str]]:
+        # больше слов → выше частота → длиннее строка
+        flat.sort(key=lambda t: (-t[0], -t[1], -t[2], t[3].lower(), t[4]))
+        return flat
+
+    def _flat_from_phrase_heads() -> list[tuple[int, int, int, str, str]] | None:
+        """Кандидаты из phrase-by-head: токен OCR как 1-е слово формы."""
+        phrase_idx = _PHRASE_BY_HEAD.get(lexicon) or {}
+        if not phrase_idx:
+            return None
+        seen: set[tuple[str, str]] = set()
+        flat: list[tuple[int, int, int, str, str]] = []
+        for line in hay_x.split("\n"):
+            for tok in line.split():
+                if len(tok) < 2:
+                    continue
+                for entry in phrase_idx.get(tok) or []:
+                    key = (entry[4], entry[3])  # canon, form
+                    if key in seen:
+                        continue
+                    seen.add(key)
+                    flat.append(entry)
+        if not flat:
+            return None
+        return _sort_flat(flat)
+
+    def _flat_from_token_index() -> list[tuple[int, int, int, str, str]] | None:
+        idx = _TOKEN_INDEX.get(lexicon) or {}
+        if not idx:
+            return None
+        tokens: set[str] = set()
+        for line in hay_x.split("\n"):
+            for tok in line.split():
+                if len(tok) >= 2:
+                    tokens.add(tok)
+        if not tokens:
+            return None
+        seen: set[tuple[str, str]] = set()
+        flat: list[tuple[int, int, int, str, str]] = []
+        for tok in tokens:
+            for entry in idx.get(tok) or []:
+                key = (entry[4], entry[3])
+                if key in seen:
+                    continue
+                seen.add(key)
+                flat.append(entry)
+        if not flat:
+            return None
+        return _sort_flat(flat)
+
+    indexed_flat: list[tuple[int, int, int, str, str]] | None = None
+    if use_token_index:
+        # grape/winery: phrase-by-head (longest-first); иначе любой токен
+        if gw:
+            indexed_flat = _flat_from_phrase_heads()
+            if indexed_flat is None:
+                indexed_flat = _flat_from_token_index()
+        else:
+            indexed_flat = _flat_from_token_index()
 
     if first_hit_only:
+        n_hay_toks = len([t for t in hay.split() if t])
+        if indexed_flat is not None:
+            for n_words, _freq, _n, form, canon in indexed_flat:
+                if n_words > n_hay_toks:
+                    continue
+                if _form_matches_hay(
+                    form,
+                    hay_x,
+                    use_translit=use_translit,
+                    match_spaced=match_spaced,
+                ):
+                    return _pack(canon, [form])
+            # Индекс не нашёл — при spaced OCR пробуем полный scan.
+            if not match_spaced:
+                return {}
         freq = _LEXICON_FREQ.get(lexicon) or {}
-        flat: list[tuple[int, int, str, str]] = []
+        flat: list[tuple[int, int, int, str, str]] = []
         for canon, form_res in entries:
             for form, _cre in form_res:
                 key = normalize_ocr_text(form).strip()
                 if not key:
                     continue
+                nw = _form_word_count(form)
+                if nw > n_hay_toks:
+                    continue
                 flat.append(
-                    (int(freq.get(canon, 0)), len(key), form, canon)
+                    (
+                        nw,
+                        int(freq.get(canon, 0)),
+                        len(key),
+                        form,
+                        canon,
+                    )
                 )
-        # Чаще в каталоге → раньше; при равной частоте — длиннее форма.
-        flat.sort(key=lambda t: (-t[0], -t[1], t[2].lower(), t[3]))
-        for _freq, _n, form, canon in flat:
+        _sort_flat(flat)
+        for _nw, _freq, _n, form, canon in flat:
             if _form_matches_hay(
                 form,
                 hay_x,
@@ -379,6 +579,24 @@ def find_lexicon_canons(
             ):
                 return _pack(canon, [form])
         return {}
+
+    if indexed_flat is not None:
+        out_i: dict[str, list[str]] = {}
+        for _nw, _freq, _n, form, canon in indexed_flat:
+            if _form_matches_hay(
+                form, hay_x, use_translit=use_translit, match_spaced=match_spaced
+            ):
+                out_i.setdefault(canon, []).append(form)
+        if out_i:
+            packed_all: dict[str, list[str]] = {}
+            for canon, forms in out_i.items():
+                packed = _pack(canon, forms)
+                if packed:
+                    packed_all.update(packed)
+            return packed_all
+        if not match_spaced:
+            return {}
+
     out: dict[str, list[str]] = {}
     for canon, form_res in entries:
         hits: list[str] = []
@@ -437,6 +655,8 @@ def load_static_lexicons(*, path: Path | None = None) -> Path:
     _LEXICONS["type"] = _TYPE_GROUPS
     _FORM_RES["category"] = _compile_lexicon_groups(_CATEGORY_GROUPS)
     _FORM_RES["type"] = _compile_lexicon_groups(_TYPE_GROUPS)
+    rebuild_token_index("category")
+    rebuild_token_index("type")
     msg = (
         f"static lexicon loaded from {src.name}: "
         f"category={len(_CATEGORY_GROUPS)} type={len(_TYPE_GROUPS)}"
@@ -551,6 +771,7 @@ def load_grape_variety_lexicon(db: Session) -> list[str]:
     ]
     _GRAPE_FORMS = [surface for _, surface in ordered]
     _LEXICON_FREQ["grape"] = dict(freq)
+    rebuild_token_index("grape")
     top = ", ".join(
         f"{by_canon[c]}×{freq[c]}"
         for c, _ in sorted(freq.items(), key=lambda kv: -kv[1])[:8]
@@ -563,9 +784,13 @@ def load_grape_variety_lexicon(db: Session) -> list[str]:
     )
     logger.info(msg)
     _console_print(f"[exclusive_lexicon] {msg}")
-    forms_msg = "grape variety lexicon forms: " + ", ".join(_GRAPE_FORMS)
-    logger.info(forms_msg)
-    _console_print(f"[exclusive_lexicon] {forms_msg}")
+    meta = phrase_index_meta("grape")
+    logger.info(
+        "grape phrase index: heads=%s multi_word=%s max_words=%s",
+        meta.get("n_heads"),
+        meta.get("n_multi_word_forms"),
+        meta.get("max_words"),
+    )
     return list(_GRAPE_FORMS)
 
 
@@ -591,6 +816,7 @@ def _winery_stop_key(part: str) -> str:
 
 # Фиксированные стоп-слова винодельни (не бренды). Бренды вроде denisov/abrau
 # не трогаем — даже если встречаются в нескольких написаниях одной строки справочника.
+# Токены из exclusive_winery_brand_tokens.json всегда сохраняются (override).
 _WINERY_STOP_TOKENS: frozenset[str] = frozenset(
     {
         # RU
@@ -608,35 +834,29 @@ _WINERY_STOP_TOKENS: frozenset[str] = frozenset(
         "шато",
         "дом",
         "хозяйство",
-        "поместье",
         "усадьба",
+        # поместье / завод / кооператив / центр / энологии / марочных —
+        # в brand protect JSON (не стоп)
         "имение",
-        "завод",
-        "кооператив",
-        "центр",
-        "энологии",
         "винныи",
         "виннои",
         "вин",
         "вина",
         "вино",
         "шампанских",
-        "марочных",
         # EN / FR
         "winery",
         "wineries",
         "wine",
         "wines",
         "chateau",
-        "domaine",
+        # domaine / vineyard* / estate* / manor / valley / family / brothers —
+        # частично в brand protect; generic оставляем:
         "vineyard",
         "vineyards",
         "estate",
         "estates",
-        "manor",
         "valley",
-        "family",
-        "brothers",
         "organic",
         "agricole",
         "production",
@@ -654,27 +874,77 @@ _WINERY_STOP_TOKENS: frozenset[str] = frozenset(
     }
 )
 
+# Брендовые токены — не вырезать (ключ = _winery_stop_key)
+_WINERY_BRAND_PROTECT: frozenset[str] = frozenset()
+
+
+def load_winery_brand_protect(*, path: Path | None = None) -> int:
+    """Load brand tokens that must never be stripped as stop-words."""
+    global _WINERY_BRAND_PROTECT
+    src = path or _WINERY_BRAND_TOKENS_JSON
+    if not src.is_file():
+        _WINERY_BRAND_PROTECT = frozenset()
+        logger.warning("winery brand protect JSON missing: %s", src)
+        return 0
+    data = json.loads(src.read_text(encoding="utf-8"))
+    raw = data.get("tokens") if isinstance(data, dict) else data
+    if not isinstance(raw, list):
+        raise ValueError(f"{src.name}: tokens must be an array")
+    keys: set[str] = set()
+    for item in raw:
+        k = _winery_stop_key(str(item))
+        if k:
+            keys.add(k)
+    _WINERY_BRAND_PROTECT = frozenset(keys)
+    msg = f"winery brand protect loaded: n={len(_WINERY_BRAND_PROTECT)} from {src.name}"
+    logger.info(msg)
+    _console_print(f"[exclusive_lexicon] {msg}")
+    return len(_WINERY_BRAND_PROTECT)
+
 
 def _strip_winery_stopwords(form: str) -> str:
     """Вырезать только стоп-слова; брендовые токены оставляем."""
     parts = [p for p in (form or "").split() if p]
     if not parts:
         return ""
-    kept = [p for p in parts if _winery_stop_key(p) not in _WINERY_STOP_TOKENS]
+    kept: list[str] = []
+    for p in parts:
+        key = _winery_stop_key(p)
+        if key in _WINERY_BRAND_PROTECT:
+            kept.append(p)
+            continue
+        if key in _WINERY_STOP_TOKENS:
+            continue
+        kept.append(p)
     return " ".join(kept)
+
+
+try:
+    load_winery_brand_protect()
+except Exception:  # noqa: BLE001
+    logger.exception("failed to load exclusive_winery_brand_tokens.json at import")
+    _console_print(
+        "[exclusive_lexicon] FAILED to load exclusive_winery_brand_tokens.json"
+    )
 
 
 def load_winery_lexicon(db: Session) -> list[str]:
     """Load unique wineries from wines.winery + label_ocr.producer.
 
     Из форм вырезаются только стоп-слова (винодельня / winery / chateau / …).
-    Брендовые имена (Denisov, Abrau, Inkerman…) не удаляются.
+    Брендовые имена из exclusive_winery_brand_tokens.json не удаляются.
 
     Частота канона = число вин, у которых после очистки winery и/или
     producer совпал с этим каноном (вино один раз на канон).
     """
     global _WINERY_FORMS
     from app.pipeline.ocr_match import _is_bad_producer_name
+
+    if not _WINERY_BRAND_PROTECT:
+        try:
+            load_winery_brand_protect()
+        except Exception:  # noqa: BLE001
+            logger.exception("winery brand protect reload failed")
 
     by_canon: dict[str, str] = {}
     freq: dict[str, int] = {}
@@ -726,6 +996,7 @@ def load_winery_lexicon(db: Session) -> list[str]:
     ]
     _WINERY_FORMS = [surface for _, surface in ordered]
     _LEXICON_FREQ["winery"] = dict(freq)
+    rebuild_token_index("winery")
     top = ", ".join(
         f"{by_canon[c]}×{freq[c]}"
         for c, _ in sorted(freq.items(), key=lambda kv: -kv[1])[:8]
@@ -739,9 +1010,13 @@ def load_winery_lexicon(db: Session) -> list[str]:
     )
     logger.info(msg)
     _console_print(f"[exclusive_lexicon] {msg}")
-    forms_msg = "winery lexicon forms: " + ", ".join(_WINERY_FORMS)
-    logger.info(forms_msg)
-    _console_print(f"[exclusive_lexicon] {forms_msg}")
+    meta = phrase_index_meta("winery")
+    logger.info(
+        "winery phrase index: heads=%s multi_word=%s max_words=%s",
+        meta.get("n_heads"),
+        meta.get("n_multi_word_forms"),
+        meta.get("max_words"),
+    )
     return list(_WINERY_FORMS)
 
 
@@ -931,8 +1206,13 @@ def check_wine_exclusive(
     *,
     use_translit: bool = True,
     match_spaced: bool = True,
+    fast: bool = False,
 ) -> dict[str, Any] | None:
-    """If query lexicon form missing on candidate — return detail; else None."""
+    """If query lexicon form missing on candidate — return detail; else None.
+
+    fast=True: не сканировать весь лексикон по этикетке кандидата —
+    проверяем только query-формы (тот же reject, без O(forms×cand)).
+    """
     blobs = wine_catalog_blobs(wine)
     conflicts: list[dict[str, Any]] = []
     for lex in _ALL_LEXICONS:
@@ -945,33 +1225,52 @@ def check_wine_exclusive(
         gw = lex in ("grape", "winery")
         lex_translit = bool(use_translit) if gw else False
         lex_spaced = bool(match_spaced) if gw else False
-        c_map = find_lexicon_canons(
-            blob,
-            lex,
-            use_translit=lex_translit,
-            match_spaced=lex_spaced,
-        )
         q_forms = _flatten_forms(q_map)
-        c_forms = _flatten_forms(c_map)
-        if gw:
-            # Проверка только по первому слову многословных форм.
-            q_forms = _forms_first_word_only(q_forms)
-            c_extra: list[str] = []
-            for f in c_forms:
-                fw = _first_word_form(f)
-                if fw and fw != f:
-                    c_extra.append(fw)
-            if c_extra:
-                c_forms = list(c_forms) + c_extra
+        # Полная query-форма (в т.ч. «Каберне Совиньон»), без first-word.
         fuzzy = gw
-        missing_forms = _missing_forms(
-            q_forms,
-            c_forms,
-            catalog_text=blob if fuzzy else None,
-            fuzzy=fuzzy,
-            use_translit=lex_translit,
-            match_spaced=lex_spaced,
-        )
+
+        if fast:
+            # Только наличие query-форм на этикетке кандидата.
+            missing_forms: list[str] = []
+            seen_m: set[str] = set()
+            for f in q_forms:
+                key = normalize_ocr_text(f).strip()
+                if not key or key in seen_m:
+                    continue
+                seen_m.add(key)
+                if gw:
+                    ok = _form_in_text_fuzzy(
+                        f,
+                        blob,
+                        use_translit=lex_translit,
+                        match_spaced=lex_spaced,
+                    )
+                else:
+                    ok = _form_matches_hay(
+                        f,
+                        normalize_ocr_text(blob),
+                        use_translit=False,
+                        match_spaced=False,
+                    )
+                if not ok:
+                    missing_forms.append(f)
+            c_map: dict[str, list[str]] = {}
+        else:
+            c_map = find_lexicon_canons(
+                blob,
+                lex,
+                use_translit=lex_translit,
+                match_spaced=lex_spaced,
+            )
+            c_forms = _flatten_forms(c_map)
+            missing_forms = _missing_forms(
+                q_forms,
+                c_forms,
+                catalog_text=blob if fuzzy else None,
+                fuzzy=fuzzy,
+                use_translit=lex_translit,
+                match_spaced=lex_spaced,
+            )
         if not missing_forms:
             continue
         conflicts.append(
@@ -984,6 +1283,7 @@ def check_wine_exclusive(
                 "catalog_forms": {k: v for k, v in c_map.items()},
                 "missing_forms": missing_forms,
                 "fuzzy_match": fuzzy,
+                "fast_path": bool(fast),
             }
         )
     if not conflicts:
@@ -1001,28 +1301,46 @@ def evaluate_exclusive_lexicon(
     *,
     use_translit: bool = True,
     match_spaced: bool = True,
+    fast: bool = False,
 ) -> dict[str, Any]:
     """Compare query OCR vs candidate wines.
 
     Для каждого справочника: форма, найденная в OCR, обязана быть у кандидата
     (этикетка + релевантные поля). Чужой канон отдельно не проверяется.
     use_translit / match_spaced — только для grape и winery (из настроек сканера).
+
+    fast=True (настройка fast_text_match): token-index на query + проверка
+    только query-форм на кандидате; match_spaced включается автоматически,
+    если OCR выглядит «разрезанным» по буквам.
     """
     t0 = time.perf_counter()
+    spaced_eff = bool(match_spaced)
+    if fast and match_spaced:
+        spaced_eff = ocr_looks_spaced(query_text)
+    use_index = bool(fast)
     # category/type — без translit/spaced (короткие EN-формы иначе дают FP)
     q_cat = find_lexicon_canons(
-        query_text, "category", use_translit=False, match_spaced=False
+        query_text,
+        "category",
+        use_translit=False,
+        match_spaced=False,
+        use_token_index=use_index,
     )
     q_type = find_lexicon_canons(
-        query_text, "type", use_translit=False, match_spaced=False
+        query_text,
+        "type",
+        use_translit=False,
+        match_spaced=False,
+        use_token_index=use_index,
     )
     q_grape = (
         find_lexicon_canons(
             query_text,
             "grape",
             use_translit=use_translit,
-            match_spaced=match_spaced,
+            match_spaced=spaced_eff,
             first_hit_only=True,
+            use_token_index=use_index,
         )
         if _FORM_RES.get("grape")
         else {}
@@ -1032,8 +1350,9 @@ def evaluate_exclusive_lexicon(
             query_text,
             "winery",
             use_translit=use_translit,
-            match_spaced=match_spaced,
+            match_spaced=spaced_eff,
             first_hit_only=True,
+            use_token_index=use_index,
         )
         if _FORM_RES.get("winery")
         else {}
@@ -1053,7 +1372,8 @@ def evaluate_exclusive_lexicon(
             query_hits,
             w,
             use_translit=use_translit,
-            match_spaced=match_spaced,
+            match_spaced=spaced_eff,
+            fast=bool(fast),
         )
         if detail is None:
             continue
@@ -1062,7 +1382,7 @@ def evaluate_exclusive_lexicon(
     ms = round((time.perf_counter() - t0) * 1000, 1)
     spaced_note = (
         "0–2 пробела/дефиса между буквами («красный» ≈ «кра с  ны й»)"
-        if match_spaced
+        if spaced_eff
         else "без вставок пробелов между буквами"
     )
     translit_note = (
@@ -1075,21 +1395,30 @@ def evaluate_exclusive_lexicon(
         "та же форма обязана быть на этикетке кандидата "
         "(category ещё смотрит поле category, type — name; "
         "grape и winery — только текст этикетки); "
-        "grape/winery на запросе: формы по убыванию частоты в каталоге "
-        "(tie-break — длина), после первого хита остальные каноны не проверяются; "
-        "grape/winery: многословная форма в проверке → только первое слово "
-        "(«Цитронный Магарача»→«Цитронный», «Абрау-Дюрсо»→«Абрау»); "
+        "grape/winery на запросе: сначала многословные формы "
+        "(больше слов раньше), затем по частоте в каталоге; "
+        "после первого хита остальные каноны не проверяются; "
+        "у кандидата проверяется полная найденная форма "
+        "(«Каберне Совиньон», не только «Каберне»); "
         f"для grape/winery: {spaced_note}; {translit_note}; "
         "для grape/winery допускается OCR-опечатка: ±1 буква и/или 1 замена "
         "в токене (edit≤2); "
         "category/type — точное совпадение форм (без spaced/транслита); "
         "синоним канона не засчитывается; чужой канон отдельно не проверяется"
     )
+    if fast:
+        rule += (
+            "; fast_text_match: phrase-by-head / token→dict на query + "
+            "проверка только query-форм на кандидате"
+        )
     return {
         "ok": True,
         "ms": ms,
         "use_translit": bool(use_translit),
         "match_spaced": bool(match_spaced),
+        "match_spaced_effective": bool(spaced_eff),
+        "fast_text_match": bool(fast),
+        "path": "fast" if fast else "legacy",
         "query_hits": {
             "category": {k: v for k, v in q_cat.items()},
             "type": {k: v for k, v in q_type.items()},
@@ -1115,33 +1444,29 @@ def evaluate_exclusive_lexicon(
                 "field": "grape_variety",
                 "note": (
                     "unique grape_variety + label_ocr.cupage/coupage при старте; "
-                    "частота = число вин с этим сортом; на запросе: самый частый "
-                    "хит, остальные сорта не ищутся; многословный сорт → в проверке "
-                    "только первое слово; та же форма обязана быть "
-                    "в тексте этикетки кандидата (колонка grape_variety не засчитывается); "
+                    "на запросе: многословные формы раньше однословных, "
+                    "затем частота; полная форма обязана быть в тексте этикетки "
+                    "(колонка grape_variety не засчитывается); "
                     f"fuzzy ±1–2 буквы; {spaced_note}; {translit_note}"
                 ),
-                "forms": list(_GRAPE_FORMS),
                 "count": len(_GRAPE_FORMS),
-                "query_mode": "freq_first_hit",
-                "check_mode": "first_word_only",
+                "query_mode": "n_words_desc_then_freq_first_hit",
+                "check_mode": "full_form",
+                "phrase_index": phrase_index_meta("grape"),
             },
             "winery": {
                 "field": "winery",
                 "note": (
                     "unique winery + label_ocr.producer при старте; "
-                    "повтор слов внутри названия схлопнут; "
-                    "стоп-слова (винодельня/winery/chateau/…) вырезаны, бренды сохранены; "
-                    "частота = число вин с этой винодельней; на запросе: самый "
-                    "частый хит, остальные винодельни не ищутся; многословное "
-                    "название → в проверке только первое слово; та же форма "
-                    "обязана быть в тексте этикетки кандидата; "
+                    "стоп-слова вырезаны, бренды сохранены; "
+                    "на запросе: многословные формы раньше однословных, "
+                    "затем частота; полная форма обязана быть в тексте этикетки; "
                     f"fuzzy ±1–2 буквы; {spaced_note}; {translit_note}"
                 ),
-                "forms": list(_WINERY_FORMS),
                 "count": len(_WINERY_FORMS),
-                "query_mode": "freq_first_hit",
-                "check_mode": "first_word_only",
+                "query_mode": "n_words_desc_then_freq_first_hit",
+                "check_mode": "full_form",
+                "phrase_index": phrase_index_meta("winery"),
             },
         },
         "checked": len(wines),

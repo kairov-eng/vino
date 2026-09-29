@@ -8,40 +8,47 @@ import {
   type FormEvent,
   type ReactNode,
 } from 'react'
-import { checkSiteAuth, loginSiteAuth } from '../api/client'
+import { checkAdminAuth, verifyAdminPassword } from '../api/client'
 import '../components/SiteAccessGate.css'
 
-export const SITE_PASSWORD_COOKIE = 'vino_site_password'
+/** Cookie with admin password for PUT /api/settings. */
+export const ADMIN_PASSWORD_COOKIE = 'vino_admin_password'
+const LEGACY_SITE_PASSWORD_COOKIE = 'vino_site_password'
 const COOKIE_MAX_AGE = 60 * 60 * 24 * 365 // 1 year
 
-export type SiteRole = 'admin' | 'user' | null
-
 type SiteAuthContextValue = {
-  role: SiteRole
-  /** Site password gate is active (PASSWORD_* configured). */
-  enabled: boolean
-  /** Admin UI (gear, search details). True when gate is disabled. */
-  isAdmin: boolean
+  /** Admin password is configured on the server (edits need unlock). */
+  passwordRequired: boolean
+  /** Settings form is unlocked for editing in this session. */
+  canEdit: boolean
+  /** Unlock edits: uses cookie if valid, otherwise caller shows password UI. */
+  tryUnlockFromCookie: () => Promise<boolean>
+  unlockWithPassword: (password: string) => Promise<boolean>
+  lockEdit: () => void
+  readAdminPassword: () => string
 }
 
 const SiteAuthContext = createContext<SiteAuthContextValue>({
-  role: null,
-  enabled: false,
-  isAdmin: true,
+  passwordRequired: false,
+  canEdit: true,
+  tryUnlockFromCookie: async () => true,
+  unlockWithPassword: async () => true,
+  lockEdit: () => undefined,
+  readAdminPassword: () => '',
 })
 
 export function useSiteAuth(): SiteAuthContextValue {
   return useContext(SiteAuthContext)
 }
 
-function readPasswordCookie(): string {
+function readCookie(name: string): string {
   if (typeof document === 'undefined') return ''
   const parts = document.cookie.split(';')
   for (const part of parts) {
     const idx = part.indexOf('=')
     if (idx < 0) continue
     const k = part.slice(0, idx).trim()
-    if (k !== SITE_PASSWORD_COOKIE) continue
+    if (k !== name) continue
     try {
       return decodeURIComponent(part.slice(idx + 1).trim())
     } catch {
@@ -51,47 +58,43 @@ function readPasswordCookie(): string {
   return ''
 }
 
-function writePasswordCookie(password: string) {
+function writeAdminPasswordCookie(password: string) {
   const value = encodeURIComponent(password)
-  document.cookie = `${SITE_PASSWORD_COOKIE}=${value}; path=/; max-age=${COOKIE_MAX_AGE}; SameSite=Lax`
+  document.cookie = `${ADMIN_PASSWORD_COOKIE}=${value}; path=/; max-age=${COOKIE_MAX_AGE}; SameSite=Lax`
 }
 
-function clearPasswordCookie() {
-  document.cookie = `${SITE_PASSWORD_COOKIE}=; path=/; max-age=0; SameSite=Lax`
+function clearAdminPasswordCookie() {
+  document.cookie = `${ADMIN_PASSWORD_COOKIE}=; path=/; max-age=0; SameSite=Lax`
+  document.cookie = `${LEGACY_SITE_PASSWORD_COOKIE}=; path=/; max-age=0; SameSite=Lax`
+}
+
+export function readAdminPasswordCookie(): string {
+  return (
+    readCookie(ADMIN_PASSWORD_COOKIE) || readCookie(LEGACY_SITE_PASSWORD_COOKIE)
+  )
 }
 
 export function SiteAuthProvider({ children }: { children: ReactNode }) {
+  const [passwordRequired, setPasswordRequired] = useState(false)
+  const [canEdit, setCanEdit] = useState(false)
   const [ready, setReady] = useState(false)
-  const [unlocked, setUnlocked] = useState(false)
-  const [role, setRole] = useState<SiteRole>(null)
-  const [enabled, setEnabled] = useState(false)
-  const [password, setPassword] = useState('')
-  const [error, setError] = useState<string | null>(null)
-  const [busy, setBusy] = useState(false)
 
   useEffect(() => {
     let cancelled = false
     ;(async () => {
       try {
-        const stored = readPasswordCookie()
-        const res = await checkSiteAuth(stored || undefined)
+        const res = await checkAdminAuth()
         if (cancelled) return
-        setEnabled(Boolean(res.enabled))
-        if (!res.enabled) {
-          setRole(null)
-          setUnlocked(true)
-          setReady(true)
-          return
-        }
-        if (res.ok) {
-          setRole(res.role === 'admin' || res.role === 'user' ? res.role : null)
-          setUnlocked(true)
-        } else if (stored) {
-          clearPasswordCookie()
+        const required = Boolean(res.enabled)
+        setPasswordRequired(required)
+        if (!required) {
+          setCanEdit(true)
         }
       } catch {
         if (!cancelled) {
-          setUnlocked(false)
+          // Fail open for read-only browsing; edits still need server check.
+          setPasswordRequired(true)
+          setCanEdit(false)
         }
       } finally {
         if (!cancelled) setReady(true)
@@ -102,51 +105,60 @@ export function SiteAuthProvider({ children }: { children: ReactNode }) {
     }
   }, [])
 
-  useEffect(() => {
-    if (!ready || unlocked) {
-      document.body.style.overflow = ''
-      return
+  const unlockWithPassword = useCallback(async (password: string) => {
+    const value = password.trim()
+    if (!value) return false
+    const res = await verifyAdminPassword(value)
+    if (!res.ok) {
+      clearAdminPasswordCookie()
+      setCanEdit(false)
+      return false
     }
-    const prev = document.body.style.overflow
-    document.body.style.overflow = 'hidden'
-    return () => {
-      document.body.style.overflow = prev
-    }
-  }, [ready, unlocked])
+    writeAdminPasswordCookie(value)
+    setCanEdit(true)
+    return true
+  }, [])
 
-  const onSubmit = useCallback(
-    async (e: FormEvent) => {
-      e.preventDefault()
-      const value = password.trim()
-      if (!value) {
-        setError('Введите пароль')
-        return
-      }
-      setBusy(true)
-      setError(null)
-      try {
-        const res = await loginSiteAuth(value)
-        if (!res.ok) {
-          setError('Неверный пароль')
-          return
-        }
-        writePasswordCookie(value)
-        setEnabled(Boolean(res.enabled))
-        setRole(res.role === 'admin' || res.role === 'user' ? res.role : null)
-        setUnlocked(true)
-      } catch {
-        setError('Неверный пароль')
-      } finally {
-        setBusy(false)
-      }
-    },
-    [password],
+  const tryUnlockFromCookie = useCallback(async () => {
+    if (!passwordRequired) {
+      setCanEdit(true)
+      return true
+    }
+    const stored = readAdminPasswordCookie()
+    if (!stored) return false
+    const res = await verifyAdminPassword(stored)
+    if (!res.ok) {
+      clearAdminPasswordCookie()
+      setCanEdit(false)
+      return false
+    }
+    // Refresh cookie under the new name if legacy was used.
+    writeAdminPasswordCookie(stored)
+    setCanEdit(true)
+    return true
+  }, [passwordRequired])
+
+  const lockEdit = useCallback(() => {
+    setCanEdit(false)
+  }, [])
+
+  const value = useMemo<SiteAuthContextValue>(
+    () => ({
+      passwordRequired,
+      canEdit: passwordRequired ? canEdit : true,
+      tryUnlockFromCookie,
+      unlockWithPassword,
+      lockEdit,
+      readAdminPassword: readAdminPasswordCookie,
+    }),
+    [
+      passwordRequired,
+      canEdit,
+      tryUnlockFromCookie,
+      unlockWithPassword,
+      lockEdit,
+    ],
   )
-
-  const value = useMemo<SiteAuthContextValue>(() => {
-    const isAdmin = !enabled || role === 'admin'
-    return { role, enabled, isAdmin }
-  }, [role, enabled])
 
   if (!ready) {
     return (
@@ -156,48 +168,79 @@ export function SiteAuthProvider({ children }: { children: ReactNode }) {
     )
   }
 
-  if (!unlocked) {
-    return (
-      <div
-        className="site-access-gate"
-        role="dialog"
-        aria-modal="true"
-        aria-labelledby="site-access-title"
-      >
-        <form className="site-access-gate__card" onSubmit={onSubmit}>
-          <h2 id="site-access-title" className="site-access-gate__title">
-            Доступ
-          </h2>
-          <p className="site-access-gate__text">
-            Сайт закрыт. Введите пароль, чтобы продолжить.
-          </p>
-          <label className="site-access-gate__label">
-            <span className="site-access-gate__label-text">Пароль</span>
-            <input
-              className="site-access-gate__input"
-              type="password"
-              name="password"
-              autoComplete="current-password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              disabled={busy}
-              autoFocus
-            />
-          </label>
-          {error && <p className="site-access-gate__error">{error}</p>}
-          <button
-            type="submit"
-            className="site-access-gate__btn"
-            disabled={busy}
-          >
-            {busy ? 'Проверка…' : 'Войти'}
-          </button>
-        </form>
-      </div>
-    )
-  }
-
   return (
     <SiteAuthContext.Provider value={value}>{children}</SiteAuthContext.Provider>
+  )
+}
+
+/** Small password form used inside settings unlock flow. */
+export function AdminPasswordForm({
+  busy,
+  error,
+  onSubmit,
+  onCancel,
+}: {
+  busy?: boolean
+  error?: string | null
+  onSubmit: (password: string) => void | Promise<void>
+  onCancel?: () => void
+}) {
+  const [password, setPassword] = useState('')
+  const [localError, setLocalError] = useState<string | null>(null)
+
+  const handleSubmit = useCallback(
+    async (e: FormEvent) => {
+      e.preventDefault()
+      const value = password.trim()
+      if (!value) {
+        setLocalError('Введите пароль')
+        return
+      }
+      setLocalError(null)
+      await onSubmit(value)
+    },
+    [password, onSubmit],
+  )
+
+  return (
+    <form className="site-access-gate__card site-access-gate__card--inline" onSubmit={handleSubmit}>
+      <h2 className="site-access-gate__title" style={{ fontSize: '1.5rem' }}>
+        Пароль администратора
+      </h2>
+      <p className="site-access-gate__text">
+        Чтобы изменить настройки поиска, введите пароль администратора.
+      </p>
+      <label className="site-access-gate__label">
+        <span className="site-access-gate__label-text">Пароль</span>
+        <input
+          className="site-access-gate__input"
+          type="password"
+          name="admin_password"
+          autoComplete="current-password"
+          value={password}
+          onChange={(e) => setPassword(e.target.value)}
+          disabled={busy}
+          autoFocus
+        />
+      </label>
+      {(localError || error) && (
+        <p className="site-access-gate__error">{localError || error}</p>
+      )}
+      <div className="site-access-gate__actions">
+        {onCancel && (
+          <button
+            type="button"
+            className="site-access-gate__btn site-access-gate__btn--ghost"
+            onClick={onCancel}
+            disabled={busy}
+          >
+            Отмена
+          </button>
+        )}
+        <button type="submit" className="site-access-gate__btn" disabled={busy}>
+          {busy ? 'Проверка…' : 'Разблокировать'}
+        </button>
+      </div>
+    </form>
   )
 }

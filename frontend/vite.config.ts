@@ -18,6 +18,10 @@ export default defineConfig({
     host: '127.0.0.1',
     port: 8091,
     strictPort: true,
+    hmr: {
+      // Keep WS alive longer so background tabs don't drop → full reload on focus.
+      timeout: 120_000,
+    },
     // Tunnel Host headers: Cloudflare / ngrok
     allowedHosts: [
       '.trycloudflare.com',

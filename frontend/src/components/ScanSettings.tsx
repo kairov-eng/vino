@@ -1,9 +1,11 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
+import { createPortal } from 'react-dom'
 import {
   fetchPipelineSettings,
   updatePipelineSettings,
   type PipelineSettings,
 } from '../api/client'
+import { useSiteAuth, AdminPasswordForm } from '../auth/SiteAuthContext'
 import './ScanSettings.css'
 
 type Props = {
@@ -61,6 +63,16 @@ function mergeWeightOptions(
 }
 
 export function ScanSettingsPopup({ open, onClose, onSettingsSaved }: Props) {
+  const {
+    canEdit,
+    passwordRequired,
+    tryUnlockFromCookie,
+    unlockWithPassword,
+    lockEdit,
+  } = useSiteAuth()
+  const [passwordPrompt, setPasswordPrompt] = useState(false)
+  const [unlockBusy, setUnlockBusy] = useState(false)
+  const [unlockError, setUnlockError] = useState<string | null>(null)
   const [tab, setTab] = useState<TabId>('pipeline')
   const [settings, setSettings] = useState<PipelineSettings | null>(null)
   const [weights, setWeights] = useState<Record<string, number>>(() =>
@@ -75,7 +87,11 @@ export function ScanSettingsPopup({ open, onClose, onSettingsSaved }: Props) {
   const finalWeightTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   useEffect(() => {
-    if (!open) return
+    if (!open) {
+      setPasswordPrompt(false)
+      setUnlockError(null)
+      return
+    }
     setError(null)
     setTab('pipeline')
     fetchPipelineSettings()
@@ -163,7 +179,12 @@ export function ScanSettingsPopup({ open, onClose, onSettingsSaved }: Props) {
     final_ocr?: string
     exclusive_use_translit?: boolean
     exclusive_match_spaced?: boolean
+    fast_text_match?: boolean
   }) => {
+    if (!canEdit) {
+      setError('Сначала нажмите «Изменить настройки»')
+      return
+    }
     // Mutual exclusions before save (mirrors backend _normalize).
     const gated: typeof patch = { ...patch }
     const cur = settings
@@ -242,11 +263,16 @@ export function ScanSettingsPopup({ open, onClose, onSettingsSaved }: Props) {
         new CustomEvent('vino:pipeline-settings', { detail: next }),
       )
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Ошибка сохранения')
+      const msg = err instanceof Error ? err.message : 'Ошибка сохранения'
+      setError(msg)
+      if (/admin password|403|Forbidden/i.test(msg)) {
+        lockEdit()
+        setPasswordPrompt(true)
+      }
     } finally {
       setSaving(false)
     }
-  }, [settings, onSettingsSaved])
+  }, [settings, onSettingsSaved, canEdit, lockEdit])
 
   const togglePreprocess = (id: string, checked: boolean) => {
     if (!settings) return
@@ -308,7 +334,7 @@ export function ScanSettingsPopup({ open, onClose, onSettingsSaved }: Props) {
   )
 
 
-  return (
+  return createPortal(
     <div className="scan-settings-overlay" onClick={onClose} role="presentation">
       <div
         className="scan-settings"
@@ -324,19 +350,41 @@ export function ScanSettingsPopup({ open, onClose, onSettingsSaved }: Props) {
           </button>
         </header>
 
-        {settings && (
-          <div className="scan-settings__top-flag">
-            <label>
-              <input
-                type="checkbox"
-                checked={settings.show_search_details !== false}
-                onChange={(e) =>
-                  void persist({ show_search_details: e.target.checked })
-                }
-              />
-              <span>Показывать детали поиска</span>
-            </label>
+        {!canEdit && (
+          <div className="scan-settings__unlock-bar">
+            <p className="scan-settings__readonly-hint">
+              Параметры доступны для просмотра.
+              {passwordRequired
+                ? ' Чтобы изменить — введите пароль администратора.'
+                : ''}
+            </p>
+            <button
+              type="button"
+              className="scan-settings__unlock-btn"
+              onClick={() => {
+                void (async () => {
+                  setUnlockError(null)
+                  setUnlockBusy(true)
+                  try {
+                    const ok = await tryUnlockFromCookie()
+                    if (ok) return
+                    setPasswordPrompt(true)
+                  } catch {
+                    setPasswordPrompt(true)
+                  } finally {
+                    setUnlockBusy(false)
+                  }
+                })()
+              }}
+              disabled={unlockBusy}
+            >
+              {unlockBusy ? 'Проверка…' : 'Изменить настройки'}
+            </button>
           </div>
+        )}
+
+        {canEdit && passwordRequired && (
+          <p className="scan-settings__edit-ok">Редактирование разблокировано</p>
         )}
 
         <div className="scan-settings__tabs" role="tablist">
@@ -372,6 +420,11 @@ export function ScanSettingsPopup({ open, onClose, onSettingsSaved }: Props) {
         {error && <p className="scan-settings__error">{error}</p>}
         {!settings && !error && <p className="scan-settings__loading">Загрузка…</p>}
 
+        <fieldset
+          className="scan-settings__admin-fields"
+          disabled={!canEdit}
+          aria-disabled={!canEdit}
+        >
         {settings && tab === 'pipeline' && (
           <>
             <section className="scan-settings__section">
@@ -968,6 +1021,26 @@ export function ScanSettingsPopup({ open, onClose, onSettingsSaved }: Props) {
                       Искать с пробелами
                       <small>
                         0–2 пробела/дефиса между буквами («ка б е р н е»)
+                      </small>
+                    </span>
+                  </label>
+                </li>
+                <li>
+                  <label>
+                    <input
+                      type="checkbox"
+                      checked={settings.fast_text_match !== false}
+                      onChange={(e) =>
+                        void persist({
+                          fast_text_match: e.target.checked,
+                        })
+                      }
+                    />
+                    <span>
+                      Быстрый text-match (fast_text_match)
+                      <small>
+                        exclusive: token-index + проверка только найденных
+                        форм; Soft IDF без названия вина; выкл. = старый путь
                       </small>
                     </span>
                   </label>
@@ -1983,16 +2056,59 @@ export function ScanSettingsPopup({ open, onClose, onSettingsSaved }: Props) {
             {saving && <p className="scan-settings__saving">Сохранение…</p>}
           </>
         )}
+        </fieldset>
       </div>
-    </div>
+
+      {passwordPrompt && (
+        <div
+          className="scan-settings-password"
+          role="dialog"
+          aria-modal="true"
+          aria-label="Пароль администратора"
+          onClick={(e) => e.stopPropagation()}
+        >
+          <AdminPasswordForm
+            busy={unlockBusy}
+            error={unlockError}
+            onCancel={() => {
+              setPasswordPrompt(false)
+              setUnlockError(null)
+            }}
+            onSubmit={async (password) => {
+              setUnlockBusy(true)
+              setUnlockError(null)
+              try {
+                const ok = await unlockWithPassword(password)
+                if (!ok) {
+                  setUnlockError('Неверный пароль')
+                  return
+                }
+                setPasswordPrompt(false)
+              } catch {
+                setUnlockError('Неверный пароль')
+              } finally {
+                setUnlockBusy(false)
+              }
+            }}
+          />
+        </div>
+      )}
+    </div>,
+    document.body,
   )
 }
 
-export function ScanSettingsGear({ onClick }: { onClick: () => void }) {
+export function ScanSettingsGear({
+  onClick,
+  className,
+}: {
+  onClick: () => void
+  className?: string
+}) {
   return (
     <button
       type="button"
-      className="scan-settings-gear"
+      className={`scan-settings-gear${className ? ` ${className}` : ''}`}
       onClick={onClick}
       title="Настройки поиска"
       aria-label="Настройки поиска"

@@ -1,7 +1,8 @@
-/** Re-export site password gate + role context. */
+/** Re-export settings admin auth context (site itself is public). */
 export {
-  SITE_PASSWORD_COOKIE,
+  ADMIN_PASSWORD_COOKIE,
+  AdminPasswordForm,
   SiteAuthProvider as SiteAccessGate,
+  readAdminPasswordCookie,
   useSiteAuth,
-  type SiteRole,
 } from '../auth/SiteAuthContext'

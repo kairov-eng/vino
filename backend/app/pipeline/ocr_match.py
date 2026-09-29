@@ -44,6 +44,13 @@ try:
 except ImportError:  # pragma: no cover
     fuzz = None  # type: ignore
 
+# Кеш списков виноделен/регионов для extract_entities (по n_docs).
+_PRODUCERS_REGIONS_CACHE: dict[str, Any] = {
+    "n_docs": -1,
+    "producers": [],
+    "regions": [],
+}
+
 _VINTAGE_RE = re.compile(r"\b((?:19|20)\d{2})\b")
 _YEAR_OCR_RE = re.compile(
     r"\b(?:19|20)[\dOoIl]{2}\b",
@@ -1108,6 +1115,53 @@ def _ensemble_entities(variant_entities: dict[str, dict[str, Any]]) -> dict[str,
     }
 
 
+def get_producers_regions_cached(db: Session) -> tuple[list[str], list[str], dict[str, Any]]:
+    """Уникальные winery/region из каталога; кеш по числу вин."""
+    from sqlalchemy import func
+
+    global _PRODUCERS_REGIONS_CACHE
+    n_docs = int(db.scalar(select(func.count()).select_from(Wine)) or 0)
+    if (
+        _PRODUCERS_REGIONS_CACHE.get("n_docs") == n_docs
+        and _PRODUCERS_REGIONS_CACHE.get("producers") is not None
+    ):
+        return (
+            list(_PRODUCERS_REGIONS_CACHE["producers"]),
+            list(_PRODUCERS_REGIONS_CACHE["regions"]),
+            {"cached": True, "n_docs": n_docs},
+        )
+    producers = sorted(
+        {
+            s.strip()
+            for s in db.scalars(select(Wine.winery).where(Wine.winery.is_not(None))).all()
+            if isinstance(s, str) and s.strip() and not _is_bad_producer_name(s)
+        }
+    )
+    regions = sorted(
+        {
+            s.strip()
+            for s in db.scalars(select(Wine.region).where(Wine.region.is_not(None))).all()
+            if isinstance(s, str) and s.strip()
+        }
+    )
+    _PRODUCERS_REGIONS_CACHE = {
+        "n_docs": n_docs,
+        "producers": producers,
+        "regions": regions,
+    }
+    return producers, regions, {"cached": False, "n_docs": n_docs}
+
+
+def warm_producers_regions_cache(db: Session) -> dict[str, Any]:
+    """Прогрев кеша при старте backend."""
+    _p, _r, meta = get_producers_regions_cached(db)
+    return {
+        **meta,
+        "n_producers": len(_p),
+        "n_regions": len(_r),
+    }
+
+
 def evaluate_ocr_wine_id_help(
     db: Session,
     *,
@@ -1118,8 +1172,13 @@ def evaluate_ocr_wine_id_help(
     exclusive_reject_ids: set[int] | frozenset[int] | None = None,
     compute_fin1: bool = True,
     compute_fin2: bool = True,
+    fast_text_match: bool = False,
 ) -> dict[str, Any]:
-    """TextScore + FinalScore vs unique embedding candidates (SigLIP2∪DINOv3)."""
+    """TextScore + FinalScore vs unique embedding candidates (SigLIP2∪DINOv3).
+
+    fast_text_match: Soft IDF/R без CMS name; кеш producers/regions;
+    IDF — веса редкости по каталогу, скоринг только по visual top-N.
+    """
     t0 = time.perf_counter()
     weights = text_score_weights()
     fweights = final_score_weights()
@@ -1175,24 +1234,13 @@ def evaluate_ocr_wine_id_help(
         by_fetched = {w.id: w for w in rows}
         candidate_wines = [by_fetched[i] for i in visual_set if i in by_fetched]
 
-    # Soft TF-IDF IDF over full catalog (cached) — for algorithm 2
-    soft_idf, soft_default_idf, soft_idf_meta = build_catalog_idf(db)
+    # Soft TF-IDF IDF — веса редкости по каталогу (cached); скоринг ≠ весь каталог
+    soft_idf, soft_default_idf, soft_idf_meta = build_catalog_idf(
+        db, exclude_name=bool(fast_text_match)
+    )
     soft_by_channel: dict[str, list[dict[str, Any]]] = {}
 
-    producers = sorted(
-        {
-            s.strip()
-            for s in db.scalars(select(Wine.winery).where(Wine.winery.is_not(None))).all()
-            if isinstance(s, str) and s.strip() and not _is_bad_producer_name(s)
-        }
-    )
-    regions = sorted(
-        {
-            s.strip()
-            for s in db.scalars(select(Wine.region).where(Wine.region.is_not(None))).all()
-            if isinstance(s, str) and s.strip()
-        }
-    )
+    producers, regions, prod_meta = get_producers_regions_cached(db)
 
     variants = (ocr_step or {}).get("variants") or {}
     per_variant: dict[str, Any] = {}
@@ -1337,6 +1385,7 @@ def evaluate_ocr_wine_id_help(
                 default_idf=soft_default_idf,
                 fweights=fweights,
                 exclusive_reject_ids=exclusive_ids,
+                exclude_name=bool(fast_text_match),
             )
             soft_by_channel[key] = soft_rows
             by_soft = {int(r["id"]): r for r in soft_rows}
@@ -1667,6 +1716,17 @@ def evaluate_ocr_wine_id_help(
         ),
         "idf": soft_idf_meta,
         "channels": sorted(SOFT_CHANNELS),
+        "exclude_name": bool(fast_text_match),
+        "note": (
+            "IDF — веса редкости токенов по каталогу (не сравнение со всеми винами); "
+            "Soft score только vs visual top-N. "
+            + (
+                "fast: без CMS name/region в R и корпусе IDF."
+                if fast_text_match
+                else "legacy: R включает name/region."
+            )
+        ),
+        "producers_regions": prod_meta,
     }
 
     return {
@@ -1689,5 +1749,7 @@ def evaluate_ocr_wine_id_help(
         "variant_agreement_top": agreement,
         "visual_candidate_ids": visual_set,
         "candidate_count": len(candidate_wines),
+        "fast_text_match": bool(fast_text_match),
+        "path": "fast" if fast_text_match else "legacy",
         "ms": round((time.perf_counter() - t0) * 1000, 1),
     }

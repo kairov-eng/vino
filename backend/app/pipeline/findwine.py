@@ -3465,6 +3465,7 @@ def run_findwine(
             cands,
             use_translit=bool(pipe_settings.get("exclusive_use_translit", True)),
             match_spaced=bool(pipe_settings.get("exclusive_match_spaced", True)),
+            fast=bool(pipe_settings.get("fast_text_match", True)),
         )
 
     gated_wines = list(exclusive_wines)
@@ -3896,6 +3897,7 @@ def run_findwine(
                 # Soft TF-IDF нужен и для dead-XGB fallback, даже если fin2
                 # выключен в text_match_methods.
                 compute_fin2=use_fin2 or (final_method == "xgb"),
+                fast_text_match=bool(pipe_settings.get("fast_text_match", True)),
             )
             status["steps"]["ocr_wine_id"] = ocr_help
             top_id = None
@@ -4817,11 +4819,13 @@ def run_findwine(
                 status["analogs"] = find_analogs_from_wine(
                     int(matched_id),
                     cosine_by_id=cosine_by_id,
+                    hard_reject_ids=exclusive_reject_ids,
                 )
             else:
                 status["analogs"] = find_analogs(
                     str(xgb_ocr_text or exclusive_query or ""),
                     cosine_by_id=cosine_by_id,
+                    hard_reject_ids=exclusive_reject_ids,
                 )
         except Exception as exc:  # noqa: BLE001
             status["analogs"] = {"ok": False, "error": str(exc), "items": []}

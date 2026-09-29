@@ -220,7 +220,7 @@ function HistoryWineHoverPopup({
               )}
               {wine.xgb_fin != null && (
                 <li>
-                  <span>XGB_fin</span>
+                  <span>Final score</span>
                   <em>{formatScore01(wine.xgb_fin)}</em>
                 </li>
               )}
@@ -303,9 +303,9 @@ function HistoryXgbTopCard({
 
   const scoreLabel =
     wine.xgb_fin != null
-      ? 'XGB_fin'
+      ? 'Final score'
       : wine.fin2 != null
-        ? 'fin2'
+        ? 'Final score'
         : wine.cosine != null
           ? 'cos'
           : null
@@ -431,14 +431,15 @@ function HistoryScores({
     {
       const parts: string[] = []
       if (scores.xgb != null) parts.push(`XGB ${formatScore01(scores.xgb)}`)
-      if (scores.xgb_fin != null) parts.push(`XGB_fin ${formatScore01(scores.xgb_fin)}`)
+      if (scores.xgb_fin != null)
+        parts.push(`Final score ${formatScore01(scores.xgb_fin)}`)
       if (parts.length) lines.push(parts.join(' '))
     }
     {
       const parts: string[] = []
       if (scores.crenc != null) parts.push(`CrEnc ${formatScore01(scores.crenc)}`)
       if (scores.crenc_fin != null) {
-        parts.push(`CrEnc_fin ${formatScore01(scores.crenc_fin)}`)
+        parts.push(`Final score ${formatScore01(scores.crenc_fin)}`)
       }
       if (parts.length) lines.push(parts.join(' '))
     }
@@ -666,15 +667,23 @@ export function ScanHistoryPage() {
     return () => io.disconnect()
   }, [loadMore])
 
+  const highlightScrolledRef = useRef<number | null>(null)
+
   useEffect(() => {
-    if (highlightScanId == null) return
+    if (highlightScanId == null) {
+      highlightScrolledRef.current = null
+      return
+    }
+    // Scroll to the row once per highlight; do not re-jump when infinite
+    // scroll appends more items (that was yanking the page back up).
+    if (highlightScrolledRef.current === highlightScanId) return
+    const row = document.querySelector(
+      `tr[data-scan-id="${highlightScanId}"]`,
+    )
+    if (!row) return
+    highlightScrolledRef.current = highlightScanId
     const t = window.setTimeout(() => {
-      const row = document.querySelector(
-        `tr[data-scan-id="${highlightScanId}"]`,
-      )
-      if (row) {
-        row.scrollIntoView({ behavior: 'smooth', block: 'center' })
-      }
+      row.scrollIntoView({ behavior: 'smooth', block: 'center' })
     }, 80)
     return () => window.clearTimeout(t)
   }, [highlightScanId, items])

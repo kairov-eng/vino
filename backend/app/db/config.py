@@ -19,10 +19,14 @@ CORS_ORIGINS = [
     if o.strip()
 ]
 
-# Site access gate (cookie vino_site_password). Empty = gate disabled.
+# Admin password for PUT /api/settings. Empty = writes allowed without password.
+# Site itself is public (no access gate). password_user is unused / removed.
 PASSWORD_ADMIN = (os.getenv("password_admin") or "").strip()
-PASSWORD_USER = (os.getenv("password_user") or "").strip()
-SITE_ACCESS_ENABLED = bool(PASSWORD_ADMIN or PASSWORD_USER)
+
+# dev | prod — controls /v1/eval/predict registration and OpenAPI visibility.
+APP_ENV = (os.getenv("APP_ENV") or os.getenv("VINO_ENV") or "dev").strip().lower()
+IS_PROD = APP_ENV in {"prod", "production"}
+IS_DEV = not IS_PROD
 
 # Local wine images. Default: C:\dev\Vino2026\uploads (next to vino-svoe/)
 _default_media = ROOT.parent / "uploads"
