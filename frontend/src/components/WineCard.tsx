@@ -12,6 +12,7 @@ function escapeRegExp(value: string): string {
 /**
  * Catalog grid: prefer server thumbs at /media/t/... (webp).
  * Full-size stays at /media/... for detail pages / fallback.
+ * `v=2` busts browser cache after alpha-preserving thumb rebuild.
  */
 export function catalogThumbUrl(url: string | null | undefined): string | null {
   if (!url) return null
@@ -20,10 +21,9 @@ export function catalogThumbUrl(url: string | null | undefined): string | null {
   const rest = url.slice('/media/'.length)
   const q = rest.indexOf('?')
   const path = q >= 0 ? rest.slice(0, q) : rest
-  const qs = q >= 0 ? rest.slice(q) : ''
-  const dot = path.lastIndexOf('.')
-  const stem = dot > 0 ? path.slice(0, dot) : path
-  return `/media/t/${stem}.webp${qs}`
+  const stemDot = path.lastIndexOf('.')
+  const stem = stemDot > 0 ? path.slice(0, stemDot) : path
+  return `/media/t/${stem}.webp?v=2`
 }
 
 /** Bold matches only at word starts (same rule as backend). */
