@@ -1,7 +1,11 @@
-# Vino Svoe — production stack for vino-svoe.online
+# Vino Svoe — production stack for vino-svoe.online (aidispatcher:/opt/vino-svoe)
 # Containers: vino_postgres (pgvector), vino_backend, vino_frontend
-# Embeddings on the same host: distrib/docker-compose.embeddings.yml
-#   (siglip2-embed :8090, dinov3-embed :8091 → nginx /api_siglip2 /api_dinov3)
+#
+# Sidecars on the same host (отдельные compose, не этот файл):
+#   /opt/siglip2              → siglip2-embed :8090   (или docker-compose.embeddings.yml)
+#   /opt/dinov3               → dinov3-embed  :8091
+#   /opt/gemini-vision-proxy  → vino-gemini-vision-proxy :8093
+#   services/cross-encoder-server → cross-encoder-matcher :8094
 #
 # Build & run (from vino-svoe/):
 #   docker compose -f distrib/docker-compose.yml --env-file distrib/.env up -d --build

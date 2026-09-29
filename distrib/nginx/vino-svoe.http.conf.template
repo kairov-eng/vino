@@ -1,0 +1,15 @@
+# vino-svoe.online — HTTP only (ACME + deny site)
+server {
+    listen 80;
+    server_name ${VINO_SVOE_DOMAIN} www.${VINO_SVOE_DOMAIN};
+
+    location /.well-known/acme-challenge/ {
+        root /var/www/certbot;
+    }
+
+    # Do not serve aidispatcher frontend on this host
+    location / {
+        default_type application/json;
+        return 404 '{"error":"not_found","message":"vino-svoe.online serves API only"}';
+    }
+}

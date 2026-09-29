@@ -1,0 +1,54 @@
+# Gemini Vision Proxy — как на prod (/opt/gemini-vision-proxy).
+# Контейнер: vino-gemini-vision-proxy (:8093)
+# nginx: /health и /v1/ → этот контейнер (см. nginx/vino-svoe.https.conf.template)
+#
+# Backend: GEMINI_PROXY_URL=https://vino-svoe.online
+#
+# Из vino-svoe/:
+#   cp distrib/gemini-proxy.env.example distrib/gemini-proxy.env
+#   docker compose -f distrib/docker-compose.gemini-proxy.yml \
+#     --env-file distrib/gemini-proxy.env up -d --build
+#
+# На проде сейчас:
+#   cd /opt/gemini-vision-proxy && docker compose up -d
+
+name: vino_gemini
+
+services:
+  gemini-proxy:
+    build:
+      context: ./gemini-vision-proxy
+      dockerfile: Dockerfile
+    image: vino-gemini-vision-proxy:latest
+    container_name: vino-gemini-vision-proxy
+    ports:
+      - "8093:8093"
+    env_file:
+      - gemini-proxy.env
+    environment:
+      GEMINI_MODEL: ${GEMINI_MODEL:-gemini-3.6-flash}
+      GEMINI_MAX_RPM: ${GEMINI_MAX_RPM:-15}
+      GEMINI_RPM_WINDOW_SEC: ${GEMINI_RPM_WINDOW_SEC:-60}
+    restart: unless-stopped
+    mem_limit: 512m
+    cpus: 1.0
+    networks:
+      - default
+      - aidnet
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "python",
+          "-c",
+          "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8093/health', timeout=3)",
+        ]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 15s
+
+networks:
+  aidnet:
+    external: true
+    name: ${AIDNET_NAME:-aidispatcher_aidnet}

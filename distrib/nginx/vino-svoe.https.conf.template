@@ -1,0 +1,168 @@
+# vino-svoe.online — HTTP → HTTPS + ACME
+server {
+    listen 80;
+    server_name ${VINO_SVOE_DOMAIN} www.${VINO_SVOE_DOMAIN};
+
+    location /.well-known/acme-challenge/ {
+        root /var/www/certbot;
+    }
+
+    location / {
+        return 301 https://$host$request_uri;
+    }
+}
+
+# vino-svoe.online — HTTPS API only (embeddings + gemini proxy)
+# Root does NOT proxy to aidispatcher frontend.
+server {
+    listen 443 ssl;
+    http2 on;
+    server_name ${VINO_SVOE_DOMAIN} www.${VINO_SVOE_DOMAIN};
+
+    ssl_certificate     /etc/letsencrypt/live/${VINO_SVOE_DOMAIN}/fullchain.pem;
+    ssl_certificate_key /etc/letsencrypt/live/${VINO_SVOE_DOMAIN}/privkey.pem;
+    ssl_session_timeout 1d;
+    ssl_session_cache shared:SSL:10m;
+    ssl_protocols TLSv1.2 TLSv1.3;
+
+    client_max_body_size 20m;
+
+    # Vino Svoe eval alias (public) — must be before generic /v1/ (gemini).
+    # /v1/eval/predict is intentionally NOT published on the server.
+    location = /v1/eval/predict_public {
+        resolver 127.0.0.11 valid=30s ipv6=off;
+        set $vino_be http://vino_backend:8092;
+        proxy_http_version 1.1;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto https;
+        proxy_set_header Connection "";
+        proxy_read_timeout 300s;
+        client_max_body_size 25m;
+        proxy_pass $vino_be;
+    }
+
+    location = /v1/eval/predict {
+        return 404;
+    }
+
+    # Gemini Vision Proxy (container vino-gemini-vision-proxy)
+    location = /health {
+        resolver 127.0.0.11 valid=30s ipv6=off;
+        set $gemini_upstream http://vino-gemini-vision-proxy:8093;
+        proxy_http_version 1.1;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto https;
+        proxy_set_header Connection "";
+        proxy_read_timeout 120s;
+        proxy_pass $gemini_upstream;
+    }
+
+    location /v1/ {
+        resolver 127.0.0.11 valid=30s ipv6=off;
+        set $gemini_upstream http://vino-gemini-vision-proxy:8093;
+        proxy_http_version 1.1;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto https;
+        proxy_set_header Connection "";
+        proxy_read_timeout 300s;
+        client_max_body_size 20m;
+        proxy_pass $gemini_upstream;
+    }
+
+    # SigLIP2 embeddings
+    location /api_siglip2/ {
+        resolver 127.0.0.11 valid=30s ipv6=off;
+        set $siglip_upstream http://siglip2-embed:8090;
+        rewrite ^/api_siglip2/(.*)$ /$1 break;
+        proxy_http_version 1.1;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto https;
+        proxy_set_header Connection "";
+        proxy_read_timeout 300s;
+        client_max_body_size 20m;
+        proxy_pass $siglip_upstream;
+    }
+
+    # DINOv3 embeddings
+    location /api_dinov3/ {
+        resolver 127.0.0.11 valid=30s ipv6=off;
+        set $dinov3_upstream http://dinov3-embed:8091;
+        rewrite ^/api_dinov3/(.*)$ /$1 break;
+        proxy_http_version 1.1;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto https;
+        proxy_set_header Connection "";
+        proxy_read_timeout 300s;
+        client_max_body_size 20m;
+        proxy_pass $dinov3_upstream;
+    }
+
+    # CrossEncoder matcher
+    location /api_cross_encoder_matcher/ {
+        resolver 127.0.0.11 valid=30s ipv6=off;
+        set $crenc_upstream http://cross-encoder-matcher:8094;
+        rewrite ^/api_cross_encoder_matcher/(.*)$ /$1 break;
+        proxy_http_version 1.1;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto https;
+        proxy_set_header Connection "";
+        proxy_read_timeout 300s;
+        client_max_body_size 5m;
+        proxy_pass $crenc_upstream;
+    }
+
+    # Vino Svoe app API (container vino_backend)
+    location /api/ {
+        resolver 127.0.0.11 valid=30s ipv6=off;
+        set $vino_be http://vino_backend:8092;
+        proxy_http_version 1.1;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto https;
+        proxy_set_header Connection "";
+        proxy_read_timeout 300s;
+        client_max_body_size 25m;
+        proxy_pass $vino_be;
+    }
+
+    # Catalog photos: nginx → vino_frontend (static alias), not FastAPI
+    location /media/ {
+        resolver 127.0.0.11 valid=30s ipv6=off;
+        set $vino_fe http://vino_frontend:80;
+        proxy_http_version 1.1;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto https;
+        proxy_set_header Connection "";
+        proxy_read_timeout 60s;
+        proxy_pass $vino_fe;
+    }
+
+    # SPA (container vino_frontend)
+    location / {
+        resolver 127.0.0.11 valid=30s ipv6=off;
+        set $vino_fe http://vino_frontend:80;
+        proxy_http_version 1.1;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto https;
+        proxy_set_header Connection "";
+        proxy_read_timeout 300s;
+        proxy_pass $vino_fe;
+    }
+}
